@@ -17,6 +17,10 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         mavenLocal()
+        // Add the Sonatype Snapshots repository
+        maven {
+            url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        }
         exclusiveContent {
             forRepository {
                 ivy("https://nodejs.org/dist") {
