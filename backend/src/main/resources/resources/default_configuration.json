@@ -1,0 +1,146 @@
+{
+  "server_port": 8010,
+  "ca_trust_servers": [
+    "*.multipaz.org/**"
+  ],
+  "googleSiteVerificationToken": "cw2ys6RPj5iMpQOfZYz0tOWzWUro1V-DixUZjmIdNQA",
+  "client_id": "urn:uuid:c4011939-b5f3-4320-9832-fcebfab91ba5",
+  "wallet_name": "Multipaz Wallet Dev",
+  "wallet_link": "https://dev.wallet.multipaz.org",
+  "server_identities": {
+    "client_assertion": {
+      "kty": "EC",
+      "alg": "ES256",
+      "kid": "895b72b9-0808-4fcc-bb19-960d14a9e28f",
+      "crv": "P-256",
+      "x": "nSmAFnZx-SqgTEyqqOSmZyLESdbiSUIYlRlLLoWy5uc",
+      "y": "FN1qcif7nyVX1MHN_YSbo7o7RgG2kPJUjg27YX6AKsQ",
+      "d": "TdQhxDqbAUpzMJN5XXQqLea7-6LvQu2GFKzj5QmFDCw"
+    },
+    "wallet_attestation": {
+      "kty": "EC",
+      "alg": "ES256",
+      "crv": "P-256",
+      "x": "CoLFZ9sJfTqax-GarKIyw7_fX8-L446AoCTSHKJnZGs",
+      "y": "ALEJB1_YQMO_0qSFQb3urFTxRfANN8-MSeWLHYU7MVI",
+      "d": "nJXw7FqLff14yQLBEAwu70mu1gzlfOONh9UuealdsVM",
+      "x5c": [
+        "MIIBtDCCATugAwIBAgIJAPosC/l8rotwMAoGCCqGSM49BAMCMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNTA5MzAwMjUxNDRaFw0zNTA5MjgwMjUxNDRaMDgxNjA0BgNVBAMMLXVybjp1dWlkOjRjNDY0NzJiLTdlYjItNDRiNi04NTNhLWY3ZGZlMTEzYzU3NTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAqCxWfbCX06msfhmqyiMsO/31/Pi+OOgKAk0hyiZ2RrALEJB1/YQMO/0qSFQb3urFTxRfANN8+MSeWLHYU7MVKjLjAsMB8GA1UdIwQYMBaAFPqAK5EjiQbxFAeWt//DCaWtC57aMAkGA1UdEwQCMAAwCgYIKoZIzj0EAwIDZwAwZAIwfDEviit5J188zK5qKjkzFWkPy3ljshUg650p2kNuQq7CiQvbKyVDIlCGgOhMZyy+AjBm6ehDicFMPVBEHLUEiXO4cHw7Ed6dFpPm/6GknWcADhax62KN1tIzExo6T1l06G4=",
+        "MIIBxTCCAUugAwIBAgIJAOQTL9qcQopZMAoGCCqGSM49BAMDMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNDA5MjMyMjUxMzFaFw0zNDA5MjMyMjUxMzFaMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjB2MBAGByqGSM49AgEGBSuBBAAiA2IABN4D7fpNMAv4EtxyschbITpZ6iNH90rGapa6YEO/uhKnC6VpPt5RUrJyhbvwAs0edCPthRfIZwfwl5GSEOS0mKGCXzWdRv4GGX/Y0m7EYypox+tzfnRTmoVX3v6OxQiapKMhMB8wHQYDVR0OBBYEFPqAK5EjiQbxFAeWt//DCaWtC57aMAoGCCqGSM49BAMDA2gAMGUCMEO01fJKCy+iOTpaVp9LfO7jiXcXksn2BA22reiR9ahDRdGNCrH1E3Q2umQAssSQbQIxAIz1FTHbZPcEbA5uE5lCZlRG/DQxlZhk/rZrkPyXFhqEgfMnQ45IJ6f8Utlg+4Wiiw=="
+      ]
+    },
+    "key_attestation": {
+      "kty": "EC",
+      "alg": "ES256",
+      "crv": "P-256",
+      "x": "CoLFZ9sJfTqax-GarKIyw7_fX8-L446AoCTSHKJnZGs",
+      "y": "ALEJB1_YQMO_0qSFQb3urFTxRfANN8-MSeWLHYU7MVI",
+      "d": "nJXw7FqLff14yQLBEAwu70mu1gzlfOONh9UuealdsVM",
+      "x5c": [
+        "MIIBtDCCATugAwIBAgIJAPosC/l8rotwMAoGCCqGSM49BAMCMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNTA5MzAwMjUxNDRaFw0zNTA5MjgwMjUxNDRaMDgxNjA0BgNVBAMMLXVybjp1dWlkOjRjNDY0NzJiLTdlYjItNDRiNi04NTNhLWY3ZGZlMTEzYzU3NTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAqCxWfbCX06msfhmqyiMsO/31/Pi+OOgKAk0hyiZ2RrALEJB1/YQMO/0qSFQb3urFTxRfANN8+MSeWLHYU7MVKjLjAsMB8GA1UdIwQYMBaAFPqAK5EjiQbxFAeWt//DCaWtC57aMAkGA1UdEwQCMAAwCgYIKoZIzj0EAwIDZwAwZAIwfDEviit5J188zK5qKjkzFWkPy3ljshUg650p2kNuQq7CiQvbKyVDIlCGgOhMZyy+AjBm6ehDicFMPVBEHLUEiXO4cHw7Ed6dFpPm/6GknWcADhax62KN1tIzExo6T1l06G4=",
+        "MIIBxTCCAUugAwIBAgIJAOQTL9qcQopZMAoGCCqGSM49BAMDMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjAeFw0yNDA5MjMyMjUxMzFaFw0zNDA5MjMyMjUxMzFaMDgxNjA0BgNVBAMTLXVybjp1dWlkOjYwZjhjMTE3LWI2OTItNGRlOC04ZjdmLTYzNmZmODUyYmFhNjB2MBAGByqGSM49AgEGBSuBBAAiA2IABN4D7fpNMAv4EtxyschbITpZ6iNH90rGapa6YEO/uhKnC6VpPt5RUrJyhbvwAs0edCPthRfIZwfwl5GSEOS0mKGCXzWdRv4GGX/Y0m7EYypox+tzfnRTmoVX3v6OxQiapKMhMB8wHQYDVR0OBBYEFPqAK5EjiQbxFAeWt//DCaWtC57aMAoGCCqGSM49BAMDA2gAMGUCMEO01fJKCy+iOTpaVp9LfO7jiXcXksn2BA22reiR9ahDRdGNCrH1E3Q2umQAssSQbQIxAIz1FTHbZPcEbA5uE5lCZlRG/DQxlZhk/rZrkPyXFhqEgfMnQ45IJ6f8Utlg+4Wiiw=="
+      ]
+    }
+  },
+  "client_requirements": {
+    "software": {
+      "accepted": true,
+      "secrets": ["1234567890"]
+    },
+    "ios": {
+      "release_build": false,
+      "app_identifiers": [
+        "VKE2G3K56V.org.multipaz.wallet.iosApp"
+      ],
+      "secrets": ["1234567890"]
+    },
+    "android": {
+      "gms_attestation": false,
+      "verified_boot_green": false,
+      "keystore_security_level": "software",
+      "app_signature_certificate_digests": [
+        "BD:83:1F:FD:6D:AF:5C:10:80:F6:F2:85:44:3E:96:D7:2E:E2:71:60:FF:CD:7B:51:9D:37:F0:AE:1A:09:BB:1F"
+      ],
+      "app_packages": [
+        "org.multipaz.wallet.android"
+      ],
+      "secrets": ["1234567890"]
+    }
+  },
+  "public_data": {
+    "version": "2026_0402_1748",
+    "trusted_issuers": [
+      {
+        "display_name": "Multipaz Utopia Issuer",
+        "display_icon_url": "https://www.multipaz.org/multipaz-logo-200x200.png",
+        "test_only": true,
+        "certificate": "-----BEGIN CERTIFICATE-----\nMIICvTCCAkKgAwIBAgIQGae+XGbhr63RY7K+8qcoGTAKBggqhkjOPQQDAzBOMT8wPQYDVQQDDDZP\ncGVuSUQ0VkNJIFJvb3QgYXQgaHR0cHM6Ly9pc3N1ZXIubXVsdGlwYXoub3JnL3JlY29yZHMxCzAJ\nBgNVBAYMAlVTMB4XDTI2MDEwNTE2MTkxMVoXDTQxMDEwMTE2MTkxMVowTjE/MD0GA1UEAww2T3Bl\nbklENFZDSSBSb290IGF0IGh0dHBzOi8vaXNzdWVyLm11bHRpcGF6Lm9yZy9yZWNvcmRzMQswCQYD\nVQQGDAJVUzB2MBAGByqGSM49AgEGBSuBBAAiA2IABJdqwFT75XRwnTtjNrLC0Nxr2Sig+3eAJcCq\nhBpf7+/G8JEmH4Qm3RmJCs/x7gG3HRK3i4EF6vpuUdjD9W8r9SpTDeB5HEEFwCBVAGjxXpjHjWgu\nQPz0hSNL3kxmLV/TeqOB5DCB4TAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBADAu\nBgNVHRIEJzAlhiNodHRwczovL2lzc3Vlci5tdWx0aXBhei5vcmcvcmVjb3JkczBLBgNVHR8ERDBC\nMECgPqA8hjpodHRwczovL2lzc3Vlci5tdWx0aXBhei5vcmcvcmVjb3Jkcy9jcmwvY3JlZGVudGlh\nbF9zaWduaW5nMB0GA1UdDgQWBBQhFDa78rDnSUTQYRLvyQ4q0NDQuzAfBgNVHSMEGDAWgBQhFDa7\n8rDnSUTQYRLvyQ4q0NDQuzAKBggqhkjOPQQDAwNpADBmAjEAx0yXAeGEGk6fILMjGhgWurcO8+SG\nXNtN+LxjJ44Smvrzso1TRsMuNYrFEM5+TJkUAjEAhr/sIbjOVBifcjZYMyNHitwgCJyY+40MstjX\nu/YcDSz6dBNZ5mAillH9vpjOP2uZ\n-----END CERTIFICATE-----"
+      }
+    ],
+    "trusted_readers": [
+      {
+        "display_name": "Multipaz Identity Reader",
+        "display_icon_url": "https://www.multipaz.org/multipaz-identity-reader-192x192.webp",
+        "certificate": "-----BEGIN CERTIFICATE-----\nMIICYTCCAeegAwIBAgIQOSV5JyesOLKHeDc+0qmtuTAKBggqhkjOPQQDAzAzMQswCQYDVQQGDAJV\nUzEkMCIGA1UEAwwbTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBMB4XDTI1MDcwNTEyMjAyMVoX\nDTMwMDcwNTEyMjAyMVowMzELMAkGA1UEBgwCVVMxJDAiBgNVBAMMG011bHRpcGF6IElkZW50aXR5\nIFJlYWRlciBDQTB2MBAGByqGSM49AgEGBSuBBAAiA2IABD4UX5jabDLuRojEp9rsZkAEbP8Icuj3\nqN4wBUYq6UiOkoULMOLUb+78Ygonm+sJRwqyDJ9mxYTjlqliW8PpDfulQZejZo2QGqpB9JPInkrC\nBol5T+0TUs0ghkE5ZQBsVKOBvzCBvDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIB\nADBWBgNVHR8ETzBNMEugSaBHhkVodHRwczovL2dpdGh1Yi5jb20vb3BlbndhbGxldC1mb3VuZGF0\naW9uLWxhYnMvaWRlbnRpdHktY3JlZGVudGlhbC9jcmwwHQYDVR0OBBYEFM+kr4eQcxKWLk16F2Rq\nzBxFcZshMB8GA1UdIwQYMBaAFM+kr4eQcxKWLk16F2RqzBxFcZshMAoGCCqGSM49BAMDA2gAMGUC\nMQCQ+4+BS8yH20KVfSK1TSC/RfRM4M9XNBZ+0n9ePg9ftXUFt5e4lBddK9mL8WznJuoCMFuk8ey4\nlKnb4nubv5iPIzwuC7C0utqj7Fs+qdmcWNrSYSiks2OEnjJiap1cPOPk2g==\n-----END CERTIFICATE-----"
+      },
+      {
+        "display_name": "Multipaz Identity Reader (Untrusted Devices)",
+        "display_icon_url": "https://www.multipaz.org/multipaz-identity-reader-192x192.webp",
+        "test_only": true,
+        "certificate": "-----BEGIN CERTIFICATE-----\nMIICiTCCAg+gAwIBAgIQQd/7PXEzsmI+U14J2cO1bjAKBggqhkjOPQQDAzBHMQswCQYDVQQGDAJV\nUzE4MDYGA1UEAwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNl\ncykwHhcNMjUwNzE5MjMwODE0WhcNMzAwNzE5MjMwODE0WjBHMQswCQYDVQQGDAJVUzE4MDYGA1UE\nAwwvTXVsdGlwYXogSWRlbnRpdHkgUmVhZGVyIENBIChVbnRydXN0ZWQgRGV2aWNlcykwdjAQBgcq\nhkjOPQIBBgUrgQQAIgNiAATqihOe05W3nIdyVf7yE4mHJiz7tsofcmiNTonwYsPKBbJwRTHa7AME\n+ToAfNhPMaEZ83lBUTBggsTUNShVp1L5xzPS+jK0tGJkR2ny9+UygPGtUZxEOulGK5I8ZId+35Gj\ngb8wgbwwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQAwVgYDVR0fBE8wTTBLoEmg\nR4ZFaHR0cHM6Ly9naXRodWIuY29tL29wZW53YWxsZXQtZm91bmRhdGlvbi1sYWJzL2lkZW50aXR5\nLWNyZWRlbnRpYWwvY3JsMB0GA1UdDgQWBBSbz9r9IFmXjiGGnH3Siq90geurxTAfBgNVHSMEGDAW\ngBSbz9r9IFmXjiGGnH3Siq90geurxTAKBggqhkjOPQQDAwNoADBlAjEAomqjfJe2k162S5Way3sE\nBTcj7+DPvaLJcsloEsj/HaThIsKWqQlQKxgNu1rE/XryAjB/Gq6UErgWKlspp+KpzuAAWaKk+bMj\ncM4aKOKOU3itmB+9jXTQ290Dc8MnWVwQBs4=\n-----END CERTIFICATE-----"
+      },
+      {
+        "display_name": "Multipaz Identity Verifier",
+        "display_icon_url": "https://www.multipaz.org/multipaz-identity-reader-192x192.webp",
+        "certificate": "-----BEGIN CERTIFICATE-----\nMIICaTCCAe+gAwIBAgIQtzUvFDCKLUBWQAZ4UnCw5zAKBggqhkjOPQQDAzA3MQswCQYDVQQGDAJV\nUzEoMCYGA1UEAwwfdmVyaWZpZXIubXVsdGlwYXoub3JnIFJlYWRlciBDQTAeFw0yNTA2MTkyMjE2\nMzJaFw0zMDA2MTkyMjE2MzJaMDcxCzAJBgNVBAYMAlVTMSgwJgYDVQQDDB92ZXJpZmllci5tdWx0\naXBhei5vcmcgUmVhZGVyIENBMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEa6oCzC8rfHfwVOmQf83W\nyHEQFE8HrLK+NxsufJDrSFgMXjhRvPt3fIjlMyRAaf94Y25Ux9tXg+28EzzB/xG7q8P/FQ9nOSJk\nw4cQJVdD/ufN599uVdfp1URdG95Vncuoo4G/MIG8MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8E\nCDAGAQH/AgEAMFYGA1UdHwRPME0wS6BJoEeGRWh0dHBzOi8vZ2l0aHViLmNvbS9vcGVud2FsbGV0\nLWZvdW5kYXRpb24tbGFicy9pZGVudGl0eS1jcmVkZW50aWFsL2NybDAdBgNVHQ4EFgQUsYQ5hS9K\nbuq/6mKtvFHQgfdIhykwHwYDVR0jBBgwFoAUsYQ5hS9Kbuq/6mKtvFHQgfdIhykwCgYIKoZIzj0E\nAwMDaAAwZQIwKh87sK/cMbzuc9PFvyiSRedr2RoP0fuFK0X8ddOpi6hEMOapHL/Gs/QByROCpDpk\nAjEA2yLSJDZEu1GI8uChAsDBZwJPtv5KHUjq1Vpok69SNn+zzb1mNpqmiey+tchPBjZm\n-----END CERTIFICATE-----"
+      },
+      {
+        "display_name": "David's Identity Verifier",
+        "display_icon_url": "https://www.multipaz.org/multipaz-identity-reader-192x192.webp",
+        "certificate": "-----BEGIN CERTIFICATE-----\nMIICfjCCAgSgAwIBAgIQJcmMK89tPNDdH7WpEBuqQDAKBggqhkjOPQQDAzBAMTEwLwYDVQQDDChW\nZXJpZmllciBSb290IGF0IGh0dHBzOi8vd3MuZGF2aWR6MjUubmV0MQswCQYDVQQGDAJVUzAeFw0y\nNjAxMjgxMzExMDhaFw00MTAxMjQxMzExMDhaMEAxMTAvBgNVBAMMKFZlcmlmaWVyIFJvb3QgYXQg\naHR0cHM6Ly93cy5kYXZpZHoyNS5uZXQxCzAJBgNVBAYMAlVTMHYwEAYHKoZIzj0CAQYFK4EEACID\nYgAEuSk/1XRVNYel5yV3RgxtUNlUE85dLTjyKItqz1RUNyOZ7ZHzH4oadb6WnCcLbl5Px+f6i8yt\ncyh4diTQWG2gtuSRxo05PfeZR2rBy0ToZvoVgI9j8nDbfyRGEMrSTHf4o4HCMIG/MA4GA1UdDwEB\n/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMCIGA1UdEgQbMBmGF2h0dHBzOi8vd3MuZGF2aWR6\nMjUubmV0MDUGA1UdHwQuMCwwKqAooCaGJGh0dHBzOi8vd3MuZGF2aWR6MjUubmV0L2NybC92ZXJp\nZmllcjAdBgNVHQ4EFgQU1TlDuv6QRGOCxyVsiV4KfUT0yvMwHwYDVR0jBBgwFoAU1TlDuv6QRGOC\nxyVsiV4KfUT0yvMwCgYIKoZIzj0EAwMDaAAwZQIwUSENplERttXfOr7yHxbdIhcHdlVEaXLUDbPy\nXcXW1hbL168wE0ykh6v0grJcD/P1AjEA23KTndS1cXfSi5jLDyB+OZY6O5EpVhxjxwZDwucfo2L1\nzPTt/emPh8XuL625gPbY\n-----END CERTIFICATE-----"
+      }
+    ]
+  },
+  "provisioning": {
+    "credential_issuers": [
+      {
+        "name": "Utopia Driving License",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-mdl.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer",
+        "id": "mDL"
+      },
+      {
+        "name": "Utopia PID",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-pid.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer",
+        "id": "pid_mdoc"
+      },
+      {
+        "name": "Utopia Age Verification",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-age-verification.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer",
+        "id": "mDoc-AgeVerification"
+      },
+      {
+        "name": "Utopia Payment Card",
+        "icon_url": "https://issuer.multipaz.org/issuer/card_payment_sca_v2.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer",
+        "id": "payment_sca_mdoc"
+      },
+      {
+        "name": "Utopia Wholesale Loyalty Card",
+        "icon_url": "https://issuer.multipaz.org/issuer/card_utopia_wholesale.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer",
+        "id": "utopia_wholesale"
+      }
+    ]
+  },
+  "eula": {
+    "en": "# Multipaz Wallet (Dev)\n\nThis is a sample End User License Agreement.\n\nBy using this application, you agree to the following terms and conditions:\n\n1. Use the application at your own risk.\n2. Do not use the application for illegal purposes.\n3. We are not responsible for any data loss.\n4. You must comply with all applicable local, state, national, and international laws, rules and regulations.\n5. The software is provided \"as is\", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement.\n6. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.\nPlease scroll to the bottom to accept.\n\n### Introduction\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n### Stuff\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n### More stuff\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+  }
+}

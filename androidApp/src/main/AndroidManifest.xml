@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- For QR scanning -->
+    <uses-feature android:name="android.hardware.camera"/>
+    <uses-feature android:name="android.hardware.camera.autofocus"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+
+    <!-- For BLE -->
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Request legacy Bluetooth permissions on older devices. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+
+    <!-- For activity logging location (and legacy Bluetooth on older devices) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- For NFC engagement -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:theme="@style/Theme.MultipazWallet"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- AppLink used by provisioning backend, keep in sync with WalletClient.
+                 The applinkHost parameter is defined in build.gradle.kts.
+             -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="${applinkHost}"
+                    android:pathPattern="/redirect"/>
+            </intent-filter>
+
+            <!-- OpenID4VCI Credential Offers -->
+            <!-- Examples: openid-credential-offer://, haip:// -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--  OpenId Credential Offer scheme (OID4VCI) -->
+                <data android:scheme="openid-credential-offer"/>
+                <!--  High Assurance Interoperability Profile -->
+                <data android:scheme="haip-vci"/>
+                <!-- Accept all hosts for any of the defined schemes above -->
+                <data android:host="*"/>
+            </intent-filter>
+
+            <!-- Support for application/vnd.multipaz.mpzpass MIME type and associated .mpzpass file extension -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/vnd.multipaz.mpzpass" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.mpzpass" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".WalletCredentialManagerPresentmentActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:theme="@style/NavigationActivityTheme"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="androidx.credentials.registry.provider.action.GET_CREDENTIAL" />
+                <action android:name="androidx.identitycredentials.action.GET_CREDENTIALS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".WalletUriSchemePresentmentActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:theme="@style/NavigationActivityTheme"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--  Various OpenID4VP schemes -->
+                <data android:scheme="haip-vp"/>
+                <data android:scheme="openid4vp"/>
+                <data android:scheme="mdoc"/>
+                <!-- Accept all hosts for any of the defined schemes above -->
+                <data android:host="*"/>
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".WalletMdocNdefService"
+            android:exported="true"
+            android:label="@string/nfc_ndef_service_description"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/nfc_ndef_service" />
+        </service>
+
+        <service
+            android:name=".WalletQuickAccessWalletService"
+            android:label="@string/app_name"
+            android:icon="@drawable/ic_stat_name"
+            android:logo="@drawable/ic_launcher_foreground"
+            android:permission="android.permission.BIND_QUICK_ACCESS_WALLET_SERVICE"
+            android:exported="true"
+            tools:targetApi="30">
+            <intent-filter>
+                <action android:name="android.service.quickaccesswallet.QuickAccessWalletService" />
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+            <meta-data android:name="android.quickaccesswallet"
+                android:resource="@xml/quickaccesswallet_configuration" />
+            <meta-data
+                android:name="android.quickaccesswallet.tile"
+                android:resource="@drawable/ic_stat_name"/>
+        </service>
+
+        <service
+            android:name=".WalletMdocNfcDataTransferService"
+            android:exported="true"
+            android:label="@string/nfc_ndef_service_description"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/mdoc_nfc_data_transfer_service" />
+        </service>
+    </application>
+
+</manifest>
