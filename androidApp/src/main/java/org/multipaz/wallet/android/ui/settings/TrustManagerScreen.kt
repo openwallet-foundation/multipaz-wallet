@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.settings
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -155,6 +156,7 @@ private fun FloatingActionButtonMenu(
         }
     }
 }
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrustManagerScreen(

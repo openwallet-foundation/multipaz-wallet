@@ -224,7 +224,6 @@ class WalletClientTest {
     private suspend fun getPass1() = createPass("pass1", 1L)
     private suspend fun getPass1v2() = createPass("pass1", 2L)
     private suspend fun getPass2() = createPass("pass2", 1L)
-    private suspend fun getPass2v2() = createPass("pass2", 2L)
     private suspend fun getPass3() = createPass("pass3", 1L)
 
     private suspend fun TestScope.createWalletClientBase(
@@ -670,9 +669,7 @@ class WalletClientTest {
     fun testDocumentStoreSyncMpzPass() = runTest {
         val pass1 = getPass1()
         val pass2 = getPass2()
-        val pass3 = getPass3()
         val pass1v2 = getPass1v2()
-        val pass2v2 = getPass2v2()
 
         val storage = EphemeralStorage()
         val softwareSecureArea = SoftwareSecureArea.create(storage)
