@@ -40,6 +40,7 @@ import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
+import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -308,7 +309,12 @@ fun NavGraphBuilder.mainGraph(
                             explicitSignIn = true,
                             resetEncryptionKey = false,
                         )
-                        documentStore.syncWithSharedData(walletClient.sharedData.value!!)
+                        documentStore.syncWithSharedData(
+                            sharedData = walletClient.sharedData.value!!,
+                            mpzPassIsoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
+                            mpzPassSdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
+                            mpzPassKeylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+                        )
                         isSigningIn.value = false
                     }
                 },

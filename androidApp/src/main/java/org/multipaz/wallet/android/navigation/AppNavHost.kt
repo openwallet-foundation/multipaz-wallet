@@ -292,7 +292,12 @@ internal suspend fun appJustLaunched(
         try {
             Logger.i(TAG, "Refreshing shared data with wallet backend at start-up")
             walletClient.refreshSharedData()
-            documentStore.syncWithSharedData(walletClient.sharedData.value!!)
+            documentStore.syncWithSharedData(
+                sharedData = walletClient.sharedData.value!!,
+                mpzPassIsoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
+                mpzPassSdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
+                mpzPassKeylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+            )
         } catch (e: WalletBackendNotSignedInException) {
             Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)
         } catch (e: WalletClientBackendUnreachableException) {
