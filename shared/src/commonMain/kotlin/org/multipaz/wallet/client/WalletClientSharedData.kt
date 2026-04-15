@@ -84,9 +84,9 @@ data class WalletClientSharedData(
  */
 suspend fun DocumentStore.syncWithSharedData(
     sharedData: WalletClientSharedData,
-    mpzPassIsoMdocDomain: String = "mdoc",
-    mpzPassSdJwtVcDomain: String = "sdjwtvc",
-    mpzPassKeylessSdJwtVcDomain: String = "sdjwtvc_keyless"
+    mpzPassIsoMdocDomain: String,
+    mpzPassSdJwtVcDomain: String,
+    mpzPassKeylessSdJwtVcDomain: String
 ) {
     syncMpzPasses(
         sharedData = sharedData,

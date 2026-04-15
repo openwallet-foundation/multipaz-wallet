@@ -709,7 +709,12 @@ class WalletClientTest {
         assertEquals(0, client1DocumentStore.listDocuments().size)
         // ... and import a pass and add that pass to SharedData (source of truth)
         client1.setSharedData(client1.sharedData.value!!.addMpzPass(pass1))
-        client1DocumentStore.syncWithSharedData(client1.sharedData.value!!)
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
 
         // Now simulate signing in from another device and check we get the same data
@@ -732,23 +737,43 @@ class WalletClientTest {
         ) {}
         assertEquals(fooUser, client2.signedInUser.value)
         assertEquals(0, client2DocumentStore.listDocuments().size)
-        client2DocumentStore.syncWithSharedData(client2.sharedData.value!!)
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertNotNull(client2DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
 
         // Add pass2 to client2 ...
         client2.setSharedData(client2.sharedData.value!!.addMpzPass(pass2))
-        client2DocumentStore.syncWithSharedData(client2.sharedData.value!!)
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         // ... check it's updated on client1
         assertEquals(1, client1DocumentStore.listDocuments().size)
         assertTrue(client1.refreshSharedData())
-        client1DocumentStore.syncWithSharedData(client1.sharedData.value!!)
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertEquals(2, client1DocumentStore.listDocuments().size)
         assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
         assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
 
         // Update pass1 on client1 to v2 ...
         client1.setSharedData(client1.sharedData.value!!.removeMpzPass(pass1).addMpzPass(pass1v2))
-        client1DocumentStore.syncWithSharedData(client1.sharedData.value!!)
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertNotNull(client1DocumentStore.listDocuments().find {
             it.mpzPassId == pass1v2.uniqueId && it.mpzPassVersion == pass1v2.version
         })
@@ -757,7 +782,12 @@ class WalletClientTest {
             it.mpzPassId == pass1.uniqueId && it.mpzPassVersion == pass1.version
         })
         assertTrue(client2.refreshSharedData())
-        client2DocumentStore.syncWithSharedData(client2.sharedData.value!!)
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertNotNull(client2DocumentStore.listDocuments().find {
             it.mpzPassId == pass1v2.uniqueId && it.mpzPassVersion == pass1v2.version
         })
@@ -765,12 +795,22 @@ class WalletClientTest {
         // Delete pass2 on client2 ...
         client2.setSharedData(client2.sharedData.value!!.removeMpzPass(pass2))
         assertNotNull(client2DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
-        client2DocumentStore.syncWithSharedData(client2.sharedData.value!!)
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertNull(client2DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
         // ... check that it's deleted on client1
         assertTrue(client1.refreshSharedData())
         assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
-        client1DocumentStore.syncWithSharedData(client1.sharedData.value!!)
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
         assertNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
     }
 }

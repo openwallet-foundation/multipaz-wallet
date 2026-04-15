@@ -76,6 +76,7 @@ import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.document.DocumentStore
 import org.multipaz.util.Logger
+import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isProximityPresentable
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -279,7 +280,12 @@ fun WalletScreen(
                             walletClient.refreshPublicData()
                             walletClient.refreshSharedData()
                             walletClient.sharedData.value?.let {
-                                documentStore.syncWithSharedData(it)
+                                documentStore.syncWithSharedData(
+                                    sharedData = it,
+                                    mpzPassIsoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
+                                    mpzPassSdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
+                                    mpzPassKeylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+                                )
                             }
                         } catch (e: Exception) {
                             Logger.e(TAG, "Error refreshing data", e)
