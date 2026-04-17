@@ -4,7 +4,12 @@ import kotlinx.serialization.Serializable
 import org.multipaz.cbor.Cbor
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
+import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
+import org.multipaz.wallet.shared.CredentialIssuer
+import org.multipaz.wallet.shared.fromCbor
+import org.multipaz.wallet.shared.toCbor
+import kotlin.time.Instant
 
 @Serializable
 sealed class Destination
@@ -43,8 +48,31 @@ data object SetupActivityLoggingLocationScreenDestination: Destination()
 data object SetupDefaultWalletScreenDestination: Destination()
 
 @Serializable
+data class ProvisioningDestination(
+    val credentialIssuerEncoded: String? = null,
+    val openID4VCICredentialOfferUri: String? = null,
+    val openID4VCIIssuerUrl: String? = null
+): Destination() {
+
+    constructor(
+        credentialIssuer: CredentialIssuer? = null,
+        openID4VCICredentialOfferUri: String? = null,
+        openID4VCIIssuerUrl: String? = null
+    ): this(
+        credentialIssuerEncoded = credentialIssuer?.toCbor()?.toBase64Url(),
+        openID4VCICredentialOfferUri = openID4VCICredentialOfferUri,
+        openID4VCIIssuerUrl = openID4VCIIssuerUrl
+    )
+
+    val credentialIssuer: CredentialIssuer?
+        get() = credentialIssuerEncoded?.fromBase64Url()?.let { CredentialIssuer.fromCbor(it) }
+
+}
+
+@Serializable
 data class WalletDestination(
-    val documentId: String? = null
+    val documentId: String? = null,
+    val justAddedAtMillis: Long? = null
 ): Destination()
 
 @Serializable

@@ -20,14 +20,11 @@
 
     <string name="setup_screen_lock_title">Screen lock</string>
     <string name="setup_screen_lock_text">A screen lock is required to keep your data secure. Please set up a screen lock (PIN, pattern, or password) and biometrics in your device settings</string>
-    <string name="setup_screen_lock_ready_text">Your device has a screen lock which is used to keep your data secure. If you delete the screen lock, documents in your wallet will stop working</string>
+    <string name="setup_screen_lock_ready_text">Your device has a screen lock which is used to keep your data secure. If you delete the screen lock, passes in your wallet will stop working</string>
     <string name="setup_screen_lock_setup_button">Set up screen lock</string>
     <string name="setup_screen_lock_continue_button">Continue</string>
 
-    <string name="setup_eula_retry_button">Retry</string>
-    <string name="setup_eula_error_message">"Failed to load EULA: %1$s"</string>
     <string name="setup_eula_decline_button">Decline</string>
-    <string name="setup_eula_more_button">More</string>
     <string name="setup_eula_accept_button">Accept</string>
     <string name="setup_eula_declined_see_ya_text">The application will now exit</string>
 
@@ -48,7 +45,7 @@
     <string name="setup_sign_in_signed_in_sign_out_button">Sign out</string>
 
     <string name="setup_activity_logging_title">Activity Logging</string>
-    <string name="setup_activity_logging_text">Would you like to enable activity logging? This keeps a local record of all credential presentations and communication between the wallet and issuers. No data ever leaves the device. You can change this later in Settings</string>
+    <string name="setup_activity_logging_text">Would you like to enable activity logging? This keeps a local record of all presentations and communication between the wallet and issuers. No data ever leaves the device. You can change this later in Settings</string>
     <string name="setup_activity_logging_enable">Enable</string>
     <string name="setup_activity_logging_disable">Disable</string>
     <string name="setup_activity_logging_location_title">Record location</string>
@@ -56,22 +53,18 @@
     <string name="setup_activity_logging_location_enable">Enable location</string>
     <string name="setup_activity_logging_location_skip">Skip</string>
 
-    <string name="add_document_screen_title">Add to wallet</string>
-    <string name="add_document_screen_error_loading">Error loading credential issuers. Are you online?</string>
-    <string name="add_document_screen_loading">Loading credential issuers</string>
-    <string name="add_document_screen_import_pass">Import pass from file</string>
-
     <string name="wallet_screen_dev_mode_already_enabled">Developer mode is already enabled</string>
     <string name="wallet_screen_dev_mode_enabled">Developer mode is now enabled. See the Settings screen for details</string>
     <string name="wallet_screen_dev_mode_taps_remaining">Tap %1$d more times to enable developer mode</string>
     <string name="wallet_screen_dev_mode_taps_remaining_1">Tap 1 more time to enable developer mode</string>
     <string name="wallet_screen_ble_permission_warning">Sharing info in-person require BLE permissions to be granted. Click here to grant permissions</string>
     <string name="wallet_screen_activity">View and manage activity</string>
-    <string name="wallet_screen_document_type_name_fallback">Document</string>
+    <string name="wallet_screen_document_type_name_fallback">Pass</string>
     <string name="wallet_screen_document_info">%1$s info</string>
     <string name="wallet_screen_issuer_website">Issuer website</string>
     <string name="wallet_screen_remove">Remove</string>
     <string name="wallet_screen_no_documents">Your wallet is empty.\nPress the + button to add passes</string>
+    <string name="wallet_screen_pass_was_added">The pass was successfully added</string>
 
     <string name="about_screen_title">About</string>
 
@@ -112,7 +105,8 @@
     <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed</string>
 
     <string name="doc_info_screen_title">%1$s info</string>
-    <string name="doc_info_screen_usage_info">To use your credential, tap your phone to a reader or show a QR code to the verifier. This screen can\'t be used for verification</string>
+    <string name="doc_info_screen_usage_info">To use your pass, tap your phone to a reader or show a QR code to the verifier. This screen can\'t be used for verification</string>
+    <string name="doc_info_screen_usage_info_not_proximity_presentable">To use your pass, present it to a website or application requesting it. This screen can\'t be used for verification</string>
     <string name="doc_info_screen_cert_info_title">Certificate info</string>
     <string name="doc_info_screen_collapse">Collapse</string>
     <string name="doc_info_screen_expand">Expand</string>
@@ -170,7 +164,7 @@
     <string name="trust_manager_no_built_in">No built-in trust anchors</string>
     <string name="trust_manager_manually_imported">Manually imported trust anchors</string>
     <string name="trust_manager_no_manually_imported">Certificates and trust lists manually imported will appear in this list</string>
-    <string name="trust_manager_info_issuers">Trusted issuers are used to ensure credentials you verify are from authentic, recognized organizations</string>
+    <string name="trust_manager_info_issuers">Trusted issuers are used to ensure passes you verify are from authentic, recognized organizations</string>
     <string name="trust_manager_info_verifiers">Trusted verifiers help ensure your personal information is only shared with authorized parties whose identity has been proven</string>
 
     <string name="trust_entry_delete_cancel">Cancel</string>
@@ -194,8 +188,8 @@
     <string name="app_navigation_error_importing_pass_title">Error importing pass</string>
     <string name="app_navigation_error_importing_pass_already_in_wallet">This pass is already in your wallet</string>
     <string name="app_navigation_error_importing_pass_something_went_wrong">Something went wrong: %1$s</string>
-    <string name="app_navigation_remove_document_title">Remove document?</string>
-    <string name="app_navigation_remove_document_text">This document will be removed from your wallet and if you want to add it again, you will need to start the process from the beginning</string>
+    <string name="app_navigation_remove_document_title">Remove pass?</string>
+    <string name="app_navigation_remove_document_text">This pass will be removed from your wallet and if you want to add it again, you will need to start the process from the beginning</string>
     <string name="app_navigation_remove_document_confirm">Remove</string>
     <string name="app_navigation_disable_activity_log_title">Disable activity log?</string>
     <string name="app_navigation_disable_activity_log_text">The events in the activity log will be deleted and no further activity will be logged</string>
@@ -219,30 +213,32 @@
     <string name="app_navigation_delete_event_confirm">Delete</string>
     <string name="app_navigation_error_delete_event_title">Error deleting event</string>
     <string name="app_navigation_error_delete_event_text">There was an error deleting the event in the activity log</string>
-    <string name="app_navigation_delete_all_events_for_document_title">Delete all events for document?</string>
-    <string name="app_navigation_delete_all_events_for_document_text">All events in the activity log for this document will be deleted. This cannot be undone</string>
+    <string name="app_navigation_delete_all_events_for_document_title">Delete all events for pass?</string>
+    <string name="app_navigation_delete_all_events_for_document_text">All events in the activity log for this pass will be deleted. This cannot be undone</string>
     <string name="app_navigation_delete_all_events_for_document_confirm">Delete</string>
-    <string name="app_navigation_error_delete_events_for_document_title">Error deleting events for document</string>
+    <string name="app_navigation_error_delete_events_for_document_title">Error deleting events for pass</string>
     <string name="app_navigation_error_delete_event_for_document_text">There was an error deleting events in the activity log</string>
 
-    <string name="app_navigation_delete_document_error_dialog_title">Error deleting document</string>
-    <string name="app_navigation_delete_document_error_dialog_text">There was an error deleting the document: %1$s</string>
+    <string name="app_navigation_delete_document_error_dialog_title">Error deleting pass</string>
+    <string name="app_navigation_delete_document_error_dialog_text">There was an error deleting the pass: %1$s</string>
 
     <string name="activity_logging_settings_screen_title">Activity logging</string>
     <string name="activity_logging_settings_screen_logging_enabled_text">Logging enabled</string>
     <string name="activity_logging_settings_screen_logging_location_for_proximity_enabled_text">Include location for sharing in-person</string>
     <string name="activity_logging_settings_screen_view_and_manage_events_text">View and manage events</string>
-    <string name="activity_logging_settings_screen_activity_log_info_text">The activity log contains a record of all credential presentations as well as all communication between the wallet and credential issuer. Location information for sharing in-person helps you remember where you presented your info</string>
+    <string name="activity_logging_settings_screen_activity_log_info_text">The activity log contains a record of all presentations as well as all communication between the wallet and issuer of the pass. Location information for sharing in-person helps you remember where you presented your info</string>
     <string name="activity_logging_settings_screen_using_precise_location">Using precise location</string>
     <string name="activity_logging_settings_screen_using_coarse_location">Using coarse location</string>
     <string name="activity_logging_settings_screen_permission_not_granted">Location permission not granted, turning off location logging</string>
 
     <string name="event_list_screen_title">Activity log</string>
+    <string name="event_list_screen_explainer">Activity for all passes is shown below, including presentations and communication with the issuer</string>
     <string name="event_list_screen_no_events_text">No activity recorded</string>
-    <string name="event_list_screen_unknown_document_text">Unknown document</string>
+    <string name="event_list_screen_unknown_document_text">Unknown pass</string>
     <string name="event_list_screen_time_and_type_text">%1$s • %2$s</string>
 
     <string name="document_event_list_screen_title">%1$s activity</string>
+    <string name="document_event_list_screen_explainer">All activity related to the pass is shown below, including presentations and communication with the issuer</string>
     <string name="document_event_list_screen_no_events_text">No activity recorded</string>
     <string name="document_event_list_screen_unknown_requester_text">Unknown requester</string>
     <string name="document_event_list_screen_time_and_type_text">%1$s • %2$s</string>
@@ -253,11 +249,11 @@
 
     <string name="event_viewer_screen_title_text">Event viewer</string>
     <string name="event_viewer_screen_file_name_text">Multipaz Wallet event recorded at %1$s</string>
-    <string name="event_viewer_screen_protocol_w3dc_18013_7_annex_c_text">W3C DC API w/ ISO/IEC 18013-7:2025 Annex C</string>
-    <string name="event_viewer_screen_protocol_w3dc_openid4v_text">W3C DC API w/ OpenID4VP</string>
-    <string name="event_viewer_screen_protocol_uri_openid4vp_text">URI scheme w/ OpenID4VP</string>
-    <string name="event_viewer_screen_protocol_uri_18013_7_annex_a_text">URI scheme w/ ISO/IEC 18013-7:2025 Annex A</string>
-    <string name="event_viewer_screen_protocol_18013_5_text">Proximity w/ ISO/IEC 18013-5:2021</string>
+    <string name="event_viewer_screen_protocol_w3dc_18013_7_annex_c_text">W3C Digital Credentials API with ISO/IEC 18013-7:2025 Annex C exchange protocol</string>
+    <string name="event_viewer_screen_protocol_w3dc_openid4v_text">W3C Digital Credentials API with OpenID4VP exchange protocol</string>
+    <string name="event_viewer_screen_protocol_uri_openid4vp_text">URI scheme with OpenID4VP</string>
+    <string name="event_viewer_screen_protocol_uri_18013_7_annex_a_text">URI scheme with ISO/IEC 18013-7:2025 Annex A</string>
+    <string name="event_viewer_screen_protocol_18013_5_text">ISO/IEC 18013-5:2021</string>
     <string name="event_viewer_screen_unknown_requester_text">Unknown requester</string>
     <string name="event_viewer_screen_date_and_time_text">Date and time</string>
     <string name="event_viewer_screen_location_text">Location</string>
@@ -274,7 +270,7 @@
     <string name="event_viewer_screen_certificate_click_to_view_text">Click to view</string>
     <string name="event_viewer_screen_certificate_not_available_text">Not available</string>
     <string name="event_viewer_screen_requester_privacy_policy_text">Requester privacy policy</string>
-    <string name="event_viewer_screen_unknown_document_text">Unknown document</string>
+    <string name="event_viewer_screen_unknown_document_text">Unknown pass</string>
     <string name="event_viewer_screen_this_info_was_shared_text">This info was shared</string>
     <string name="event_viewer_screen_this_info_was_shared_and_stored_text">This info was shared and stored</string>
     <string name="event_viewer_screen_shared_with_website_text">Shared with website</string>
@@ -295,4 +291,33 @@
     <string name="setup_default_wallet_continue_button">Continue</string>
     <string name="setup_default_wallet_open_settings_button">Open Settings</string>
     <string name="setup_default_wallet_skip_button">Skip for now</string>
+
+    <string name="setup_eula_screen_retry_button">Retry</string>
+    <string name="setup_eula_screen_more_button">More</string>
+    <string name="setup_eula_screen_error_message">"Failed to load information: %1$s"</string>
+
+    <string name="provisioning_add_to_wallet_screen_screen_title">Add to wallet</string>
+    <string name="provisioning_add_to_wallet_screen_explainer">Select a pass type to start adding to your wallet</string>
+    <string name="provisioning_add_to_wallet_screen_error_loading">Error loading issuers. Are you online?</string>
+    <string name="provisioning_add_to_wallet_screen_loading">Loading issuers</string>
+    <string name="provisioning_add_to_wallet_screen_import_pass">Import pass from file</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_title">Enter the URL for the issuer</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_cancel">Cancel</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_connect">Connect</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_url_label">Issuer server URL</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_reset">Reset to default</string>
+    <string name="provisioning_add_to_wallet_screen_enter_issuer_url_item">Enter Issuer URL…</string>
+    <string name="provisioning_auth_oauth_cancel_description">Cancel</string>
+    <string name="provisioning_auth_pin_title">PIN required</string>
+    <string name="provisioning_auth_passphrase_title">Passphrase required</string>
+    <string name="provisioning_auth_pin_explainer">To add the pass, enter the PIN the issuer shared with you</string>
+    <string name="provisioning_auth_passphrase_explainer">To add the pass, enter the passphrase the issuer shared with you</string>
+    <string name="provisioning_auth_secret_cancel_description">Cancel</string>
+    <string name="provisioning_selection_title">Select pass</string>
+    <string name="provisioning_selection_cancel_description">Cancel</string>
+    <string name="provisioning_selection_explainer">%1$s offers the following passes. Select a pass to continue</string>
+    <string name="provisioning_selection_format_mdoc">ISO mdoc • %1$s</string>
+    <string name="provisioning_selection_format_sd_jwt">IETF SD-JWT VC • %1$s</string>
+    <string name="provisioning_error_title">Something went wrong</string>
+    <string name="provisioning_progress_cancel_description">Cancel</string>
 </resources>

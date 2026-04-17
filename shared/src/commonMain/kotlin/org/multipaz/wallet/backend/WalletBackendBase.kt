@@ -82,8 +82,10 @@ abstract class WalletBackendBase: WalletBackend {
         // method fails.
         //
         if (walletClient.signedInUser != null) {
-            Logger.w(TAG, "Client is already signed in with ${walletClient.signedInUser}" +
-            " - we're ignoring that and signing them in with $signedInUser")
+            Logger.w(
+                TAG, "Client is already signed in with ${walletClient.signedInUser}" +
+                        " - we're ignoring that and signing them in with $signedInUser"
+            )
         }
         val newWalletClient = walletClient.copy(
             signedInUser = signedInUser
@@ -216,11 +218,14 @@ abstract class WalletBackendBase: WalletBackend {
             return null
         }
         if (currentVersion > sharedData.version) {
-            Logger.w(TAG, "Client claimed it has version $currentVersion but our latest version is ${sharedData.version}")
+            Logger.w(
+                TAG,
+                "Client claimed it has version $currentVersion but our latest version is ${sharedData.version}"
+            )
         }
         Logger.i(
             TAG,
-            "${walletClient.signedInUser.sharedDataKey}: "+
+            "${walletClient.signedInUser.sharedDataKey}: " +
                     "Returning ${sharedData.data.size.asByteSize} bytes " +
                     "of data with version ${sharedData.version}"
         )
@@ -244,7 +249,7 @@ abstract class WalletBackendBase: WalletBackend {
         saveSharedData(walletClient.signedInUser.sharedDataKey, newSharedData)
         Logger.i(
             TAG,
-            "${walletClient.signedInUser.sharedDataKey}: "+
+            "${walletClient.signedInUser.sharedDataKey}: " +
                     "Storing ${newSharedData.data.size.asByteSize} bytes " +
                     "of data with version $newVersion"
         )
@@ -321,136 +326,139 @@ abstract class WalletBackendBase: WalletBackend {
             supportPartitions = false
         )
     }
-}
 
-private val Int.asByteSize: String
-    get() = this.toString()
-        .reversed()
-        .chunked(3)
-        .joinToString(",")
-        .reversed()
+    private val Int.asByteSize: String
+        get() = this.toString()
+            .reversed()
+            .chunked(3)
+            .joinToString(",")
+            .reversed()
 
-private fun JsonObject?.bool(name: String, default: Boolean = false): Boolean {
-    val value = this?.get(name) ?: return default
-    if (value !is JsonPrimitive || value.isString) {
-        throw IllegalStateException("$name is not a boolean")
-    }
-    return when (value.content) {
-        "true" -> true
-        "false" -> false
-        else -> throw IllegalStateException("$name is not a boolean")
-    }
-}
-
-private fun JsonObject?.string(name: String, default: String? = ""): String? {
-    val value = this?.get(name) ?: return default
-    if (value !is JsonPrimitive || !value.isString) {
-        throw IllegalStateException("$name is not a string")
-    }
-    return value.content
-}
-
-private fun JsonObject?.trustEntries(name: String): List<TrustEntry> {
-    val value = this?.get(name) ?: return listOf()
-    if (value !is JsonArray) {
-        throw IllegalStateException("$name is not an array")
-    }
-    return buildList {
-        value.forEachIndexed { index, item ->
-            if (item !is JsonObject) {
-                throw IllegalStateException("$name must contain list of objects")
-            }
-            val displayName = item.string("display_name")
-                ?: throw IllegalStateException("$name must have display_name set")
-            val testOnly = item.bool("test_only")
-            val displayIconUrl = item.string("display_icon_url")
-            val certificate = item.string("certificate")
-                ?: throw IllegalStateException("$name must have certificate set")
-            // TODO: also support RICALs and VICALs in the future
-
-            add(TrustEntryX509Cert(
-                identifier = "${name}_${index}",
-                metadata = TrustMetadata(
-                    // TODO: support reading more fields
-                    displayName = displayName,
-                    displayIconUrl = displayIconUrl,
-                    testOnly = testOnly
-                ),
-                certificate = X509Cert.fromPem(certificate)
-            ))
+    private suspend fun JsonObject?.bool(name: String, default: Boolean = false): Boolean {
+        val value = this?.get(name) ?: return default
+        if (value !is JsonPrimitive || value.isString) {
+            throw IllegalStateException("$name is not a boolean")
+        }
+        return when (value.content) {
+            "true" -> true
+            "false" -> false
+            else -> throw IllegalStateException("$name is not a boolean")
         }
     }
-}
 
-private fun JsonObject?.credentialIssuers(name: String): List<CredentialIssuer> {
-    val value = this?.get(name) ?: return listOf()
-    if (value !is JsonArray) {
-        throw IllegalStateException("$name is not an array")
+    private suspend fun JsonObject?.string(name: String, default: String? = ""): String? {
+        val value = this?.get(name) ?: return default
+        if (value !is JsonPrimitive || !value.isString) {
+            throw IllegalStateException("$name is not a string")
+        }
+        return value.content
     }
-    return buildList {
-        value.forEachIndexed { index, item ->
-            if (item !is JsonObject) {
-                throw IllegalStateException("$name must contain list of objects")
-            }
-            val type = item.string("type")
-            val name = item.string("name")
-                ?: throw IllegalStateException("$name must have name set")
-            val iconUrl = item.string("icon_url")
-                ?: throw IllegalStateException("$name must have icon_url set")
-            val issuer = when (type) {
-                "openid4vci" -> {
-                    CredentialIssuerOpenID4VCI(
-                        name = name,
-                        iconUrl = iconUrl,
-                        url = item.string("url")
-                            ?: throw IllegalStateException("OpenID4VCI issuer  must have url set"),
-                        id = item.string("id")
-                            ?: throw IllegalStateException("$name must have id set"),
+
+    private suspend fun JsonObject?.trustEntries(name: String): List<TrustEntry> {
+        val value = this?.get(name) ?: return listOf()
+        if (value !is JsonArray) {
+            throw IllegalStateException("$name is not an array")
+        }
+        return buildList {
+            value.forEachIndexed { index, item ->
+                if (item !is JsonObject) {
+                    throw IllegalStateException("$name must contain list of objects")
+                }
+                val displayName = item.string("display_name")
+                    ?: throw IllegalStateException("$name must have display_name set")
+                val testOnly = item.bool("test_only")
+                val displayIconUrl = item.string("display_icon_url")
+                val certificate = item.string("certificate")
+                    ?: throw IllegalStateException("$name must have certificate set")
+                // TODO: also support RICALs and VICALs in the future
+
+                add(
+                    TrustEntryX509Cert(
+                        identifier = "${name}_${index}",
+                        metadata = TrustMetadata(
+                            // TODO: support reading more fields
+                            displayName = displayName,
+                            displayIconUrl = displayIconUrl,
+                            testOnly = testOnly
+                        ),
+                        certificate = X509Cert.fromPem(certificate)
                     )
-                }
-                else -> {
-                    throw IllegalStateException("Unexpected credential issuer with type $type")
-                }
+                )
             }
-            add(issuer)
         }
     }
-}
 
-private fun JsonObject?.byteStringSet(name: String): Set<ByteString> {
-    val value = this?.get(name) ?: return setOf()
-    if (value !is JsonArray) {
-        throw IllegalStateException("$name is not an array")
-    }
-    return buildSet {
-        for (item in value) {
-            if (item !is JsonPrimitive || !item.isString) {
-                throw IllegalStateException("$name must contain list of strings")
+    private suspend fun JsonObject?.credentialIssuers(name: String): List<CredentialIssuer> {
+        val value = this?.get(name) ?: return listOf()
+        if (value !is JsonArray) {
+            throw IllegalStateException("$name is not an array")
+        }
+        // TODO: support localization
+        return buildList {
+            value.forEachIndexed { index, item ->
+                if (item !is JsonObject) {
+                    throw IllegalStateException("$name must contain list of objects")
+                }
+                val type = item.string("type")
+                val name = item.string("name")
+                    ?: throw IllegalStateException("$name must have name set")
+                val iconUrl = item.string("icon_url")
+                    ?: throw IllegalStateException("$name must have icon_url set")
+                val issuer = when (type) {
+                    "openid4vci" -> {
+                        CredentialIssuerOpenID4VCI(
+                            name = name,
+                            iconUrl = iconUrl,
+                            url = item.string("url")
+                                ?: throw IllegalStateException("OpenID4VCI issuer must have url set"),
+                            id = item.string("id", null)
+                        )
+                    }
+
+                    else -> {
+                        throw IllegalStateException("Unexpected credential issuer with type $type")
+                    }
+                }
+                add(issuer)
             }
-            // allow both base64url and hex encoding (common for certificate hashes)
-            val bytes = if (item.content.contains(':')) {
-                item.jsonPrimitive.content.split(':').map { byteCode ->
-                    byteCode.toInt(16).toByte()
-                }.toByteArray()
-            } else {
-                item.content.fromBase64Url()
-            }
-            add(ByteString(bytes))
         }
     }
-}
 
-private fun JsonObject?.stringSet(name: String): Set<String> {
-    val value = this?.get(name) ?: return setOf()
-    if (value !is JsonArray) {
-        throw IllegalStateException("$name is not an array")
-    }
-    return buildSet {
-        for (item in value) {
-            if (item !is JsonPrimitive || !item.isString) {
-                throw IllegalStateException("$name must contain list of strings")
+    private suspend fun JsonObject?.byteStringSet(name: String): Set<ByteString> {
+        val value = this?.get(name) ?: return setOf()
+        if (value !is JsonArray) {
+            throw IllegalStateException("$name is not an array")
+        }
+        return buildSet {
+            for (item in value) {
+                if (item !is JsonPrimitive || !item.isString) {
+                    throw IllegalStateException("$name must contain list of strings")
+                }
+                // allow both base64url and hex encoding (common for certificate hashes)
+                val bytes = if (item.content.contains(':')) {
+                    item.jsonPrimitive.content.split(':').map { byteCode ->
+                        byteCode.toInt(16).toByte()
+                    }.toByteArray()
+                } else {
+                    item.content.fromBase64Url()
+                }
+                add(ByteString(bytes))
             }
-            add(item.content)
+        }
+    }
+
+    private suspend fun JsonObject?.stringSet(name: String): Set<String> {
+        val value = this?.get(name) ?: return setOf()
+        if (value !is JsonArray) {
+            throw IllegalStateException("$name is not an array")
+        }
+        return buildSet {
+            for (item in value) {
+                if (item !is JsonPrimitive || !item.isString) {
+                    throw IllegalStateException("$name must contain list of strings")
+                }
+                add(item.content)
+            }
         }
     }
 }

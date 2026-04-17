@@ -5,7 +5,9 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -46,7 +48,7 @@ import org.multipaz.context.applicationContext
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
-import org.multipaz.wallet.android.ui.InfoNote
+import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.shared.BuildConfig
 
@@ -94,14 +96,14 @@ fun DeveloperSettingsScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            InfoNote(
+            Note(
                 markdownString = stringResource(R.string.dev_settings_screen_warning),
             )
-
             FloatingItemList {
                 FloatingItemHeadingAndText(
                     modifier = Modifier.clickable {
@@ -238,6 +240,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_exit_dev_mode_text)
                 )
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

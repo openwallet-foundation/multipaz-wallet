@@ -3,7 +3,9 @@ package org.multipaz.wallet.android.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -88,6 +90,7 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -141,6 +144,7 @@ fun SettingsScreen(
             }
             InfoNote(markdownString = markdownString)
 
+            Spacer(modifier = Modifier.height(10.dp))
             FloatingItemList {
                 FloatingItemText(
                     modifier = Modifier.clickable {
@@ -184,6 +188,7 @@ fun SettingsScreen(
                     }
                 )
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

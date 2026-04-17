@@ -43,6 +43,7 @@ import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
+import kotlin.time.Clock
 
 private const val TAG = "AppNavHost"
 
@@ -65,6 +66,7 @@ fun AppNavHost(
     issuerTrustManager: CompositeTrustManager,
     readerTrustManager: CompositeTrustManager,
     mpzPassesToImportChannel: Channel<ByteString>,
+    credentialOffers: Channel<String>,
     documentIdToViewChannel: Channel<String>,
     showToast: (message: String) -> Unit,
 ) {
@@ -92,6 +94,17 @@ fun AppNavHost(
                 walletClient = walletClient,
                 documentStore = documentStore
             )
+        }
+    }
+
+    LaunchedEffect(true) {
+        while (true) {
+            val credentialOffer = credentialOffers.receive()
+            navController.navigate(ProvisioningDestination(
+                credentialIssuer = null,
+                openID4VCICredentialOfferUri = credentialOffer,
+                openID4VCIIssuerUrl = null
+            ))
         }
     }
 
@@ -135,6 +148,7 @@ fun AppNavHost(
                     navController.navigate(
                         WalletDestination(
                             documentId = document.identifier,
+                            justAddedAtMillis = Clock.System.now().toEpochMilliseconds()
                         )
                     )
                 }

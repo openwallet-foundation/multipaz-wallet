@@ -16,17 +16,12 @@ import androidx.compose.ui.unit.dp
 import org.multipaz.compose.text.fromMarkdown
 
 @Composable
-fun InfoNote(
+fun Note(
     markdownString: String,
 ) {
-    Column(
+    Text(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(Icons.Outlined.Info, contentDescription = null)
-        Text(
-            text = AnnotatedString.fromMarkdown(markdownString = markdownString),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+        text = AnnotatedString.fromMarkdown(markdownString = markdownString),
+        style = MaterialTheme.typography.bodyMedium,
+    )
 }
