@@ -6,9 +6,9 @@ import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
@@ -45,8 +45,8 @@ import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
-import org.multipaz.wallet.android.ui.AboutScreen
-import org.multipaz.wallet.android.ui.AddToWalletScreen
+import org.multipaz.wallet.android.ui.settings.AboutScreen
+import org.multipaz.wallet.android.ui.provisioning.AddToWalletScreen
 import org.multipaz.wallet.android.ui.CertificateViewerScreen
 import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.wallet.android.ui.DocumentQrPresentmentDialog
@@ -58,6 +58,7 @@ import org.multipaz.wallet.android.ui.document.CredentialInfoScreen
 import org.multipaz.wallet.android.ui.document.DocumentEventListScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoExtrasScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoScreen
+import org.multipaz.wallet.android.ui.provisioning.ProvisioningRoute
 import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
@@ -75,6 +76,9 @@ import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 private const val TAG = "MainGraph"
 
@@ -114,9 +118,39 @@ fun NavGraphBuilder.mainGraph(
     }
 
     navigation<MainGraph>(startDestination = WalletDestination()) {
+        composable<ProvisioningDestination> { backStackEntry ->
+            val destination = backStackEntry.toRoute<ProvisioningDestination>()
+            ProvisioningRoute(
+                provisioningModel = provisioningModel,
+                walletClient = walletClient,
+                imageLoader = imageLoader,
+                credentialIssuer = destination.credentialIssuer,
+                openID4VCICredentialOffer = destination.openID4VCICredentialOfferUri,
+                openID4VCIIssuerUrl = destination.openID4VCIIssuerUrl,
+                onCloseClicked = { navController.popBackStack() },
+                onComplete = { documentId ->
+                    navController.navigate(WalletDestination(
+                        documentId = documentId,
+                        justAddedAtMillis = Clock.System.now().toEpochMilliseconds()
+                    )) {
+                        popUpTo<ProvisioningDestination> {
+                            inclusive = true
+                        }
+                    }
+                },
+                onFailed = {
+                    navController.popBackStack()
+                }
+            )
+        }
         composable<WalletDestination> { backStackEntry ->
             val destination = backStackEntry.toRoute<WalletDestination>()
             var focusedDocumentId by rememberSaveable { mutableStateOf(destination.documentId) }
+            val justAddedRecently = destination.justAddedAtMillis?.let {
+                Clock.System.now() - Instant.fromEpochMilliseconds(it) < 1.seconds
+            } ?: false
+            var justAdded by remember { mutableStateOf(justAddedRecently) }
+
             LaunchedEffect(destination.documentId) {
                 if (destination.documentId != null) {
                     focusedDocumentId = destination.documentId
@@ -131,6 +165,7 @@ fun NavGraphBuilder.mainGraph(
                 documentModel = documentModel,
                 settingsModel = settingsModel,
                 focusedDocumentId = focusedDocumentId,
+                justAdded = justAdded,
                 onAvatarClicked = { navController.navigate(SettingsDestination) },
                 onAddClicked = { navController.navigate(AddToWalletDestination) },
                 onDocumentClicked = { documentId ->
@@ -151,6 +186,7 @@ fun NavGraphBuilder.mainGraph(
                 onBackClicked = {
                     if (focusedDocumentId != null) {
                         focusedDocumentId = null
+                        justAdded = false
                     } else {
                         navController.popBackStack()
                     }
@@ -219,7 +255,6 @@ fun NavGraphBuilder.mainGraph(
             DocumentInfoScreen(
                 documentId = destination.documentId,
                 documentModel = documentModel,
-                documentTypeRepository = documentTypeRepository,
                 settingsModel = settingsModel,
                 onBackClicked = { navController.popBackStack() },
                 onDeveloperExtrasClicked = {
@@ -254,29 +289,28 @@ fun NavGraphBuilder.mainGraph(
         composable<AddToWalletDestination> {
             AddToWalletScreen(
                 walletClient = walletClient,
+                settingsModel = settingsModel,
                 imageLoader = imageLoader,
                 onCredentialIssuerClicked = { credentialIssuer ->
-                    coroutineScope.launch {
-                        credentialIssuer as CredentialIssuerOpenID4VCI
-                        val document = provisioningModel.launchOpenID4VCIProvisioning(
-                            issuerUrl = credentialIssuer.url,
-                            credentialId = credentialIssuer.id,
-                            clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
-                            backend = walletClient.getOpenID4VCIBackend()
-                        ).await()
-                        navController.navigate(WalletDestination(
-                            documentId = document.identifier
-                        )) {
-                            popUpTo(WalletDestination(null)) {
-                                inclusive = true
-                            }
-                        }
-                    }
+                    credentialIssuer as CredentialIssuerOpenID4VCI
+                    navController.navigate(
+                        ProvisioningDestination(
+                            credentialIssuer = credentialIssuer
+                        )
+                    )
                 },
                 onImportMpzPass = { encodedMpzPass ->
                     coroutineScope.launch {
                         mpzPassesToImportChannel.send(encodedMpzPass)
                     }
+                },
+                onCredentialIssuerUrl = { issuerUrl ->
+                    navController.navigate(
+                        ProvisioningDestination(
+                            credentialIssuer = null,
+                            openID4VCIIssuerUrl = issuerUrl
+                        )
+                    )
                 },
                 onBackClicked = { navController.popBackStack() },
                 showToast = showToast
@@ -598,11 +632,26 @@ fun NavGraphBuilder.mainGraph(
                 onConfirmed = { walletBackendUrl ->
                     val newUrl = walletBackendUrl ?: BuildConfig.BACKEND_URL
                     if (newUrl != walletClient.url) {
-                        navController.navigate(
-                            DeveloperSettingsConnectToWalletServerDialogDestination(
-                                walletBackendUrl = walletBackendUrl
+                        coroutineScope.launch {
+                            try {
+                                signOut(
+                                    walletClient = walletClient,
+                                    settingsModel = settingsModel,
+                                    signInWithGoogle = signInWithGoogle
+                                )
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.w(TAG, "Ignoring exception when signing out for new wallet server", e)
+                            }
+                            documentStore.listDocumentIds().forEach {
+                                documentStore.deleteDocument(it)
+                            }
+                            navController.navigate(
+                                DeveloperSettingsConnectToWalletServerDialogDestination(
+                                    walletBackendUrl = walletBackendUrl
+                                )
                             )
-                        )
+                        }
                     } else {
                         navController.popBackStack()
                     }

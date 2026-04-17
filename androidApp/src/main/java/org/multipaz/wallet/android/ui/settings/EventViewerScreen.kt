@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -187,6 +188,7 @@ fun EventViewerScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -243,7 +245,7 @@ private fun EventViewer(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val imageSize = 80.dp
@@ -270,6 +272,8 @@ private fun EventViewer(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
+
+        Spacer(modifier = Modifier.size(16.dp))
 
         FloatingItemList(title = null) {
             FloatingItemHeadingAndText(
@@ -406,6 +410,7 @@ private fun EventViewer(
                 )
             }
         }
+        Spacer(modifier = Modifier.size(20.dp))
 
         presentmentData.requestedDocuments.forEach { requestedDocument ->
             val info = documentModel.documentInfos.collectAsState().value.find {
@@ -429,18 +434,22 @@ private fun EventViewer(
                 if (requestedClaim is MdocRequestedClaim) !requestedClaim.intentToRetain else true
             }
             if (sharedClaims.isNotEmpty()) {
+                Spacer(modifier = Modifier.size(16.dp))
                 FloatingItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_text)) {
                     ExtractClaimsItems(sharedClaims, documentTypeRepository)
                 }
+                Spacer(modifier = Modifier.size(20.dp))
             }
 
             val sharedAndStoredClaims = requestedDocument.claims.filter { (requestedClaim, _) ->
                 if (requestedClaim is MdocRequestedClaim) requestedClaim.intentToRetain else false
             }
             if (sharedAndStoredClaims.isNotEmpty()) {
+                Spacer(modifier = Modifier.size(16.dp))
                 FloatingItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_and_stored_text)) {
                     ExtractClaimsItems(sharedAndStoredClaims, documentTypeRepository)
                 }
+                Spacer(modifier = Modifier.size(20.dp))
             }
         }
     }

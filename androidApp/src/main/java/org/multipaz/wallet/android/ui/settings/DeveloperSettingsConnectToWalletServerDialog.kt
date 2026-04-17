@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.settings
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.shared.BuildConfig
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun DeveloperSettingsConnectToWalletServerDialog(
     walletClient: WalletClient,

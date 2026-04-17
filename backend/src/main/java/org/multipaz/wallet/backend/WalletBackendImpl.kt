@@ -3,6 +3,7 @@ package org.multipaz.wallet.backend;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
+import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.annotation.CborSerializable;
 import org.multipaz.rpc.annotation.RpcState;
 import org.multipaz.rpc.backend.RpcAuthBackendDelegate

@@ -3,18 +3,23 @@ package org.multipaz.wallet.android.ui
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -38,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -65,6 +71,11 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.rememberLottiePainter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.multipaz.compose.cards.WarningCard
 import org.multipaz.compose.document.DocumentInfo
@@ -83,6 +94,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
+import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "WalletScreen"
 
@@ -95,6 +107,7 @@ fun WalletScreen(
     documentModel: DocumentModel,
     settingsModel: SettingsModel,
     focusedDocumentId: String?,
+    justAdded: Boolean,
     onAvatarClicked: () -> Unit,
     onAddClicked: () -> Unit,
     onDocumentClicked: (documentId: String) -> Unit,
@@ -260,7 +273,7 @@ fun WalletScreen(
             if (!blePermissionState.isGranted) {
                 WarningCard(
                     modifier = Modifier
-                        .padding(8.dp)
+                        .padding(16.dp)
                         .clickable {
                             coroutineScope.launch {
                                 blePermissionState.launchPermissionRequest()
@@ -341,6 +354,7 @@ fun WalletScreen(
                         showDocumentInfo = { documentInfo ->
                             DocumentInfoContent(
                                 documentInfo = documentInfo,
+                                justAdded = justAdded,
                                 onDocumentActivityClicked = onDocumentActivityClicked,
                                 onDocumentInfoClicked = onDocumentInfoClicked,
                                 onDocumentRemoveClicked = onDocumentRemoveClicked
@@ -376,18 +390,91 @@ fun WalletScreen(
 }
 
 @Composable
+private fun JustAdded() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        val composition by rememberLottieComposition(
+            spec = LottieCompositionSpec.RawRes(R.raw.success_animation)
+        )
+        val progressState = animateLottieCompositionAsState(
+            composition = composition
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            Image(
+                painter = rememberLottiePainter(
+                    composition = composition,
+                    progress = progressState.value,
+                ),
+                contentDescription = null,
+                modifier = Modifier.size(120.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.wallet_screen_pass_was_added),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
 private fun DocumentInfoContent(
+    documentInfo: DocumentInfo,
+    justAdded: Boolean,
+    onDocumentActivityClicked: (documentId: String) -> Unit,
+    onDocumentInfoClicked: (documentId: String) -> Unit,
+    onDocumentRemoveClicked: (documentId: String) -> Unit,
+) {
+    var showJustAdded by remember { mutableStateOf(justAdded) }
+
+    Crossfade(
+        targetState = showJustAdded,
+        label = "JustAddedCrossfade",
+        animationSpec = tween(durationMillis = 500)
+    ) { isShowingJustAdded ->
+        if (isShowingJustAdded) {
+            LaunchedEffect(Unit) {
+                delay(3.seconds)
+                showJustAdded = false
+            }
+            JustAdded()
+        } else {
+            DocumentInfoContentReal(
+                documentInfo = documentInfo,
+                onDocumentActivityClicked = onDocumentActivityClicked,
+                onDocumentInfoClicked = onDocumentInfoClicked,
+                onDocumentRemoveClicked = onDocumentRemoveClicked,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DocumentInfoContentReal(
     documentInfo: DocumentInfo,
     onDocumentActivityClicked: (documentId: String) -> Unit,
     onDocumentInfoClicked: (documentId: String) -> Unit,
     onDocumentRemoveClicked: (documentId: String) -> Unit,
 ) {
     val iconSize = 32.dp
+
     Column(
-        modifier = Modifier.padding(horizontal = 8.dp)
+        modifier = Modifier.padding(16.dp)
     ) {
         FloatingItemList {
-            val typeDisplayName = documentInfo.document.typeDisplayName ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
+            val typeDisplayName = documentInfo.document.typeDisplayName
+                ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
             FloatingItemText(
                 modifier = Modifier.clickable {
                     onDocumentInfoClicked(documentInfo.document.identifier)
@@ -415,17 +502,17 @@ private fun DocumentInfoContent(
                 }
             )
             /* TODO
-            FloatingItemText(
-                text = stringResource(R.string.wallet_screen_issuer_website),
-                image = {
-                    Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.Language,
-                        contentDescription = null
-                    )
-                }
-            )
-             */
+        FloatingItemText(
+            text = stringResource(R.string.wallet_screen_issuer_website),
+            image = {
+                Icon(
+                    modifier = Modifier.size(iconSize),
+                    imageVector = Icons.Outlined.Language,
+                    contentDescription = null
+                )
+            }
+        )
+         */
             FloatingItemText(
                 modifier = Modifier.clickable {
                     onDocumentRemoveClicked(documentInfo.document.identifier)
