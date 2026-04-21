@@ -5,7 +5,9 @@ import android.content.pm.PackageManager
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,23 +29,19 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.context.applicationContext
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
-import org.multipaz.wallet.android.ui.InfoNote
+import org.multipaz.wallet.android.ui.Note
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,11 +81,12 @@ fun ActivityLoggingSettingsScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            InfoNote(
+            Note(
                 markdownString = stringResource(R.string.activity_logging_settings_screen_activity_log_info_text)
             )
             FloatingItemList {
@@ -156,6 +155,7 @@ fun ActivityLoggingSettingsScreen(
                     },
                 )
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

@@ -1,4 +1,4 @@
-package org.multipaz.wallet.android.ui
+package org.multipaz.wallet.android.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -80,7 +80,7 @@ fun AboutScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 8.dp),
+                .padding(16.dp),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -135,7 +135,7 @@ private fun AppUpdateCard() {
         )
         if (currentVersion < availableVersion) {
             InfoCard(
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 val str = buildAnnotatedString {
                     append(

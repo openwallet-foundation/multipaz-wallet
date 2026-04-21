@@ -37,22 +37,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.multipaz.compose.webview.MarkdownText
 import org.multipaz.wallet.android.R
-import org.multipaz.wallet.client.WalletClient
 import kotlin.math.min
-import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.seconds
 
 @SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupEulaScreen(
-    walletClient: WalletClient,
+    loadEula: suspend (locale: String) -> String,
+    acceptText: String,
+    declineText: String,
     onAcceptClicked: () -> Unit,
-    showToast: (message: String) -> Unit
+    onDeclineClicked: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -65,19 +63,17 @@ fun SetupEulaScreen(
     LaunchedEffect(retryTrigger) {
         try {
             eulaError = null
-            eulaText = walletClient.getEula(locale)
+            eulaText = loadEula(locale)
         } catch (e: Exception) {
-            eulaError = context.getString(R.string.setup_eula_error_message, e.message)
+            eulaError = context.getString(R.string.setup_eula_screen_error_message, e.message)
         }
     }
 
-    // Enable button only when the user has scrolled to the bottom
     val isScrolledToBottom by remember {
         derivedStateOf {
             scrollState.maxValue == 0 || scrollState.value >= scrollState.maxValue - 50 // allowing a bit of leeway
         }
     }
-
     Scaffold(
         bottomBar = {
             Row(
@@ -88,16 +84,10 @@ fun SetupEulaScreen(
             ) {
                 OutlinedButton(
                     modifier = Modifier.weight(0.5f).heightIn(min = 64.dp),
-                    onClick = {
-                        coroutineScope.launch {
-                            showToast(context.getString(R.string.setup_eula_declined_see_ya_text))
-                            delay(2.seconds)
-                            exitProcess(0)
-                        }
-                    }
+                    onClick = onDeclineClicked
                 ) {
                     Text(
-                        text = stringResource(R.string.setup_eula_decline_button),
+                        text = declineText,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center
@@ -125,14 +115,14 @@ fun SetupEulaScreen(
                 ) {
                     if (!isScrolledToBottom) {
                         Text(
-                            text = stringResource(R.string.setup_eula_more_button),
+                            text = stringResource(R.string.setup_eula_screen_more_button),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
                         )
                     } else {
                         Text(
-                            text = stringResource(R.string.setup_eula_accept_button),
+                            text = acceptText,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
@@ -170,7 +160,7 @@ fun SetupEulaScreen(
                             text = eulaError!!
                         )
                         Button(onClick = { retryTrigger++ }) {
-                            Text(stringResource(R.string.setup_eula_retry_button))
+                            Text(stringResource(R.string.setup_eula_screen_retry_button))
                         }
                     }
                 }

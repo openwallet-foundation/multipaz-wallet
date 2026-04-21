@@ -53,6 +53,7 @@ import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
 import org.multipaz.wallet.android.isForDocumentId
+import org.multipaz.wallet.android.ui.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,10 +118,14 @@ fun DocumentEventListScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Note(
+                markdownString = stringResource(R.string.document_event_list_screen_explainer)
+            )
             FloatingItemList {
                 if (documentEvents == null) {
                     CircularProgressIndicator()
@@ -142,6 +147,7 @@ fun DocumentEventListScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.size(20.dp))
         }
     }
 }

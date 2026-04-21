@@ -26,6 +26,8 @@ class SettingsModel private constructor(
     private lateinit var settingsTable: StorageTable
 
     companion object {
+        const val DEFAULT_PROVISIONING_SERVER_URL = "https://issuer.multipaz.org/issuer"
+
         private val tableSpec = StorageTableSpec(
             name = "Settings",
             supportPartitions = false,
@@ -134,6 +136,7 @@ class SettingsModel private constructor(
         bind(firstTimeSetupDone, "firstTimeSetupDone", false)
         bind(eventLoggingEnabled, "eventLoggingEnabled", true)
         bind(eventLoggingLocationEnabled, "eventLoggingLocationEnabled", true)
+        bind(provisioningServerUrl, "provisioningServerUrl", DEFAULT_PROVISIONING_SERVER_URL)
     }
 
     val explicitlySignedOut = MutableStateFlow<Boolean>(false)
@@ -142,4 +145,5 @@ class SettingsModel private constructor(
     val firstTimeSetupDone = MutableStateFlow<Boolean>(false)
     val eventLoggingEnabled = MutableStateFlow<Boolean>(true)
     val eventLoggingLocationEnabled = MutableStateFlow<Boolean>(false)
+    val provisioningServerUrl = MutableStateFlow<String>(DEFAULT_PROVISIONING_SERVER_URL)
 }

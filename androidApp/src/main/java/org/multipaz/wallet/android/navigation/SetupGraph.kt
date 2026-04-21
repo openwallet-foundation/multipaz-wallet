@@ -2,6 +2,7 @@ package org.multipaz.wallet.android.navigation
 
 import android.Manifest
 import android.content.Context
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -10,8 +11,10 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.multipaz.document.DocumentStore
+import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.ui.setup.SetupBlePermissionScreen
@@ -24,6 +27,8 @@ import org.multipaz.wallet.android.ui.setup.SetupScreenLockCheckScreen
 import org.multipaz.wallet.android.ui.setup.SetupSignInScreen
 import org.multipaz.wallet.android.ui.setup.SetupWelcomeScreen
 import org.multipaz.wallet.client.WalletClient
+import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "SetupGraph"
 
@@ -67,11 +72,19 @@ fun NavGraphBuilder.setupGraph(
         }
         composable<SetupEulaScreenDestination> {
             SetupEulaScreen(
-                walletClient = walletClient,
+                loadEula = { locale -> walletClient.getEula(locale) },
+                declineText = stringResource(R.string.setup_eula_decline_button),
+                acceptText = stringResource(R.string.setup_eula_accept_button),
                 onAcceptClicked = {
                     navController.navigate(SetupBlePermissionScreenDestination)
                 },
-                showToast = showToast
+                onDeclineClicked = {
+                    coroutineScope.launch {
+                        showToast(context.getString(R.string.setup_eula_declined_see_ya_text))
+                        delay(2.seconds)
+                        exitProcess(0)
+                    }
+                },
             )
         }
         composable<SetupBlePermissionScreenDestination> {

@@ -1,10 +1,12 @@
 package org.multipaz.wallet.android.ui.document
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,7 +27,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.SpanStyle
@@ -56,7 +57,6 @@ import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.cose.Cose
 import org.multipaz.cose.CoseNumberLabel
 import org.multipaz.credential.Credential
@@ -67,12 +67,11 @@ import org.multipaz.mdoc.mso.MobileSecurityObject
 import org.multipaz.revocation.IdentifierList
 import org.multipaz.revocation.RevocationStatus
 import org.multipaz.revocation.StatusList
-import org.multipaz.sdjwt.DisclosureUtil.toClaimDisclosure
 import org.multipaz.sdjwt.SdJwt
 import org.multipaz.sdjwt.credential.SdJwtVcCredential
 import org.multipaz.util.Logger
-import org.multipaz.util.toBase64Url
 import org.multipaz.util.toHex
+import org.multipaz.wallet.android.ui.Note
 
 private const val TAG = "CredentialInfoScreen"
 
@@ -115,18 +114,23 @@ fun CredentialInfoScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
+                .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Note(
+                markdownString = "This screen contains low-level technical details about a specific credential"
+            )
             if (credentialInfo != null) {
-                FloatingItemList {
+                FloatingItemList() {
                     CredentialInfoSection(
                         credentialInfo = credentialInfo,
                         onViewCertificateChain = onViewCertificateChain,
                         showToast = showToast
                     )
                 }
-                if (credentialInfo.credential.isCertified == true) {
+                if (credentialInfo.credential.isCertified) {
                     CredentialClaimsSection(credentialInfo)
                 }
             } else {
@@ -134,6 +138,7 @@ fun CredentialInfoScreen(
                     FloatingItemCenteredText("No info for credential")
                 }
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.app.ActivityCompat
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
@@ -16,7 +17,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
@@ -29,7 +32,6 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
-import org.multipaz.compose.provisioning.ProvisioningBottomSheet
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.context.applicationContext
 import org.multipaz.digitalcredentials.DigitalCredentials
@@ -280,41 +282,13 @@ class App private constructor() {
                 }
                 .build()
         }
-
-        LaunchedEffect(true) {
-            while (true) {
-                val credentialOffer = credentialOffers.receive()
-                if (provisioningModel.isActive) {
-                    Logger.e(TAG, "Provisioning is already in progress")
-                } else {
-                    provisioningModel.launchOpenID4VCIProvisioning(
-                        offerUri = credentialOffer,
-                        clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
-                        backend = walletClient.getOpenID4VCIBackend()
-                    )
-                }
-            }
-        }
+        val coroutineScope = rememberCoroutineScope()
 
         val currentBranding = Branding.Current.collectAsState().value
         currentBranding.theme {
             PromptDialogs(
                 promptModel = promptModel,
                 imageLoader = imageLoader
-            )
-            ProvisioningBottomSheet(
-                provisioningModel = provisioningModel,
-                waitForRedirectLinkInvocation = { state ->
-                    walletClient.waitForAppLinkInvocation(state)
-                },
-                onFinishedProvisioning = { document, isNewlyIssued ->
-                    if (document != null && isNewlyIssued) {
-                        // TODO:  navController.navigate(DocumentViewerDestination(document.identifier))
-                    }
-                },
-                issuerUrl = null,
-                clientPreferences = flow { walletClient.getOpenID4VCIClientPreferences() },
-                backend = flow { walletClient.getOpenID4VCIBackend() }
             )
             AppNavHost(
                 walletClient = walletClient,
@@ -333,6 +307,7 @@ class App private constructor() {
                 issuerTrustManager = issuerTrustManager,
                 readerTrustManager = readerTrustManager,
                 mpzPassesToImportChannel = mpzPassesToImportChannel,
+                credentialOffers = credentialOffers,
                 documentIdToViewChannel = documentIdToViewChannel,
                 showToast = ::showToast
             )

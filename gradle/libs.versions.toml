@@ -8,7 +8,7 @@ lifecycleRuntimeKtx = "2.9.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.10"
 composeBom = "2026.03.00"
-multipaz = "0.99.0-pre.27.45b88055"
+multipaz = "0.99.0-pre.32.2956c6ea"
 jetbrainsKotlinJvm = "2.3.10"
 ktor = "3.4.1"
 kotlinx-coroutines = "1.10.2"
@@ -28,6 +28,7 @@ identity-googleid = "1.1.1"
 identity-google-api-client = "2.8.1"
 buildconfig = "6.0.6"
 coil = "3.3.0"
+lottie = "6.7.1"
 play-services-coroutines = "1.10.2"
 google-api-client-android = "2.9.0"
 google-api-services-drive = "v3-rev20260305-2.0.0"
@@ -35,6 +36,7 @@ gson = "2.13.2"
 skie = "0.10.10"
 accompanist = "0.37.3"
 semver = "3.0.0"
+browser = "1.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,6 +45,7 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
@@ -51,6 +54,7 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 multipaz = { group = "org.multipaz", name = "multipaz", version.ref = "multipaz" }
 multipaz-dcapi = { group = "org.multipaz", name = "multipaz-dcapi", version.ref = "multipaz" }
 multipaz-doctypes = { group = "org.multipaz", name = "multipaz-doctypes", version.ref = "multipaz" }
@@ -97,6 +101,7 @@ coil-core = { module = "io.coil-kt.coil3:coil-core", version.ref = "coil" }
 coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+lottie = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
 play-services-coroutines = {module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "play-services-coroutines" }
 google-api-client-android = { module = "com.google.api-client:google-api-client-android", version.ref = "google-api-client-android" }
 google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "google-api-services-drive" }

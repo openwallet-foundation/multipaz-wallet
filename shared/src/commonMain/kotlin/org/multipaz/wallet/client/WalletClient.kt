@@ -456,7 +456,8 @@ class WalletClient private constructor(
         // Sign the user out
         try {
             signOut()
-        } catch (e: WalletClientException) {
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Logger.w(TAG, "Ignoring error while signing user out", e)
         }
         lock.withLock {

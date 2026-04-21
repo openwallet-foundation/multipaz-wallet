@@ -137,6 +137,12 @@
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "utopia_wholesale"
+      },
+      {
+        "name": "Utopia Credential Catalog",
+        "icon_url": "https://issuer.multipaz.org/issuer/logo.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer"
       }
     ]
   },
