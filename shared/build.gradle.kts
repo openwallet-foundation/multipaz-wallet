@@ -34,6 +34,9 @@ buildConfig {
 
 kotlin {
     jvm()
+    js(IR) {
+        browser()
+    }
 
     // Target declarations - add or remove as needed below. These define
     // which platforms this KMP module supports.
@@ -181,3 +184,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
 tasks["compileKotlinIosX64"].dependsOn("kspCommonMainKotlinMetadata")
 tasks["compileKotlinIosArm64"].dependsOn("kspCommonMainKotlinMetadata")
 tasks["compileKotlinIosSimulatorArm64"].dependsOn("kspCommonMainKotlinMetadata")
+tasks["compileKotlinJs"].dependsOn("kspCommonMainKotlinMetadata")

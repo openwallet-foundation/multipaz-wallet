@@ -38,6 +38,19 @@ dependencies {
     implementation(libs.identity.google.api.client)
 }
 
+tasks.named<ProcessResources>("processResources") {
+    val jsDist = project(":webApp").layout.buildDirectory.dir("kotlin-webpack/js/productionExecutable")
+    val resourcesDist = project(":webApp").layout.buildDirectory.dir("processedResources/js/main")
+    
+    from(jsDist) {
+        into("static/web")
+    }
+    from(resourcesDist) {
+        into("static/web")
+    }
+    dependsOn(":webApp:jsBrowserProductionWebpack")
+}
+
 ktor {
 }
 

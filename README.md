@@ -34,6 +34,28 @@ The key material used to sign APKs, attestations, and other things is kept secre
 participants in the Digital Credential ecosystem (credential issuers and relying parties) can
 safely trust such wallet instances for e.g. anti-cloning guarantees.
 
+## Running the Wallet Server
+
+### Production-like mode
+To run the backend server along with the bundled web application (no hot-reload):
+```bash
+./gradlew :backend:run
+```
+The server will be available at `http://localhost:8010`. You can access the web application at `http://localhost:8010/web/`.
+
+### Development mode (with Hot Reload)
+For a better development experience with Hot Module Replacement (HMR) for the web application:
+
+1.  **Start the Backend** (for RPC services):
+    ```bash
+    ./gradlew :backend:run
+    ```
+2.  **Start the Web Dev Server** (in a separate terminal):
+    ```bash
+    ./gradlew :webApp:jsBrowserDevelopmentRun --continuous
+    ```
+The development web application will be available at `http://localhost:8011`. Changes to the Kotlin code in the `webApp` or `shared` modules will be automatically reflected in the browser.
+
 ## Note
 
 This is not an official or supported Google product.
