@@ -11,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,19 +53,16 @@ fun DocumentInfoExtrasScreen(
     documentId: String,
     documentModel: DocumentModel,
     onBackClicked: () -> Unit,
+    onRefreshCredentialsClicked: () -> Unit,
     onCredentialClicked: (String) -> Unit
 ) {
-    val documentInfo = documentModel.documentInfos.collectAsState().value.find {
-        it.document.identifier == documentId
-    }
-
-    var credentialsByDomain by remember { mutableStateOf<Map<String, List<Credential>>>(emptyMap()) }
-
-    LaunchedEffect(documentId) {
-        val document = documentInfo?.document ?: return@LaunchedEffect
-        val credentials = document.getCertifiedCredentials()
-        credentialsByDomain = credentials.groupBy { it.domain }
-    }
+    val credentialsByDomain = documentModel.documentInfos.collectAsState().value
+        .find { it.document.identifier == documentId }
+        ?.credentialInfos
+        ?.map { it.credential }
+        ?.sortedByDescending { it.domain }
+        ?.groupBy { it.domain }
+        .orEmpty()
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
@@ -81,6 +80,14 @@ fun DocumentInfoExtrasScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onRefreshCredentialsClicked) {
+                        Icon(
+                            imageVector = Icons.Outlined.Refresh,
+                            contentDescription = "Refresh credentials"
                         )
                     }
                 },
@@ -104,21 +111,34 @@ fun DocumentInfoExtrasScreen(
             credentialsByDomain.forEach { (domain, creds) ->
                 FloatingItemList(title = domain) {
                     creds.forEach { credential ->
+
+                        val (text, secondary) = if (credential.isCertified) {
+                            Pair(
+                                "${credential.credentialType} with use-count ${credential.usageCount}",
+                                buildString {
+                                    append("Valid from ")
+                                    append(credential.validFrom.format())
+                                    append(" until ")
+                                    append(credential.validUntil.format())
+                                }
+                            )
+                        } else {
+                            Pair(
+                               credential.credentialType,
+                                "Pending certification"
+                            )
+                        }
                         FloatingItemText(
                             modifier = Modifier.clickable {
                                 onCredentialClicked(credential.identifier)
                             },
-                            text = credential.credentialType,
-                            secondary = buildString {
-                                append("Valid from ")
-                                append(credential.validFrom.format())
-                                append(" until ")
-                                append(credential.validUntil.format())
-                            }
+                            text = text,
+                            secondary = secondary
                         )
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
