@@ -2,6 +2,8 @@ package org.multipaz.wallet.backend
 
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -49,6 +51,10 @@ fun Application.configureRouting(serverEnvironment: Deferred<ServerEnvironment>)
     routing {
         push(serverEnvironment)
         certificateAuthority()
+        get("/web") {
+            call.respondRedirect("/web/")
+        }
+        staticResources("/web", "static/web", index = "index.html")
         get ("/") {
             val configuration = BackendEnvironment.getInterface(Configuration::class)!!
             val googleSiteVerificationToken = configuration.getValue("googleSiteVerificationToken") ?: ""
@@ -67,6 +73,8 @@ fun Application.configureRouting(serverEnvironment: Deferred<ServerEnvironment>)
                       <p>
                       Powered by Multipaz SDK version ${Platform.version}.
                       <p>
+                      <a href="web/">Web Application</a>
+                      <br>
                       <a href="privacy-policy.html">Privacy policy</a>
                       <br>
                       <a href="terms-of-service.html">Terms of service</a>
