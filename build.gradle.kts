@@ -46,6 +46,11 @@ val backendClientId: String by extra {
         ?: "1016113070986-54k257ap3h8hc40qm9kbl5lmhppjfel1.apps.googleusercontent.com"
 }
 
+val backendClientSecret: String by extra {
+    System.getenv("MULTIPAZ_WALLET_BACKEND_CLIENT_SECRET")
+        ?: "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"
+}
+
 val backendSecret: String by extra {
     System.getenv("MULTIPAZ_WALLET_BACKEND_SECRET")
         ?: "1234567890"

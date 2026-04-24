@@ -7,6 +7,9 @@ plugins {
 kotlin {
     js(IR) {
         browser {
+            commonWebpackConfig {
+                cssSupport { enabled.set(true) }
+            }
             binaries.executable()
         }
     }
@@ -20,6 +23,11 @@ kotlin {
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.ktor.client.js)
+                
+                implementation(libs.kotlin.wrappers.web)
+                implementation(libs.kotlin.wrappers.react)
+                implementation(libs.kotlin.wrappers.react.dom)
+                implementation(libs.kotlin.wrappers.emotion.react.js)
             }
         }
     }

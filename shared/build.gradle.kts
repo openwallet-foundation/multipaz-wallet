@@ -12,6 +12,7 @@ plugins {
 val appName: String by rootProject.extra
 val backendUrl: String by rootProject.extra
 val backendClientId: String  by rootProject.extra
+val backendClientSecret: String  by rootProject.extra
 val backendSecret: String  by rootProject.extra
 val developerModeAvailable: Boolean by rootProject.extra
 val projectVersionCode: Int by rootProject.extra
@@ -25,6 +26,7 @@ buildConfig {
     buildConfigField("VERSION", projectVersionName)
     buildConfigField("BACKEND_URL", backendUrl)
     buildConfigField("BACKEND_CLIENT_ID", backendClientId)
+    buildConfigField("BACKEND_CLIENT_SECRET", backendClientSecret)
     buildConfigField("BACKEND_SECRET", backendSecret)
     buildConfigField("DEVELOPER_MODE_AVAILABLE", developerModeAvailable)
     buildConfigField("UPDATE_URL", updateUrl)
