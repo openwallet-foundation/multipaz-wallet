@@ -279,10 +279,35 @@ fun NavGraphBuilder.mainGraph(
         }
         composable<DocumentInfoExtrasDestination> { backStackEntry ->
             val destination = backStackEntry.toRoute<DocumentInfoExtrasDestination>()
+            // No need for translations, this is a dev-mode feature
             DocumentInfoExtrasScreen(
                 documentId = destination.documentId,
                 documentModel = documentModel,
                 onBackClicked = { navController.popBackStack() },
+                onRefreshCredentialsClicked = {
+                    coroutineScope.launch {
+                        val document = documentStore.lookupDocument(destination.documentId)
+                        val authorizationData = document?.authorizationData
+                        if (authorizationData == null) {
+                            showToast("Cannot refresh. Document isn't from a OpenID4VCI server")
+                        } else {
+                            try {
+                                showToast("Refreshing credentials...")
+                                val numCredentialsAdded = provisioningModel.openID4VCIRefreshCredentials(
+                                    document = document,
+                                    authorizationData = authorizationData,
+                                    clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
+                                    backend = walletClient.getOpenID4VCIBackend()
+                                )
+                                showToast("Refreshed ${numCredentialsAdded} credentials")
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.w(TAG, "Error refreshing credentials", e)
+                                showToast("Error refreshing credentials: ${e.message}")
+                            }
+                        }
+                    }
+                },
                 onCredentialClicked = { credentialId ->
                     navController.navigate(CredentialInfoDestination(destination.documentId, credentialId))
                 }
