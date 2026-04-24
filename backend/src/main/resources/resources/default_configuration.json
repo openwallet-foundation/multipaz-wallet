@@ -62,7 +62,7 @@
         "BD:83:1F:FD:6D:AF:5C:10:80:F6:F2:85:44:3E:96:D7:2E:E2:71:60:FF:CD:7B:51:9D:37:F0:AE:1A:09:BB:1F"
       ],
       "app_packages": [
-        "org.multipaz.wallet.android"
+        "org.multipaz.wallet.android.dev"
       ],
       "secrets": ["1234567890"]
     }

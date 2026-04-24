@@ -75,11 +75,38 @@ import kotlin.time.Duration.Companion.days
 @CborSerializable
 class TestWalletBackendImpl: WalletBackendBase(), WalletBackend {
 
-    override suspend fun googleIdTokenVerifier(googleIdTokenString: String): Pair<String, String> {
+    override suspend fun googleIdTokenVerifier(googleIdTokenString: String, expectedNonce: String): String {
         val map = Cbor.decode(googleIdTokenString.fromBase64Url())
-        return Pair(
-            map["nonce"].asTstr,
-            map["id"].asTstr
+        val nonce = map["nonce"].asTstr
+        if (nonce != expectedNonce) {
+            throw WalletBackendNonceException("Nonce mismatch")
+        }
+        return map["id"].asTstr
+    }
+
+    override suspend fun googleCodeExchanger(
+        authorizationCode: String,
+        redirectUri: String,
+        expectedNonce: String
+    ): Pair<String, String> {
+        val map = Cbor.decode(authorizationCode.fromBase64Url())
+        val nonce = map["nonce"].asTstr
+        if (nonce != expectedNonce) {
+            throw WalletBackendNonceException("Nonce mismatch")
+        }
+        return Pair(map["id"].asTstr, "test_access_token")
+    }
+
+    override suspend fun exchangeCodeForTokensInternal(
+        authorizationCode: String,
+        redirectUri: String
+    ): GoogleTokens {
+        val map = Cbor.decode(authorizationCode.fromBase64Url())
+        val id = map["id"].asTstr
+        val nonce = map["nonce"].asTstr
+        return GoogleTokens(
+            idToken = buildTestGoogleIdTokenString(nonce, id),
+            accessToken = "test_access_token"
         )
     }
 
@@ -465,10 +492,11 @@ class WalletClientTest {
         // Also see the "Corrupt E2EE key in Google Drive" button in Developer Settings which
         // does the same for testing the UI side of this in the Wallet App.
         //
+        val client2Nonce2 = client2.getNonce()
         client2.signInWithGoogle(
-            nonce = client2Nonce,
+            nonce = client2Nonce2,
             googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
-                nonce = client2Nonce,
+                nonce = client2Nonce2,
                 id = fooUser.id
             ),
             signedInUser = fooUser,

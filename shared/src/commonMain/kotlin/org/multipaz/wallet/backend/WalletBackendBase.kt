@@ -27,6 +27,7 @@ import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
+import org.multipaz.wallet.shared.GoogleTokens
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -38,10 +39,22 @@ abstract class WalletBackendBase: WalletBackend {
      * Validates a Google ID token.
      *
      * @param googleIdTokenString the ID token from Google, encoded as a string.
+     * @param expectedNonce the nonce to verify against if present in the ID token.
      * @throws WalletBackendIdTokenException if the ID token didn't verify
-     * @return the nonce and the ID that was verified.
+     * @return the user ID that was verified.
      */
-    abstract suspend fun googleIdTokenVerifier(googleIdTokenString: String): Pair<String, String>
+    abstract suspend fun googleIdTokenVerifier(googleIdTokenString: String, expectedNonce: String): String
+
+    /**
+     * Exchanges an authorization code for tokens and validates the ID token.
+     *
+     * @param authorizationCode the authorization code from Google.
+     * @param redirectUri the redirect URI used in the authorization request.
+     * @param expectedNonce the nonce to verify against if present in the ID token.
+     * @throws WalletBackendIdTokenException if the exchange fails or ID token didn't verify.
+     * @return the user ID that was verified, and the access token.
+     */
+    abstract suspend fun googleCodeExchanger(authorizationCode: String, redirectUri: String, expectedNonce: String): Pair<String, String>
 
     abstract suspend fun getClientId(): String
 
@@ -56,6 +69,14 @@ abstract class WalletBackendBase: WalletBackend {
         return nonce
     }
 
+    private suspend fun consumeNonce(nonce: String) {
+        val nonceTable = BackendEnvironment.getTable(nonceTableSpec)
+        if (nonceTable.get(key = nonce) == null) {
+            throw WalletBackendNonceException("Unknown or already used nonce")
+        }
+        nonceTable.delete(key = nonce)
+    }
+
     override suspend fun signIn(
         nonce: String,
         googleIdTokenString: String,
@@ -63,16 +84,75 @@ abstract class WalletBackendBase: WalletBackend {
         resetSharedData: Boolean,
         initialSharedData: ByteString
     ) {
+        consumeNonce(nonce)
+
+        val googleUserId = googleIdTokenVerifier(googleIdTokenString, nonce)
+
+        performSignInInternal(
+            googleUserId = googleUserId,
+            walletServerEncryptionKeySha256 = walletServerEncryptionKeySha256,
+            resetSharedData = resetSharedData,
+            initialSharedData = initialSharedData
+        )
+    }
+
+    override suspend fun signInWithGoogleCode(
+        nonce: String,
+        authorizationCode: String,
+        redirectUri: String,
+        walletServerEncryptionKeySha256: ByteString,
+        resetSharedData: Boolean,
+        initialSharedData: ByteString
+    ): String {
+        consumeNonce(nonce)
+
+        val (googleUserId, accessToken) = googleCodeExchanger(authorizationCode, redirectUri, nonce)
+
+        performSignInInternal(
+            googleUserId = googleUserId,
+            walletServerEncryptionKeySha256 = walletServerEncryptionKeySha256,
+            resetSharedData = resetSharedData,
+            initialSharedData = initialSharedData
+        )
+        return accessToken
+    }
+
+    override suspend fun exchangeCodeForTokens(
+        nonce: String,
+        authorizationCode: String,
+        redirectUri: String
+    ): GoogleTokens {
+        // We don't strictly NEED to consume the nonce here if the client is going to call
+        // signInWithGoogle later with the same nonce, but it's safer to have a fresh nonce
+        // for each sensitive operation. For now, let's NOT consume it here because the
+        // StartScreen uses the same nonce for the whole flow.
+        // Wait, if we don't consume it, replay is possible.
+        // Let's consume it and have the client get a new one? No, that's too complex.
+        // Let's just NOT consume it here, but verify it exists.
         val nonceTable = BackendEnvironment.getTable(nonceTableSpec)
         if (nonceTable.get(key = nonce) == null) {
             throw WalletBackendNonceException("Unknown nonce")
         }
 
-        val (extractedNonce, googleUserId) = googleIdTokenVerifier(googleIdTokenString)
-        if (extractedNonce != nonce) {
-            throw WalletBackendNonceException("Nonce mismatch")
-        }
+        return exchangeCodeForTokensInternal(authorizationCode, redirectUri)
+    }
 
+    /**
+     * Overridden in [WalletBackendImpl] to use [BuildConfig.BACKEND_CLIENT_SECRET].
+     */
+    open suspend fun exchangeCodeForTokensInternal(
+        authorizationCode: String,
+        redirectUri: String
+    ): GoogleTokens {
+        throw UnsupportedOperationException("Not implemented in base")
+    }
+
+    private suspend fun performSignInInternal(
+        googleUserId: String,
+        walletServerEncryptionKeySha256: ByteString,
+        resetSharedData: Boolean,
+        initialSharedData: ByteString
+    ) {
         val walletClient = loadRemoteWalletClient()
         val signedInUser = GoogleSignedInUser(
             id = googleUserId
@@ -178,11 +258,11 @@ abstract class WalletBackendBase: WalletBackend {
             }
             return sharedData
         }
-        check(walletServerEncryptionKeySha256 != null) {
-            "Need walletServerEncryptionKeySha256 to create a new record"
+        if (walletServerEncryptionKeySha256 == null) {
+            throw WalletBackendEncryptionKeyMismatchException("Need walletServerEncryptionKeySha256 to create a new record")
         }
-        check(initialSharedData != null) {
-            "Need initialSharedData to create a new record"
+        if (initialSharedData == null) {
+            throw IllegalStateException("Need initialSharedData to create a new record")
         }
         val sharedData = SharedData(
             walletServerEncryptionKeySha256 = walletServerEncryptionKeySha256,

@@ -48,9 +48,12 @@ fun NavGraphBuilder.setupGraph(
     navigation<SetupGraph>(startDestination = SetupWelcomeScreenDestination) {
         composable<SetupWelcomeScreenDestination> {
             SetupWelcomeScreen(
+                walletClient = walletClient,
+                settingsModel = settingsModel,
                 onContinueClicked = {
                     navController.navigate(SetupDeviceCheckScreenDestination)
-                }
+                },
+                showToast = showToast
             )
         }
         composable<SetupDeviceCheckScreenDestination> {

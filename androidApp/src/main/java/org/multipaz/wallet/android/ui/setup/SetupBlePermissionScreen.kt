@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.shared.BuildConfig
 
 @Composable
 fun SetupBlePermissionScreen(
@@ -61,7 +62,7 @@ fun SetupBlePermissionScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = stringResource(R.string.setup_ble_text),
+                text = stringResource(R.string.setup_ble_text, BuildConfig.APP_NAME),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

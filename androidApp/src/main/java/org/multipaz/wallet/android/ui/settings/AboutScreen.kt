@@ -32,7 +32,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
-import io.github.z4kn4fein.semver.Version
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.request.get
@@ -125,22 +124,15 @@ private fun AppUpdateCard() {
 
 
     latestVersionString.value?.let {
-        val currentVersion = Version.parse(
-            versionString = currentVersion,
-            strict = false
-        )
-        val availableVersion = Version.parse(
-            versionString = it,
-            strict = false
-        )
-        if (currentVersion < availableVersion) {
+        // Our version numbers are so arranged that we can just compare strings.
+        if (currentVersion < it) {
             InfoCard(
                 modifier = Modifier.padding(16.dp)
             ) {
                 val str = buildAnnotatedString {
                     append(
                         "You are running version $currentVersion and version " +
-                                "${latestVersionString.value} is the latest available. " +
+                                "$it is the latest available. " +
                                 "Visit "
                     )
                     withLink(

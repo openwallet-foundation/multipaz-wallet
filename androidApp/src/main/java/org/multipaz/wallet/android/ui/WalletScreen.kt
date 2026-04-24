@@ -101,6 +101,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.Domains
 import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "WalletScreen"
@@ -175,13 +176,13 @@ fun WalletScreen(
                                         }
                                     }
                                 },
-                                text = stringResource(R.string.app_name),
+                                text = BuildConfig.APP_NAME,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                         } else {
                             Text(
-                                text = stringResource(R.string.app_name),
+                                text = BuildConfig.APP_NAME,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -307,9 +308,9 @@ fun WalletScreen(
                             walletClient.sharedData.value?.let {
                                 documentStore.syncWithSharedData(
                                     sharedData = it,
-                                    mpzPassIsoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
-                                    mpzPassSdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
-                                    mpzPassKeylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+                                    mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                                    mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                                 )
                             }
                         } catch (e: Exception) {
