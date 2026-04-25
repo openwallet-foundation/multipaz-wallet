@@ -40,6 +40,7 @@ browser = "1.10.0"
 kotlin-wrappers = "2025.12.1"
 kotlin-wrappers-rx = "2025.12.1-19.2.0"
 kotlin-wrappers-em = "2025.12.1-11.14.0"
+kotlin-wrappers-mui = "2025.3.14-5.16.14"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -110,8 +111,10 @@ google-api-client-android = { module = "com.google.api-client:google-api-client-
 google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "google-api-services-drive" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 kotlin-wrappers-web = { module = "org.jetbrains.kotlin-wrappers:kotlin-web", version.ref="kotlin-wrappers" }
-kotlin-wrappers-react = { module = "org.jetbrains.kotlin-wrappers:kotlin-react", version.ref= "kotlin-wrappers-rx" }
-kotlin-wrappers-react-dom = { module = "org.jetbrains.kotlin-wrappers:kotlin-react-dom", version.ref= "kotlin-wrappers-rx" }
+kotlin-wrappers-react = { module = "org.jetbrains.kotlin-wrappers:kotlin-react-js", version.ref="kotlin-wrappers-rx" }
+kotlin-wrappers-react-dom = { module = "org.jetbrains.kotlin-wrappers:kotlin-react-dom-js", version.ref="kotlin-wrappers-rx" }
+kotlin-wrappers-mui = { module = "org.jetbrains.kotlin-wrappers:kotlin-mui-material-js", version.ref="kotlin-wrappers-mui" }
+kotlin-wrappers-mui-icons = { module = "org.jetbrains.kotlin-wrappers:kotlin-mui-icons-material-js", version.ref="kotlin-wrappers-mui" }
 kotlin-wrappers-emotion-react-js = { module = "org.jetbrains.kotlin-wrappers:kotlin-emotion-react-js", version.ref="kotlin-wrappers-em" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist"}
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist"}

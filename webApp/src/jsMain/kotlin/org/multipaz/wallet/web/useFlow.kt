@@ -21,5 +21,3 @@ fun <T> useFlow(flow: StateFlow<T>): T {
     }
     return state
 }
-
-private fun Cleanup(block: () -> Unit): react.Cleanup = block.unsafeCast<react.Cleanup>()

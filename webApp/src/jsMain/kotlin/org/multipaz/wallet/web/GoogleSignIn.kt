@@ -22,7 +22,7 @@ class GoogleSignIn(private val clientId: String) {
      */
     fun requestCode(scope: String): Promise<String> {
         val promise = Promise<String> { resolve, reject ->
-            val client = Google.accounts.oauth2.initCodeClient(js("{}").unsafeCast<CodeClientConfig>().apply {
+            val client = GoogleIdentity.accounts.oauth2.initCodeClient(js("{}").unsafeCast<CodeClientConfig>().apply {
                 client_id = clientId
                 this.scope = scope
                 this.ux_mode = "popup"

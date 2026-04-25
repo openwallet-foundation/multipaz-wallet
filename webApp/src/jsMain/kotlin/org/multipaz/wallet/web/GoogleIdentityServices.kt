@@ -8,7 +8,7 @@ import kotlin.js.Json
  */
 
 @JsName("google")
-external object Google {
+external object GoogleIdentity {
     val accounts: Accounts
 }
 

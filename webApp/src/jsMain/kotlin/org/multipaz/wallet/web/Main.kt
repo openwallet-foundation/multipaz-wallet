@@ -9,6 +9,8 @@ import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.util.Platform
 import org.multipaz.wallet.client.WalletClient
 import io.ktor.client.engine.js.Js
+import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.documenttype.knowntypes.addKnownTypes
 import org.multipaz.util.Logger
 import react.create
 import react.dom.client.createRoot
@@ -17,6 +19,7 @@ import web.dom.Element
 private const val TAG = "Main"
 
 fun main() {
+    js("require('./style.css')")
     window.onload = {
         CoroutineScope(Dispatchers.Main).launch {
             try {
@@ -31,6 +34,9 @@ fun main() {
                     secureArea = secureArea,
                     httpClientEngineFactory = Js
                 )
+
+                val documentTypeRepository = DocumentTypeRepository()
+                documentTypeRepository.addKnownTypes()
                 
                 val googleSignIn = GoogleSignIn(BuildConfig.BACKEND_CLIENT_ID)
                 googleSignIn.initialize()
@@ -40,6 +46,7 @@ fun main() {
                 root.render(App.create {
                     this.walletClient = walletClient
                     this.googleSignIn = googleSignIn
+                    this.documentTypeRepository = documentTypeRepository
                 })
                 
             } catch (e: Exception) {

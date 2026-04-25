@@ -44,7 +44,7 @@ class GoogleDrive(private val accessToken: String) {
     private suspend fun findFile(name: String): String? {
         val url = "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='$name'&fields=files(id, name)"
         val response = authenticatedFetch(url)
-        val data = response.json().await().asDynamic()
+        val data: dynamic = response.json().await()
         val files = data.files as Array<dynamic>
         return if (files.isNotEmpty()) files[0].id as String else null
     }
@@ -52,7 +52,7 @@ class GoogleDrive(private val accessToken: String) {
     private suspend fun downloadFile(fileId: String): ByteArray {
         val url = "https://www.googleapis.com/drive/v3/files/$fileId?alt=media"
         val response = authenticatedFetch(url)
-        val buffer = response.arrayBuffer().await().asDynamic() as ArrayBuffer
+        val buffer = response.arrayBuffer().await().unsafeCast<ArrayBuffer>()
         return Uint8Array(buffer).toByteArray()
     }
 
@@ -75,10 +75,7 @@ class GoogleDrive(private val accessToken: String) {
             .toString()
 
         // We need to combine string and binary data. In JS this is often done with Blob.
-        val blob = window.asDynamic().Blob(
-            arrayOf(body, Uint8Array(content.toTypedArray()), closeDelimiter),
-            json("type" to "multipart/related; boundary=$boundary")
-        )
+        val blob = js("new Blob([body, new Uint8Array(content), closeDelimiter], {type: 'multipart/related; boundary=' + boundary})")
 
         authenticatedFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", 
             js("{}").unsafeCast<RequestInit>().apply {
@@ -92,7 +89,8 @@ class GoogleDrive(private val accessToken: String) {
         authenticatedFetch("https://www.googleapis.com/upload/drive/v3/files/$fileId?uploadType=media",
             js("{}").unsafeCast<RequestInit>().apply {
                 method = "PATCH"
-                this.body = Uint8Array(content.toTypedArray())
+                val d: dynamic = this
+                d.body = js("new Uint8Array(content)")
             }
         )
     }
