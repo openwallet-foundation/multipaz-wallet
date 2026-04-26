@@ -28,13 +28,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -85,14 +90,10 @@ import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.request.RequestedClaim
 import org.multipaz.util.Logger
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import org.multipaz.wallet.android.ui.OpenStreetMap
-import org.multipaz.wallet.android.ui.getAddressFromCoordinates
-import androidx.compose.ui.text.font.FontWeight.Companion
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.OpenStreetMap
+import org.multipaz.wallet.android.ui.getAddressFromCoordinates
+import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Clock
@@ -113,6 +114,7 @@ fun EventViewerScreen(
     promptModel: PromptModel,
     showToast: (message: String) -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
@@ -157,9 +159,9 @@ fun EventViewerScreen(
                                             item = event.toDataItem(),
                                             options = setOf(DiagnosticOption.PRETTY_PRINT, DiagnosticOption.EMBEDDED_CBOR)
                                         ).encodeToByteArray(),
-                                        filename = "mpzwallet-event-${timeStampString}.txt",
+                                        filename = "event-${timeStampString}.txt",
                                         mimeType = "text/plain",
-                                        title = "Multipaz Wallet event recorded at ${event.timestamp}" // TODO
+                                        title = context.getString(R.string.event_viewer_screen_file_name_text, BuildConfig.APP_NAME, event.timestamp)
                                     )
                                 }
                             }

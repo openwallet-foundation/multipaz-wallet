@@ -1,13 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Multipaz Wallet</string>
     <string name="nfc_ndef_service_description">@string/app_name</string>
     <string name="nfc_ndef_service_aid_group_description">ISO/IEC 18013-5:2021 NFC engagement</string>
     <string name="mdoc_nfc_data_transfer_service_aid_group_description">ISO/IEC 18013-5:2021 NFC data transfer</string>
     <string name="quick_access_wallet_empty_state_text">No Cards</string>
     <string name="quick_access_wallet_button_text">@string/app_name</string>
 
-    <string name="setup_welcome_title">Welcome to Multipaz Wallet</string>
+    <string name="setup_welcome_title">Welcome to %1$s</string>
     <string name="setup_welcome_text">Your secure and privacy-preserving open-source digital wallet, for passes, identity documents, and more</string>
     <string name="setup_welcome_continue">Get Started</string>
 
@@ -29,7 +28,7 @@
     <string name="setup_eula_declined_see_ya_text">The application will now exit</string>
 
     <string name="setup_ble_title">Bluetooth Permissions</string>
-    <string name="setup_ble_text">Multipaz Wallet uses Bluetooth Low Energy (BLE) to securely share your info to verifiers. Please grant the necessary permissions to continue</string>
+    <string name="setup_ble_text">%1$s uses Bluetooth Low Energy (BLE) to securely share your info to verifiers. Please grant the necessary permissions to continue</string>
     <string name="setup_ble_grant">Grant Permissions</string>
     <string name="setup_ble_skip">Skip</string>
     <string name="setup_ble_continue">Continue</string>
@@ -80,7 +79,7 @@
     <string name="settings_screen_trusted_issuers">Trusted issuers</string>
     <string name="settings_screen_trusted_verifiers">Trusted verifiers</string>
     <string name="settings_screen_developer_settings">Developer settings</string>
-    <string name="settings_screen_about">About Multipaz Wallet</string>
+    <string name="settings_screen_about">About %1$s</string>
     <string name="settings_screen_activity_logging_button_text">Activity logging</string>
 
     <string name="dev_settings_screen_title">Developer Settings</string>
@@ -131,7 +130,7 @@
     <string name="sign_in_clear_key_dialog_confirm">Clear key</string>
     <string name="sign_in_clear_key_dialog_cancel">Cancel</string>
     <string name="sign_in_clear_key_dialog_title">Error signing in</string>
-    <string name="sign_in_clear_key_dialog_text">The end-to-end encryption key isn\'t working. Would you like to clear this key and start over?\n\nMultipaz Wallet on other devices signed into this account, will be signed out</string>
+    <string name="sign_in_clear_key_dialog_text">The end-to-end encryption key isn\'t working. Would you like to clear this key and start over?\n\n%1$s on other devices signed into this account, will be signed out</string>
 
     <string name="dev_settings_connect_backend_already_using_url">Backend is already using the given URL</string>
     <string name="dev_settings_connect_backend_cancel">Cancel</string>
@@ -248,7 +247,7 @@
     <string name="event_ext_event_type_shared_with_app_text">Shared with application</string>
 
     <string name="event_viewer_screen_title_text">Event viewer</string>
-    <string name="event_viewer_screen_file_name_text">Multipaz Wallet event recorded at %1$s</string>
+    <string name="event_viewer_screen_file_name_text">%1$s event recorded at %2$s</string>
     <string name="event_viewer_screen_protocol_w3dc_18013_7_annex_c_text">W3C Digital Credentials API with ISO/IEC 18013-7:2025 Annex C exchange protocol</string>
     <string name="event_viewer_screen_protocol_w3dc_openid4v_text">W3C Digital Credentials API with OpenID4VP exchange protocol</string>
     <string name="event_viewer_screen_protocol_uri_openid4vp_text">URI scheme with OpenID4VP</string>
@@ -285,8 +284,8 @@
     <string name="rical_entry_title">RICAL entry</string>
 
     <string name="setup_default_wallet_title">Default Wallet</string>
-    <string name="setup_default_wallet_text">To enable contactless interactions when Multipaz Wallet isn\'t running, it needs to be set as the default wallet application. If you\'re already using another wallet for contactless payment, you might not want to do this</string>
-    <string name="setup_default_wallet_ready_text">Multipaz Wallet is set as your default wallet and contactless interactions will work even when it\'s not running. Additionally, device shortcuts such as the wallet Quick Settings tile and double-clicking the power button can be used to launch Multipaz Wallet</string>
+    <string name="setup_default_wallet_text">To enable contactless interactions when %1$s isn\'t running, it needs to be set as the default wallet application. If you\'re already using another wallet for contactless payment, you might not want to do this</string>
+    <string name="setup_default_wallet_ready_text">%1$s is set as your default wallet and contactless interactions will work even when it\'s not running. Additionally, device shortcuts such as the wallet Quick Settings tile and double-clicking the power button can be used to launch %1$s</string>
     <string name="setup_default_wallet_note_text">Even if a wallet app isn\'t the default wallet application, contactless interactions will still work if you bring the app to the foreground for the NFC tap</string>
     <string name="setup_default_wallet_continue_button">Continue</string>
     <string name="setup_default_wallet_open_settings_button">Open Settings</string>

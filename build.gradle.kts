@@ -27,6 +27,11 @@ val appName: String by extra {
         ?: "Multipaz Wallet Dev"
 }
 
+val androidAppId: String by extra {
+    System.getenv("MULTIPAZ_WALLET_ANDROID_APP_ID")
+        ?: "org.multipaz.wallet.android.dev"
+}
+
 val updateUrl: String by extra {
     System.getenv("MULTIPAZ_WALLET_UPDATE_URL") ?: ""
 }

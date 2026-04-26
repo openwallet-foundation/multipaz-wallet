@@ -7,6 +7,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 import org.junit.Assert.*
+import org.multipaz.wallet.shared.BuildConfig
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -19,6 +20,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("org.multipaz.wallet.android", appContext.packageName)
+        assertEquals(BuildConfig.ANDROID_APP_ID, appContext.packageName)
     }
 }

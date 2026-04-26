@@ -92,7 +92,7 @@ struct StartScreen: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .navigationTitle("Multipaz Wallet")
+        .navigationTitle(BuildConfig.shared.APP_NAME)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

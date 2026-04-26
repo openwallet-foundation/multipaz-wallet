@@ -1,6 +1,9 @@
 package org.multipaz.wallet.web
 
 import kotlinx.io.bytestring.ByteString
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import react.FC
 import react.Props
 import react.PropsWithChildren
@@ -167,6 +170,55 @@ val FloatingItemPicture = FC<FloatingItemPictureProps> { props ->
                 }
             }
         }
+    }
+}
+
+external interface FloatingItemHeadingAndContentProps : PropsWithChildren {
+    var heading: String
+}
+
+val FloatingItemHeadingAndContent = FC<FloatingItemHeadingAndContentProps> { props ->
+    div {
+        className = ClassName("w-full flex flex-col px-6 py-4 space-y-1")
+        div {
+            className = ClassName("text-xs font-semibold text-slate-500 uppercase tracking-wider")
+            +props.heading
+        }
+        div {
+            className = ClassName("text-base text-slate-900 break-all")
+            +props.children
+        }
+    }
+}
+
+external interface FloatingItemHeadingAndTextProps : Props {
+    var heading: String
+    var text: String
+}
+
+val FloatingItemHeadingAndText = FC<FloatingItemHeadingAndTextProps> { props ->
+    FloatingItemHeadingAndContent {
+        heading = props.heading
+        +props.text
+    }
+}
+
+external interface FloatingItemHeadingAndDateProps : Props {
+    var heading: String
+    var date: Instant?
+}
+
+val FloatingItemHeadingAndDate = FC<FloatingItemHeadingAndDateProps> { props ->
+    FloatingItemHeadingAndContent {
+        heading = props.heading
+        val dateText = if (props.date != null) {
+            val dateTime = props.date!!.toLocalDateTime(TimeZone.currentSystemDefault())
+            "${dateTime.year}-${dateTime.month.toString().padStart(2, '0')}-${dateTime.day.toString().padStart(2, '0')} " +
+                    "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}:${dateTime.second.toString().padStart(2, '0')}"
+        } else {
+            "N/A"
+        }
+        +dateText
     }
 }
 

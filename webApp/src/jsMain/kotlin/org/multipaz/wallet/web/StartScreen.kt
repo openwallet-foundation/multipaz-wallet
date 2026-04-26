@@ -1,9 +1,5 @@
 package org.multipaz.wallet.web
 
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.engine.js.Js
-import io.ktor.client.request.get
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +9,7 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.util.Logger
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientSignedInUser
+import org.multipaz.wallet.shared.BuildConfig
 import react.FC
 import react.Props
 import react.dom.html.ReactHTML.button
@@ -71,7 +68,7 @@ val StartScreen = FC<StartScreenProps> { props ->
             div {
                 h1 {
                     className = ClassName("text-4xl font-extrabold tracking-tight sm:text-5xl bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400")
-                    +"Multipaz Wallet"
+                    +BuildConfig.APP_NAME
                 }
                 p {
                     className = ClassName("mt-4 text-lg text-slate-400 font-medium")
@@ -197,22 +194,11 @@ private suspend fun decodeUserFromIdToken(idToken: String): WalletClientSignedIn
         val name = payload.name as String
         val pictureUrl = payload.picture as String?
         
-        val profilePicture = if (pictureUrl != null) {
-            try {
-                val httpClient = HttpClient(Js)
-                val response = httpClient.get(pictureUrl)
-                ByteString(response.body<ByteArray>())
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
-        }
-
         return WalletClientSignedInUser(
             id = email,
             displayName = name,
-            profilePicture = profilePicture
+            profilePicture = null,
+            profilePictureUrl = pictureUrl
         )
     } catch (e: Exception) {
         return null

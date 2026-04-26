@@ -40,6 +40,7 @@ import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.android.ui.InfoNote
 import org.multipaz.wallet.android.ui.ProfilePicture
 import org.multipaz.wallet.client.WalletClient
@@ -182,7 +183,7 @@ fun SettingsScreen(
                 }
                 FloatingItemText(
                     modifier = Modifier.clickable { onAboutClicked() },
-                    text = stringResource(R.string.settings_screen_about),
+                    text = stringResource(R.string.settings_screen_about, BuildConfig.APP_NAME),
                     image = {
                         Icon(Icons.Outlined.Info, contentDescription = null)
                     }

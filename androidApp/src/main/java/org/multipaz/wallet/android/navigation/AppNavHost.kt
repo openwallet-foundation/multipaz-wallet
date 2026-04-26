@@ -41,6 +41,7 @@ import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import kotlin.time.Clock
@@ -140,9 +141,9 @@ fun AppNavHost(
                     // ... then import it locally
                     val document = documentStore.importMpzPass(
                         mpzPass = pass,
-                        isoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
-                        sdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
-                        keylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+                        isoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                        sdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                        keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                     )
 
                     navController.navigate(
@@ -308,9 +309,9 @@ internal suspend fun appJustLaunched(
             walletClient.refreshSharedData()
             documentStore.syncWithSharedData(
                 sharedData = walletClient.sharedData.value!!,
-                mpzPassIsoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
-                mpzPassSdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
-                mpzPassKeylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+                mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
             )
         } catch (e: WalletBackendNotSignedInException) {
             Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)

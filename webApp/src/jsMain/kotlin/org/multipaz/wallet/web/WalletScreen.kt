@@ -4,12 +4,14 @@ import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.util.Logger
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientSignedInUser
-import org.multipaz.mpzpass.MpzPass
+import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.Domains
 import react.FC
 import react.Props
 import react.dom.html.ReactHTML.button
@@ -24,7 +26,7 @@ import react.dom.html.ReactHTML.span
 import react.dom.svg.ReactSVG.path
 import react.dom.svg.ReactSVG.svg
 import react.useEffect
-import react.useEffectOnce
+import react.useMemo
 import react.useState
 import web.cssom.ClassName
 
@@ -32,43 +34,20 @@ private const val TAG = "WalletScreen"
 
 external interface WalletScreenProps : Props {
     var walletClient: WalletClient
-    var signedInUser: WalletClientSignedInUser
     var documentTypeRepository: DocumentTypeRepository
+    var documentStore: DocumentStore
+    var documentModel: DocumentModel
 }
 
 val WalletScreen = FC<WalletScreenProps> { props ->
-    val sharedData = useFlow(props.walletClient.sharedData)
-    val (passes, setPasses) = useState<List<MpzPass>>(emptyList())
     val (status, setStatus) = useState("Connected to backend")
     val (isRefreshing, setIsRefreshing) = useState(false)
-    val (selectedPass, setSelectedPass) = useState<MpzPass?>(null)
-
-    useEffect(sharedData) {
-        val scope = CoroutineScope(Dispatchers.Main)
-        scope.launch {
-            try {
-                val passesList = sharedData?.getMpzPasses() ?: emptyList()
-                setPasses(passesList)
-                
-                // Keep selected pass updated if it still exists
-                selectedPass?.let { current ->
-                    val updated = passesList.find { it.uniqueId == current.uniqueId }
-                    if (updated != null) {
-                        setSelectedPass(updated)
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.e(TAG, "Error fetching passes", e)
-                setStatus("Error: ${e.message}")
-            }
-        }
-    }
 
     div {
-        className = ClassName("min-h-screen bg-slate-50 flex flex-col")
+        className = ClassName("min-h-screen bg-slate-100 flex flex-col")
 
         WalletHeader {
-            user = props.signedInUser
+            walletClient = props.walletClient
             refreshing = isRefreshing
             onRefresh = {
                 val scope = CoroutineScope(Dispatchers.Main)
@@ -76,7 +55,15 @@ val WalletScreen = FC<WalletScreenProps> { props ->
                     try {
                         setIsRefreshing(true)
                         setStatus("Refreshing...")
-                        props.walletClient.refreshSharedData()
+                        val newData = props.walletClient.refreshSharedData()
+                        if (newData) {
+                            props.documentStore.syncWithSharedData(
+                                sharedData = props.walletClient.sharedData.value!!,
+                                mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                                mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                                mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                            )
+                        }
                         setStatus("Data updated")
                     } catch (e: Exception) {
                         Logger.e(TAG, "Error refreshing data", e)
@@ -98,43 +85,11 @@ val WalletScreen = FC<WalletScreenProps> { props ->
             }
         }
 
-        if (selectedPass != null) {
-            PassDetailScreen {
-                pass = selectedPass
-                documentTypeRepository = props.documentTypeRepository
-                onBack = { setSelectedPass(null) }
-            }
-        } else {
-            main {
-                className = ClassName("flex-grow max-w-2xl mx-auto px-4 sm:px-6 py-10 w-full")
-                
-                div {
-                    className = ClassName("mb-8")
-                    h1 {
-                        className = ClassName("text-3xl font-bold text-slate-900")
-                        +"Multipaz passes"
-                    }
-                    p {
-                        className = ClassName("mt-2 text-slate-600")
-                        +"A list of passes you've imported into your Multipaz Wallet."
-                    }
-                }
+        main {
+            className = ClassName("flex-grow max-w-2xl mx-auto px-4 sm:px-6 py-10 w-full")
 
-                if (passes.isEmpty()) {
-                    EmptyPassesPlaceholder()
-                } else {
-                    FloatingItemList {
-                        passes.forEach { pass ->
-                            FloatingItemCard {
-                                key = pass.uniqueId
-                                title = pass.name ?: "Untitled Pass"
-                                subtitle = pass.typeName ?: "Multipaz Pass"
-                                cardArt = pass.cardArt
-                                onClick = { setSelectedPass(pass) }
-                            }
-                        }
-                    }
-                }
+            DocumentList {
+                documentModel = props.documentModel
             }
         }
 
@@ -146,16 +101,48 @@ val WalletScreen = FC<WalletScreenProps> { props ->
 
 // --- Extracted Components ---
 
+external interface DocumentListProps : Props {
+    var documentModel: DocumentModel
+}
+
+val DocumentList = FC<DocumentListProps> { props ->
+    val documentInfos = useFlow(props.documentModel.documentInfos)
+    
+    if (documentInfos.isEmpty()) {
+        EmptyPassesPlaceholder()
+    } else {
+        FloatingItemList {
+            documentInfos.forEach { documentInfo ->
+                FloatingItemCard {
+                    key = documentInfo.document.identifier
+                    title = documentInfo.document.displayName ?: "Untitled Pass"
+                    subtitle = documentInfo.document.typeDisplayName ?: "Pass"
+                    cardArt = documentInfo.document.cardArt
+                    onClick = { 
+                        window.location.hash = "document/${documentInfo.document.identifier}"
+                    }
+                }
+            }
+        }
+    }
+}
+
 external interface WalletHeaderProps : Props {
-    var user: WalletClientSignedInUser
+    var walletClient: WalletClient
     var onSignOut: () -> Unit
     var onRefresh: () -> Unit
     var refreshing: Boolean
 }
 
 val WalletHeader = FC<WalletHeaderProps> { props ->
+    val signedInUser = useFlow(props.walletClient.signedInUser)
     val (isMenuOpen, setIsMenuOpen) = useState(false)
-    val avatarUrl = useImageUri(props.user.profilePicture)
+    
+    val profilePicture = useMemo(signedInUser) {
+        signedInUser?.profilePicture
+    }
+    val avatarDataUrl = useImageUri(profilePicture)
+    val effectiveAvatarUrl = signedInUser?.profilePictureUrl ?: avatarDataUrl
 
     // Close menu when clicking outside
     useEffect(isMenuOpen) {
@@ -186,7 +173,7 @@ val WalletHeader = FC<WalletHeaderProps> { props ->
                     className = ClassName("flex justify-center")
                     span {
                         className = ClassName("text-xl font-bold text-slate-900 tracking-tight")
-                        +"Multipaz Wallet"
+                        +BuildConfig.APP_NAME
                     }
                 }
 
@@ -212,22 +199,22 @@ val WalletHeader = FC<WalletHeaderProps> { props ->
                             e.stopPropagation()
                             setIsMenuOpen(!isMenuOpen) 
                         }
-                        
-                        if (avatarUrl != null) {
+
+                        if (effectiveAvatarUrl != null) {
                             img {
-                                src = avatarUrl
+                                src = effectiveAvatarUrl
                                 className = ClassName("h-full w-full object-cover")
                             }
                         } else {
                             div {
                                 className = ClassName("h-full w-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm")
-                                +(props.user.displayName?.take(1)?.uppercase() ?: "U")
+                                +(signedInUser?.displayName?.take(1)?.uppercase() ?: "U")
                             }
                         }
                     }
 
-                    // Popup Menu (Google 1P Style)
-                    if (isMenuOpen) {
+                    // Popup Menu
+                    if (isMenuOpen && signedInUser != null) {
                         div {
                             className = ClassName("absolute right-0 top-14 w-80 bg-slate-100 rounded-[2.5rem] shadow-2xl border border-slate-200 p-3 z-50 animate-in fade-in zoom-in duration-200 origin-top-right")
                             onClick = { it.stopPropagation() }
@@ -237,25 +224,25 @@ val WalletHeader = FC<WalletHeaderProps> { props ->
                                 className = ClassName("pt-8 pb-6 flex flex-col items-center")
                                 div {
                                     className = ClassName("h-20 w-20 rounded-full overflow-hidden border-4 border-white shadow-sm mb-4")
-                                    if (avatarUrl != null) {
+                                    if (effectiveAvatarUrl != null) {
                                         img {
-                                            src = avatarUrl
+                                            src = effectiveAvatarUrl
                                             className = ClassName("h-full w-full object-cover")
                                         }
                                     } else {
                                         div {
                                             className = ClassName("h-full w-full bg-blue-600 flex items-center justify-center text-white font-bold text-3xl")
-                                            +(props.user.displayName?.take(1)?.uppercase() ?: "U")
+                                            +(signedInUser.displayName?.take(1)?.uppercase() ?: "U")
                                         }
                                     }
                                 }
                                 h2 {
                                     className = ClassName("text-lg font-bold text-slate-900")
-                                    +(props.user.displayName ?: "User")
+                                    +(signedInUser.displayName ?: "User")
                                 }
                                 p {
                                     className = ClassName("text-sm text-slate-500")
-                                    +props.user.id
+                                    +signedInUser.id
                                 }
                             }
 
@@ -287,17 +274,13 @@ val WalletHeader = FC<WalletHeaderProps> { props ->
 val EmptyPassesPlaceholder = FC<Props> {
     div {
         className = ClassName("text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200")
-        div {
-            className = ClassName("mx-auto h-12 w-12 text-slate-300")
-            TicketIcon()
-        }
         h2 {
             className = ClassName("mt-4 text-lg font-medium text-slate-900")
             +"No passes found"
         }
         p {
             className = ClassName("mt-1 text-slate-500")
-            +"You haven't imported any Multipaz passes yet."
+            +"Passes you add will appear here"
         }
     }
 }
@@ -323,7 +306,7 @@ val StatusFooter = FC<StatusFooterProps> { props ->
             }
             p {
                 className = ClassName("text-xs text-slate-400")
-                +"Multipaz Wallet v${BuildConfig.VERSION}"
+                +"${BuildConfig.APP_NAME} v${BuildConfig.VERSION}"
             }
         }
     }
