@@ -54,7 +54,10 @@ For a better development experience with Hot Module Replacement (HMR) for the we
     ```bash
     ./gradlew :webApp:jsBrowserDevelopmentRun --continuous
     ```
-The development web application will be available at `http://localhost:8011`. Changes to the Kotlin code in the `webApp` or `shared` modules will be automatically reflected in the browser.
+The development web application will be available at `http://localhost:8011`. Changes to the Kotlin
+code in the `webApp` or `shared` modules will be automatically reflected in the browser. You
+can also point the mobile apps to that wallet backend by clicking Avatar → Developer Settings →
+Set wallet backend.
 
 ## Note
 

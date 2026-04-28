@@ -78,14 +78,12 @@ val WalletScreen = FC<WalletScreenProps> { props ->
                                 setIsRefreshing(true)
                                 setStatus("Refreshing...")
                                 val newData = props.walletClient.refreshSharedData()
-                                if (newData) {
-                                    props.documentStore.syncWithSharedData(
-                                        sharedData = props.walletClient.sharedData.value!!,
-                                        mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                                        mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
-                                    )
-                                }
+                                props.documentStore.syncWithSharedData(
+                                    sharedData = props.walletClient.sharedData.value!!,
+                                    mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                                    mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                                )
                                 setStatus("Data updated")
                             } catch (e: Exception) {
                                 Logger.e(TAG, "Error refreshing data", e)

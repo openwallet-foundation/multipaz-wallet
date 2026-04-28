@@ -51,17 +51,21 @@ data object SetupDefaultWalletScreenDestination: Destination()
 data class ProvisioningDestination(
     val credentialIssuerEncoded: String? = null,
     val openID4VCICredentialOfferUri: String? = null,
-    val openID4VCIIssuerUrl: String? = null
+    val openID4VCIIssuerUrl: String? = null,
+    val openID4VCICredentialId: String? = null,
+    val provisionedDocumentIdentifier: String? = null
 ): Destination() {
 
     constructor(
         credentialIssuer: CredentialIssuer? = null,
         openID4VCICredentialOfferUri: String? = null,
-        openID4VCIIssuerUrl: String? = null
+        openID4VCIIssuerUrl: String? = null,
+        openID4VCICredentialId: String? = null,
     ): this(
         credentialIssuerEncoded = credentialIssuer?.toCbor()?.toBase64Url(),
         openID4VCICredentialOfferUri = openID4VCICredentialOfferUri,
-        openID4VCIIssuerUrl = openID4VCIIssuerUrl
+        openID4VCIIssuerUrl = openID4VCIIssuerUrl,
+        openID4VCICredentialId = openID4VCICredentialId
     )
 
     val credentialIssuer: CredentialIssuer?
@@ -137,6 +141,11 @@ data class ErrorDialogDestination(
     val textMarkdown: String
 ): Destination()
 
+@Serializable
+data class InfoDialogDestination(
+    val title: String,
+    val textMarkdown: String
+): Destination()
 
 @Serializable
 data class DeveloperSettingsConnectToWalletServerDialogDestination(
@@ -200,6 +209,7 @@ data class CertificateViewerDestination private constructor(
 @Serializable
 data class RemoveDocumentConfirmationDialogDestination(
     val documentId: String,
+    val isSyncing: Boolean
 ): Destination()
 
 @Serializable

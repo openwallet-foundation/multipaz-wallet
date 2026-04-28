@@ -29,12 +29,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -76,6 +78,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -84,21 +87,22 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottiePainter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.multipaz.compose.cards.VerticalCardList
 import org.multipaz.compose.cards.WarningCard
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.document.VerticalDocumentList
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.document.DocumentStore
 import org.multipaz.util.Logger
-import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isProximityPresentable
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.isSyncing
+import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
@@ -118,11 +122,13 @@ fun WalletScreen(
     justAdded: Boolean,
     onAvatarClicked: () -> Unit,
     onAddClicked: () -> Unit,
-    onDocumentClicked: (documentId: String) -> Unit,
-    onDocumentQrClicked: (documentId: String) -> Unit,
-    onDocumentActivityClicked: (documentId: String) -> Unit,
-    onDocumentInfoClicked: (documentId: String) -> Unit,
-    onDocumentRemoveClicked: (documentId: String) -> Unit,
+    onDocumentClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentQrClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -223,7 +229,7 @@ fun WalletScreen(
                        if (isFocused) {
                            if (focusedDocument?.isProximityPresentable == true) {
                                IconButton(
-                                   onClick = { onDocumentQrClicked(focusedDocumentId!!) }
+                                   onClick = { onDocumentQrClicked(focusedDocument) }
                                ) {
                                    Icon(
                                        modifier = Modifier.size(32.dp),
@@ -357,26 +363,31 @@ fun WalletScreen(
                         .fillMaxSize()
                         .nestedScroll(nestedScrollConnection, nestedScrollDispatcher)
                 ) {
-                    VerticalDocumentList(
+                    val cardInfos by documentModel.documentInfos.collectAsState()
+                    VerticalCardList(
                         modifier = Modifier.fillMaxSize(),
-                        documentModel = documentModel,
-                        focusedDocument = focusedDocument,
-                        allowDocumentReordering = true,
+                        cardInfos = cardInfos,
+                        focusedCard = focusedDocument,
+                        allowCardReordering = true,
                         showStackWhileFocused = false,
                         cardMaxHeight = maxCardHeight,
-                        showDocumentInfo = { documentInfo ->
+                        showCardInfo = { cardInfo ->
+                            val documentInfo = cardInfo as DocumentInfo
                             DocumentInfoContent(
                                 documentInfo = documentInfo,
                                 justAdded = justAdded,
                                 onDocumentActivityClicked = onDocumentActivityClicked,
                                 onDocumentInfoClicked = onDocumentInfoClicked,
-                                onDocumentRemoveClicked = onDocumentRemoveClicked
+                                onDocumentRemoveClicked = onDocumentRemoveClicked,
+                                onDocumentSetupClicked = onDocumentSetupClicked,
+                                onDocumentSyncClicked = onDocumentSyncClicked
                             )
                         },
-                        emptyDocumentContent = {
+                        emptyContent = {
                             EmptyWalletStateContent()
                         },
-                        onDocumentReordered = { documentInfo, newIndex ->
+                        onCardReordered = { cardInfo, newIndex ->
+                            val documentInfo = cardInfo as DocumentInfo
                             coroutineScope.launch {
                                 try {
                                     documentModel.setDocumentPosition(
@@ -388,13 +399,14 @@ fun WalletScreen(
                                 }
                             }
                         },
-                        onDocumentFocused = { documentInfo ->
-                            onDocumentClicked(documentInfo.document.identifier)
+                        onCardFocused = { cardInfo ->
+                            val documentInfo = cardInfo as DocumentInfo
+                            onDocumentClicked(documentInfo)
                         },
-                        onDocumentFocusedTapped =  { documentInfo ->
+                        onCardFocusedTapped =  { cardInfo ->
                             onBackClicked()
                         },
-                        onDocumentFocusedStackTapped =  { documentInfo -> }
+                        onCardFocusedStackTapped =  { cardInfo -> }
                     )
                 }
             }
@@ -445,9 +457,11 @@ private fun JustAdded() {
 private fun DocumentInfoContent(
     documentInfo: DocumentInfo,
     justAdded: Boolean,
-    onDocumentActivityClicked: (documentId: String) -> Unit,
-    onDocumentInfoClicked: (documentId: String) -> Unit,
-    onDocumentRemoveClicked: (documentId: String) -> Unit,
+    onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
     var showJustAdded by remember { mutableStateOf(justAdded) }
 
@@ -463,12 +477,19 @@ private fun DocumentInfoContent(
             }
             JustAdded()
         } else {
-            DocumentInfoContentReal(
-                documentInfo = documentInfo,
-                onDocumentActivityClicked = onDocumentActivityClicked,
-                onDocumentInfoClicked = onDocumentInfoClicked,
-                onDocumentRemoveClicked = onDocumentRemoveClicked,
-            )
+            Column(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                DocumentInfoContentReal(
+                    documentInfo = documentInfo,
+                    onDocumentActivityClicked = onDocumentActivityClicked,
+                    onDocumentInfoClicked = onDocumentInfoClicked,
+                    onDocumentRemoveClicked = onDocumentRemoveClicked,
+                    onDocumentSetupClicked = onDocumentSetupClicked,
+                    onDocumentSyncClicked = onDocumentSyncClicked
+                )
+            }
         }
     }
 }
@@ -476,58 +497,85 @@ private fun DocumentInfoContent(
 @Composable
 private fun DocumentInfoContentReal(
     documentInfo: DocumentInfo,
-    onDocumentActivityClicked: (documentId: String) -> Unit,
-    onDocumentInfoClicked: (documentId: String) -> Unit,
-    onDocumentRemoveClicked: (documentId: String) -> Unit,
+    onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
-    val iconSize = 32.dp
-
-    Column(
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (documentInfo.isProximityPresentable) {
-            var showHoldToReader by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                delay(0.5.seconds)
-                showHoldToReader = true
-            }
-            Box(
-                modifier = Modifier.height(22.dp)
+    val iconSize = 24.dp
+    if (documentInfo.isProximityPresentable) {
+        var showHoldToReader by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            delay(0.5.seconds)
+            showHoldToReader = true
+        }
+        Box(
+            modifier = Modifier.height(22.dp)
+        ) {
+            val alpha by animateFloatAsState(
+                targetValue = if (showHoldToReader) 1f else 0f,
+                animationSpec = tween(1000),
+                label = "HoldToReaderFade"
+            )
+            Row(
+                modifier = Modifier
+                    .offset(y = (-20).dp)
+                    .alpha(alpha),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val alpha by animateFloatAsState(
-                    targetValue = if (showHoldToReader) 1f else 0f,
-                    animationSpec = tween(1000),
-                    label = "HoldToReaderFade"
+                Icon(
+                    imageVector = Icons.Outlined.Contactless,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
                 )
-                Row(
-                    modifier = Modifier
-                        .offset(y = (-20).dp)
-                        .alpha(alpha),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Contactless,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = "Hold to reader",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                    )
-                }
+                Text(
+                    text = "Hold to reader",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                )
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        FloatingItemList {
-            val typeDisplayName = documentInfo.document.typeDisplayName
-                ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    FloatingItemList {
+        val typeDisplayName = documentInfo.document.typeDisplayName
+            ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
+        if (documentInfo.document.isSyncing) {
             FloatingItemText(
                 modifier = Modifier.clickable {
-                    onDocumentInfoClicked(documentInfo.document.identifier)
+                    onDocumentSyncClicked(documentInfo)
+                },
+                text = stringResource(R.string.wallet_screen_syncs_to_account),
+                image = {
+                    Icon(
+                        modifier = Modifier.size(iconSize),
+                        imageVector = Icons.Outlined.Sync,
+                        contentDescription = null
+                    )
+                }
+            )
+        }
+        if (documentInfo.document.provisionedDocumentSetupNeeded) {
+            FloatingItemText(
+                modifier = Modifier.clickable {
+                    onDocumentSetupClicked(documentInfo)
+                },
+                text = stringResource(R.string.wallet_screen_setup),
+                image = {
+                    Icon(
+                        modifier = Modifier.size(iconSize),
+                        imageVector = Icons.Outlined.AccountBalance,
+                        contentDescription = null
+                    )
+                }
+            )
+        } else {
+            FloatingItemText(
+                modifier = Modifier.clickable {
+                    onDocumentInfoClicked(documentInfo)
                 },
                 text = stringResource(R.string.wallet_screen_document_info, typeDisplayName),
                 image = {
@@ -540,7 +588,7 @@ private fun DocumentInfoContentReal(
             )
             FloatingItemText(
                 modifier = Modifier.clickable {
-                    onDocumentActivityClicked(documentInfo.document.identifier)
+                    onDocumentActivityClicked(documentInfo)
                 },
                 text = stringResource(R.string.wallet_screen_activity),
                 image = {
@@ -551,32 +599,20 @@ private fun DocumentInfoContentReal(
                     )
                 }
             )
-            /* TODO
+        }
         FloatingItemText(
-            text = stringResource(R.string.wallet_screen_issuer_website),
+            modifier = Modifier.clickable {
+                onDocumentRemoveClicked(documentInfo)
+            },
+            text = stringResource(R.string.wallet_screen_remove),
             image = {
                 Icon(
                     modifier = Modifier.size(iconSize),
-                    imageVector = Icons.Outlined.Language,
+                    imageVector = Icons.Outlined.DeleteOutline,
                     contentDescription = null
                 )
             }
         )
-         */
-            FloatingItemText(
-                modifier = Modifier.clickable {
-                    onDocumentRemoveClicked(documentInfo.document.identifier)
-                },
-                text = stringResource(R.string.wallet_screen_remove),
-                image = {
-                    Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.DeleteOutline,
-                        contentDescription = null
-                    )
-                }
-            )
-        }
     }
 }
 

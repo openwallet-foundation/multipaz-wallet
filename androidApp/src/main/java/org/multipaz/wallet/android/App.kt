@@ -29,6 +29,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.io.bytestring.ByteString
+import org.multipaz.cbor.DataItem
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
@@ -36,6 +37,9 @@ import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.context.applicationContext
 import org.multipaz.digitalcredentials.DigitalCredentials
 import org.multipaz.digitalcredentials.getDefault
+import org.multipaz.document.Document
+import org.multipaz.document.DocumentBadge
+import org.multipaz.document.DocumentBadgeColor
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -62,6 +66,7 @@ import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.Location
@@ -115,7 +120,8 @@ class App private constructor() {
         documentStore = buildDocumentStore(storage = storage, secureAreaRepository = secureAreaRepository) {}
         documentModel = DocumentModel.create(
             documentStore = documentStore,
-            documentTypeRepository = documentTypeRepository
+            documentTypeRepository = documentTypeRepository,
+            badgeFunction = ::getBadges
         )
         eventLogger = SimpleEventLogger(
             storage = storage,
@@ -136,6 +142,7 @@ class App private constructor() {
                 return@SimplePresentmentSource null
             },
             showConsentPromptFn = ::promptModelRequestConsent,
+            getBadgesFn = ::getBadges,
             preferSignatureToKeyAgreement = true,
             domainsMdocSignature = listOf(Domains.DOMAIN_MDOC_USER_AUTH, Domains.DOMAIN_MDOC_SOFTWARE),
             domainsMdocKeyAgreement = emptyList(),
@@ -221,6 +228,20 @@ class App private constructor() {
         backendReaderTrustManagerModel = TrustManagerModel(walletClient.readerTrustManager, coroutineScope)
     }
 
+    // Called by DocumentModel whenever a document has changed, to recalculate
+    // which badges to use for a document.
+    //
+    private fun getBadges(document: Document): List<DocumentBadge> {
+        val badges = mutableListOf<DocumentBadge>()
+        if (document.provisionedDocumentSetupNeeded) {
+            badges.add(DocumentBadge(
+                text = applicationContext.getString(R.string.badges_setup_required),
+                color = DocumentBadgeColor(red = 0, green = 0, blue = 0),
+            ))
+        }
+        return badges
+    }
+
     private var currentToast: Toast? = null
 
     private fun showToast(message: String) {
@@ -234,11 +255,11 @@ class App private constructor() {
     // Should return `null` to drop the event, otherwise application-specific data which will be
     // amended to the event.
     //
-    private suspend fun onAddEvent(event: Event): Map<String, org.multipaz.cbor.DataItem>? {
+    private suspend fun onAddEvent(event: Event): Map<String, DataItem>? {
         if (!settingsModel.eventLoggingEnabled.value) {
             return null
         }
-        val map = mutableMapOf<String, org.multipaz.cbor.DataItem>()
+        val map = mutableMapOf<String, DataItem>()
         if (settingsModel.eventLoggingLocationEnabled.value && event.logLocation) {
             if (ActivityCompat.checkSelfPermission(
                     applicationContext,

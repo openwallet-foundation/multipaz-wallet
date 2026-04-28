@@ -7,19 +7,19 @@
     <string name="quick_access_wallet_button_text">@string/app_name</string>
 
     <string name="setup_welcome_title">Welcome to %1$s</string>
-    <string name="setup_welcome_text">Your secure and privacy-preserving open-source digital wallet, for passes, identity documents, and more</string>
+    <string name="setup_welcome_text">Your secure and privacy-preserving open-source digital wallet, for passes, identity documents, and more.</string>
     <string name="setup_welcome_continue">Get Started</string>
 
     <string name="setup_device_check_title">Connecting</string>
     <string name="setup_device_check_loading">Connecting to wallet backend...</string>
     <string name="setup_device_check_unreachable_text">Either your Internet connection is down or the wallet backend is temporarily down.</string>
     <string name="setup_device_check_unreachable_retry">Retry</string>
-    <string name="setup_device_check_unauthorized_text">This application only works on Android devices with a high-level of integrity protection and a locked boot loader. [More information](https://source.android.com/docs/security/features/verifiedboot)</string>
+    <string name="setup_device_check_unauthorized_text">This application only works on Android devices with a high-level of integrity protection and a locked boot loader. [More information](https://source.android.com/docs/security/features/verifiedboot).</string>
     <string name="setup_device_check_unauthorized_exit">Exit</string>
 
     <string name="setup_screen_lock_title">Screen lock</string>
-    <string name="setup_screen_lock_text">A screen lock is required to keep your data secure. Please set up a screen lock (PIN, pattern, or password) and biometrics in your device settings</string>
-    <string name="setup_screen_lock_ready_text">Your device has a screen lock which is used to keep your data secure. If you delete the screen lock, passes in your wallet will stop working</string>
+    <string name="setup_screen_lock_text">A screen lock is required to keep your data secure. Please set up a screen lock (PIN, pattern, or password) and biometrics in your device settings.</string>
+    <string name="setup_screen_lock_ready_text">Your device has a screen lock which is used to keep your data secure. If you delete the screen lock, passes in your wallet will stop working.</string>
     <string name="setup_screen_lock_setup_button">Set up screen lock</string>
     <string name="setup_screen_lock_continue_button">Continue</string>
 
@@ -28,27 +28,27 @@
     <string name="setup_eula_declined_see_ya_text">The application will now exit</string>
 
     <string name="setup_ble_title">Bluetooth Permissions</string>
-    <string name="setup_ble_text">%1$s uses Bluetooth Low Energy (BLE) to securely share your info to verifiers. Please grant the necessary permissions to continue</string>
+    <string name="setup_ble_text">%1$s uses Bluetooth Low Energy (BLE) to securely share your info to verifiers. Please grant the necessary permissions to continue.</string>
     <string name="setup_ble_grant">Grant Permissions</string>
     <string name="setup_ble_skip">Skip</string>
     <string name="setup_ble_continue">Continue</string>
 
     <string name="setup_sign_in_title">Sign in</string>
-    <string name="setup_sign_in_text">Sign in to your Google account to make passes that sync available to any device signed into the account. Data is end-to-end encrypted and the encryption key is stored in Google Drive, only accessible to this application</string>
+    <string name="setup_sign_in_text">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
     <string name="setup_sign_in_button">Sign in with Google</string>
     <string name="setup_sign_in_skip">Use without an account</string>
     <string name="setup_sign_in_continue_button">Continue</string>
     <string name="setup_sign_in_signed_in_title">Signed in</string>
-    <string name="setup_sign_in_signed_in_text">Passes that sync are available from any device signed in to this Google account. Data is end-to-end encrypted and the encryption key is stored in Google Drive, only accessible to this application</string>
+    <string name="setup_sign_in_signed_in_text">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
     <string name="setup_sign_in_signed_in_continue_button">Continue</string>
     <string name="setup_sign_in_signed_in_sign_out_button">Sign out</string>
 
     <string name="setup_activity_logging_title">Activity Logging</string>
-    <string name="setup_activity_logging_text">Would you like to enable activity logging? This keeps a local record of all presentations and communication between the wallet and issuers. No data ever leaves the device. You can change this later in Settings</string>
+    <string name="setup_activity_logging_text">Would you like to enable activity logging? This keeps a local record of all presentations and communication between the wallet and issuers. No data ever leaves the device. You can change this later in Settings.</string>
     <string name="setup_activity_logging_enable">Enable</string>
     <string name="setup_activity_logging_disable">Disable</string>
     <string name="setup_activity_logging_location_title">Record location</string>
-    <string name="setup_activity_logging_location_text">Would you like to include location data in your activity log when sharing info in person? This helps you remember where you shared your info and requires granting the location permission. You can change this later in Settings</string>
+    <string name="setup_activity_logging_location_text">Would you like to include location data in your activity log when sharing info in person? This helps you remember where you shared your info and requires granting the location permission. You can change this later in Settings.</string>
     <string name="setup_activity_logging_location_enable">Enable location</string>
     <string name="setup_activity_logging_location_skip">Skip</string>
 
@@ -56,7 +56,9 @@
     <string name="wallet_screen_dev_mode_enabled">Developer mode is now enabled. See the Settings screen for details</string>
     <string name="wallet_screen_dev_mode_taps_remaining">Tap %1$d more times to enable developer mode</string>
     <string name="wallet_screen_dev_mode_taps_remaining_1">Tap 1 more time to enable developer mode</string>
-    <string name="wallet_screen_ble_permission_warning">Sharing info in-person require BLE permissions to be granted. Click here to grant permissions</string>
+    <string name="wallet_screen_ble_permission_warning">Sharing info in-person require BLE permissions to be granted. Click here to grant permissions.</string>
+    <string name="wallet_screen_syncs_to_account">Synced to your account</string>
+    <string name="wallet_screen_setup">Complete setup…</string>
     <string name="wallet_screen_activity">View and manage activity</string>
     <string name="wallet_screen_document_type_name_fallback">Pass</string>
     <string name="wallet_screen_document_info">%1$s info</string>
@@ -65,17 +67,23 @@
     <string name="wallet_screen_no_documents">Your wallet is empty.\nPress the + button to add passes</string>
     <string name="wallet_screen_pass_was_added">The pass was successfully added</string>
 
+    <string name="wallet_screen_sync_info_dialog_title">About syncing</string>
+    <string name="wallet_screen_sync_info_dialog_text_mpzpass_md">This pass is ready to use on any device signed in to your Google Account. No extra setup is required.</string>
+    <string name="wallet_screen_sync_info_dialog_text_provisioned_document_md">You can set up this pass on any device signed in to your Google Account.</string>
+
+    <string name="badges_setup_required">Setup Required</string>
+
     <string name="about_screen_title">About</string>
 
     <string name="settings_screen_title">Settings</string>
     <string name="settings_screen_account_title">Account</string>
-    <string name="settings_screen_signing_out">Signing out of your Google account...</string>
+    <string name="settings_screen_signing_out">Signing out of your Google account…</string>
     <string name="settings_screen_google_user_default_name">Google user</string>
     <string name="settings_screen_use_without_google">Use without a Google account</string>
-    <string name="settings_screen_signing_in">Signing in to your Google account...</string>
+    <string name="settings_screen_signing_in">Signing in to your Google account…</string>
     <string name="settings_screen_sign_in">Sign in to your Google account</string>
-    <string name="settings_screen_sync_info_signed_in">Passes that sync are available from any device signed in to this Google account. Data is end-to-end encrypted</string>
-    <string name="settings_screen_sync_info_signed_out">Sign in to your Google account to make passes that sync available to any device signed into the account. Data is end-to-end encrypted</string>
+    <string name="settings_screen_sync_info_signed_in">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
+    <string name="settings_screen_sync_info_signed_out">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
     <string name="settings_screen_trusted_issuers">Trusted issuers</string>
     <string name="settings_screen_trusted_verifiers">Trusted verifiers</string>
     <string name="settings_screen_developer_settings">Developer settings</string>
@@ -83,9 +91,9 @@
     <string name="settings_screen_activity_logging_button_text">Activity logging</string>
 
     <string name="dev_settings_screen_title">Developer Settings</string>
-    <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk</string>
-    <string name="dev_settings_corrupt_key_title">Corrupt E2EE key in Google Drive</string>
-    <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the E2EE key is corrupted</string>
+    <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk.</string>
+    <string name="dev_settings_corrupt_key_title">Corrupt encryption key in Google Drive</string>
+    <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted</string>
     <string name="dev_settings_not_signed_in">User is not signed in</string>
     <string name="dev_settings_revoke_drive_success">Successfully revoked Drive access</string>
     <string name="dev_settings_revoke_drive_failure">Failed to revoke Drive access: %1$s</string>
@@ -104,8 +112,8 @@
     <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed</string>
 
     <string name="doc_info_screen_title">%1$s info</string>
-    <string name="doc_info_screen_usage_info">To use your pass, tap your phone to a reader or show a QR code to the verifier. This screen can\'t be used for verification</string>
-    <string name="doc_info_screen_usage_info_not_proximity_presentable">To use your pass, present it to a website or application requesting it. This screen can\'t be used for verification</string>
+    <string name="doc_info_screen_usage_info">To use your pass, tap your phone to a reader or show a QR code to the verifier. This screen can\'t be used for verification.</string>
+    <string name="doc_info_screen_usage_info_not_proximity_presentable">To use your pass, present it to a website or application requesting it. This screen can\'t be used for verification.</string>
     <string name="doc_info_screen_cert_info_title">Certificate info</string>
     <string name="doc_info_screen_collapse">Collapse</string>
     <string name="doc_info_screen_expand">Expand</string>
@@ -117,7 +125,7 @@
 
     <string name="qr_presentment_cancel">Cancel</string>
     <string name="qr_presentment_title">Show code to verifier</string>
-    <string name="qr_presentment_usage_info">Your personal info won\'t be shared until the verifier scans this QR code. You do not have to hand your phone to anyone</string>
+    <string name="qr_presentment_usage_info">Your personal info won\'t be shared until the verifier scans this QR code. You do not have to hand your phone to anyone.</string>
     <string name="qr_presentment_cancelled_error">Presentment was cancelled</string>
 
     <string name="confirmation_dialog_cancel">Cancel</string>
@@ -126,19 +134,19 @@
     <string name="sign_out_dialog_cancel">Cancel</string>
     <string name="sign_out_dialog_confirm">Sign out</string>
     <string name="sign_out_dialog_title">Sign out?</string>
-    <string name="sign_out_dialog_text">All passes will be deleted from this device and passes not synced to your account will have to be set up again. This action cannot be undone</string>
+    <string name="sign_out_dialog_text">All passes will be deleted from this device and passes not synced to your account will have to be set up again. This action cannot be undone.</string>
     <string name="sign_in_clear_key_dialog_confirm">Clear key</string>
     <string name="sign_in_clear_key_dialog_cancel">Cancel</string>
     <string name="sign_in_clear_key_dialog_title">Error signing in</string>
-    <string name="sign_in_clear_key_dialog_text">The end-to-end encryption key isn\'t working. Would you like to clear this key and start over?\n\n%1$s on other devices signed into this account, will be signed out</string>
+    <string name="sign_in_clear_key_dialog_text">The encryption key isn\'t working. Would you like to clear this key and start over?\n\n%1$s on other devices signed in to this account, will be signed out.</string>
 
     <string name="dev_settings_connect_backend_already_using_url">Backend is already using the given URL</string>
     <string name="dev_settings_connect_backend_cancel">Cancel</string>
-    <string name="dev_settings_connect_backend_connecting">Connecting to wallet backend...</string>
+    <string name="dev_settings_connect_backend_connecting">Connecting to wallet backend…</string>
     <string name="dev_settings_config_backend_cancel">Cancel</string>
     <string name="dev_settings_config_backend_confirm">Change</string>
     <string name="dev_settings_config_backend_title">Configure wallet backend</string>
-    <string name="dev_settings_config_backend_text">Enter the URL for the wallet backend to use or blank to use the default backend at %1$s\n\nThis will sign you out and delete all local passes</string>
+    <string name="dev_settings_config_backend_text">Enter the URL for the wallet backend to use or blank to use the default backend at %1$s\n\nThis will sign you out and delete all local passes.</string>
     <string name="dev_settings_config_backend_label">URL</string>
 
     <string name="dev_settings_clear_app_data_dialog_title">Clear app data?</string>
@@ -163,24 +171,24 @@
     <string name="trust_manager_no_built_in">No built-in trust anchors</string>
     <string name="trust_manager_manually_imported">Manually imported trust anchors</string>
     <string name="trust_manager_no_manually_imported">Certificates and trust lists manually imported will appear in this list</string>
-    <string name="trust_manager_info_issuers">Trusted issuers are used to ensure passes you verify are from authentic, recognized organizations</string>
-    <string name="trust_manager_info_verifiers">Trusted verifiers help ensure your personal information is only shared with authorized parties whose identity has been proven</string>
+    <string name="trust_manager_info_issuers">Trusted issuers are used to ensure passes you verify are from authentic, recognized organizations.</string>
+    <string name="trust_manager_info_verifiers">Trusted verifiers help ensure your personal information is only shared with authorized parties whose identity has been proven.</string>
 
     <string name="trust_entry_delete_cancel">Cancel</string>
     <string name="trust_entry_delete_confirm">Delete</string>
     <string name="trust_entry_delete_cert_title">Delete certificate?</string>
     <string name="trust_entry_delete_vical_title">Delete VICAL?</string>
     <string name="trust_entry_delete_rical_title">Delete RICAL?</string>
-    <string name="trust_entry_delete_cert_text">The certificate will be permanently deleted. This action cannot be undone</string>
-    <string name="trust_entry_delete_vical_text">The VICAL will be permanently deleted. This action cannot be undone</string>
-    <string name="trust_entry_delete_rical_text">The RICAL will be permanently deleted. This action cannot be undone</string>
+    <string name="trust_entry_delete_cert_text">The certificate will be permanently deleted. This action cannot be undone.</string>
+    <string name="trust_entry_delete_vical_text">The VICAL will be permanently deleted. This action cannot be undone.</string>
+    <string name="trust_entry_delete_rical_text">The RICAL will be permanently deleted. This action cannot be undone.</string>
     <string name="trust_entry_view_cert">View Certificate</string>
     <string name="trust_entry_view_vical">View VICAL</string>
     <string name="trust_entry_view_rical">View RICAL</string>
     <string name="trust_entry_edit_cancel">Cancel</string>
     <string name="trust_entry_edit_discard_confirm">Discard changes</string>
     <string name="trust_entry_edit_discard_title">Discard unsaved changes?</string>
-    <string name="trust_entry_edit_discard_text">You have unsaved changes that will be lost if you leave this page</string>
+    <string name="trust_entry_edit_discard_text">You have unsaved changes that will be lost if you leave this page.</string>
     <string name="trust_entry_edit_title">Edit entry</string>
     <string name="trust_entry_edit_back">Back</string>
 
@@ -188,35 +196,36 @@
     <string name="app_navigation_error_importing_pass_already_in_wallet">This pass is already in your wallet</string>
     <string name="app_navigation_error_importing_pass_something_went_wrong">Something went wrong: %1$s</string>
     <string name="app_navigation_remove_document_title">Remove pass?</string>
-    <string name="app_navigation_remove_document_text">This pass will be removed from your wallet and if you want to add it again, you will need to start the process from the beginning</string>
+    <string name="app_navigation_remove_document_text">This pass will be removed from your wallet and if you want to add it again, you will need to start the process from the beginning.</string>
+    <string name="app_navigation_remove_document_text_syncing">This pass will be removed from your wallet on all devices you are signed in to.\n\nIf you want to add it again, you will need to start the process from the beginning.</string>
     <string name="app_navigation_remove_document_confirm">Remove</string>
     <string name="app_navigation_disable_activity_log_title">Disable activity log?</string>
-    <string name="app_navigation_disable_activity_log_text">The events in the activity log will be deleted and no further activity will be logged</string>
+    <string name="app_navigation_disable_activity_log_text">The events in the activity log will be deleted and no further activity will be logged.</string>
     <string name="app_navigation_disable_activity_log_confirm">Disable</string>
     <string name="app_navigation_error_deleting_activity_log_title">Error deleting activity log</string>
-    <string name="app_navigation_error_deleting_activity_log_text">There was an error deleting the activity log</string>
-    <string name="app_navigation_corrupt_key_success_title">E2EE key successfully corrupted</string>
-    <string name="app_navigation_corrupt_key_success_text">Now sign out of this account and sign in again to test the recovery flow</string>
-    <string name="app_navigation_corrupt_key_error_title">Error corrupting E2EE key</string>
+    <string name="app_navigation_error_deleting_activity_log_text">There was an error deleting the activity log.</string>
+    <string name="app_navigation_corrupt_key_success_title">Encryption key successfully corrupted</string>
+    <string name="app_navigation_corrupt_key_success_text">Now sign out of this account and sign in again to test the recovery flow.</string>
+    <string name="app_navigation_corrupt_key_error_title">Error corrupting encryption key</string>
     <string name="app_navigation_corrupt_key_error_text">%1$s</string>
     <string name="app_navigation_error_signing_out_title">Error signing out</string>
     <string name="app_navigation_error_signing_out_text">There was an error signing out\n\n%1$s</string>
     <string name="app_navigation_error_signing_in_unreachable_title">Error signing in</string>
-    <string name="app_navigation_error_signing_in_unreachable_text">The wallet backend is not reachable. Check your Internet connection?</string>
+    <string name="app_navigation_error_signing_in_unreachable_text">The wallet backend is not reachable. Check your Internet connection.</string>
     <string name="app_navigation_error_signing_in_text">There was an error signing in:\n\n%1$s</string>
     <string name="app_navigation_delete_all_events_title">Delete all events?</string>
-    <string name="app_navigation_delete_all_events_text">All events in the activity log will be deleted. This cannot be undone</string>
+    <string name="app_navigation_delete_all_events_text">All events in the activity log will be deleted. This cannot be undone.</string>
     <string name="app_navigation_delete_all_events_confirm">Delete</string>
     <string name="app_navigation_delete_event_title">Delete event?</string>
-    <string name="app_navigation_delete_event_text">This event in the activity log will be deleted. This cannot be undone</string>
+    <string name="app_navigation_delete_event_text">This event in the activity log will be deleted. This cannot be undone.</string>
     <string name="app_navigation_delete_event_confirm">Delete</string>
     <string name="app_navigation_error_delete_event_title">Error deleting event</string>
-    <string name="app_navigation_error_delete_event_text">There was an error deleting the event in the activity log</string>
+    <string name="app_navigation_error_delete_event_text">There was an error deleting the event in the activity log.</string>
     <string name="app_navigation_delete_all_events_for_document_title">Delete all events for pass?</string>
-    <string name="app_navigation_delete_all_events_for_document_text">All events in the activity log for this pass will be deleted. This cannot be undone</string>
+    <string name="app_navigation_delete_all_events_for_document_text">All events in the activity log for this pass will be deleted. This cannot be undone.</string>
     <string name="app_navigation_delete_all_events_for_document_confirm">Delete</string>
     <string name="app_navigation_error_delete_events_for_document_title">Error deleting events for pass</string>
-    <string name="app_navigation_error_delete_event_for_document_text">There was an error deleting events in the activity log</string>
+    <string name="app_navigation_error_delete_event_for_document_text">There was an error deleting events in the activity log.</string>
 
     <string name="app_navigation_delete_document_error_dialog_title">Error deleting pass</string>
     <string name="app_navigation_delete_document_error_dialog_text">There was an error deleting the pass: %1$s</string>
@@ -225,19 +234,19 @@
     <string name="activity_logging_settings_screen_logging_enabled_text">Logging enabled</string>
     <string name="activity_logging_settings_screen_logging_location_for_proximity_enabled_text">Include location for sharing in-person</string>
     <string name="activity_logging_settings_screen_view_and_manage_events_text">View and manage events</string>
-    <string name="activity_logging_settings_screen_activity_log_info_text">The activity log contains a record of all presentations as well as all communication between the wallet and issuer of the pass. Location information for sharing in-person helps you remember where you presented your info</string>
+    <string name="activity_logging_settings_screen_activity_log_info_text">The activity log contains a record of all presentations as well as all communication between the wallet and issuer of the pass. Location information for sharing in-person helps you remember where you presented your info.</string>
     <string name="activity_logging_settings_screen_using_precise_location">Using precise location</string>
     <string name="activity_logging_settings_screen_using_coarse_location">Using coarse location</string>
     <string name="activity_logging_settings_screen_permission_not_granted">Location permission not granted, turning off location logging</string>
 
     <string name="event_list_screen_title">Activity log</string>
-    <string name="event_list_screen_explainer">Activity for all passes is shown below, including presentations and communication with the issuer</string>
+    <string name="event_list_screen_explainer">Activity for all passes is shown below, including presentations and communication with the issuer.</string>
     <string name="event_list_screen_no_events_text">No activity recorded</string>
     <string name="event_list_screen_unknown_document_text">Unknown pass</string>
     <string name="event_list_screen_time_and_type_text">%1$s • %2$s</string>
 
     <string name="document_event_list_screen_title">%1$s activity</string>
-    <string name="document_event_list_screen_explainer">All activity related to the pass is shown below, including presentations and communication with the issuer</string>
+    <string name="document_event_list_screen_explainer">All activity related to the pass is shown below, including presentations and communication with the issuer.</string>
     <string name="document_event_list_screen_no_events_text">No activity recorded</string>
     <string name="document_event_list_screen_unknown_requester_text">Unknown requester</string>
     <string name="document_event_list_screen_time_and_type_text">%1$s • %2$s</string>
@@ -284,9 +293,9 @@
     <string name="rical_entry_title">RICAL entry</string>
 
     <string name="setup_default_wallet_title">Default Wallet</string>
-    <string name="setup_default_wallet_text">To enable contactless interactions when %1$s isn\'t running, it needs to be set as the default wallet application. If you\'re already using another wallet for contactless payment, you might not want to do this</string>
-    <string name="setup_default_wallet_ready_text">%1$s is set as your default wallet and contactless interactions will work even when it\'s not running. Additionally, device shortcuts such as the wallet Quick Settings tile and double-clicking the power button can be used to launch %1$s</string>
-    <string name="setup_default_wallet_note_text">Even if a wallet app isn\'t the default wallet application, contactless interactions will still work if you bring the app to the foreground for the NFC tap</string>
+    <string name="setup_default_wallet_text">To enable contactless interactions when %1$s isn\'t running, it needs to be set as the default wallet application. If you\'re already using another wallet for contactless payment, you might not want to do this.</string>
+    <string name="setup_default_wallet_ready_text">%1$s is set as your default wallet and contactless interactions will work even when it\'s not running. Additionally, device shortcuts such as the wallet Quick Settings tile and double-clicking the power button can be used to launch %1$s.</string>
+    <string name="setup_default_wallet_note_text">Even if a wallet app isn\'t the default wallet application, contactless interactions will still work if you bring the app to the foreground for the NFC tap.</string>
     <string name="setup_default_wallet_continue_button">Continue</string>
     <string name="setup_default_wallet_open_settings_button">Open Settings</string>
     <string name="setup_default_wallet_skip_button">Skip for now</string>
@@ -309,14 +318,17 @@
     <string name="provisioning_auth_oauth_cancel_description">Cancel</string>
     <string name="provisioning_auth_pin_title">PIN required</string>
     <string name="provisioning_auth_passphrase_title">Passphrase required</string>
-    <string name="provisioning_auth_pin_explainer">To add the pass, enter the PIN the issuer shared with you</string>
-    <string name="provisioning_auth_passphrase_explainer">To add the pass, enter the passphrase the issuer shared with you</string>
+    <string name="provisioning_auth_pin_explainer">To add the pass, enter the PIN the issuer shared with you.</string>
+    <string name="provisioning_auth_passphrase_explainer">To add the pass, enter the passphrase the issuer shared with you.</string>
     <string name="provisioning_auth_secret_cancel_description">Cancel</string>
     <string name="provisioning_selection_title">Select pass</string>
     <string name="provisioning_selection_cancel_description">Cancel</string>
-    <string name="provisioning_selection_explainer">%1$s offers the following passes. Select a pass to continue</string>
+    <string name="provisioning_selection_explainer">%1$s offers the following passes. Select a pass to continue.</string>
     <string name="provisioning_selection_format_mdoc">ISO mdoc • %1$s</string>
     <string name="provisioning_selection_format_sd_jwt">IETF SD-JWT VC • %1$s</string>
     <string name="provisioning_error_title">Something went wrong</string>
     <string name="provisioning_progress_cancel_description">Cancel</string>
+
+    <string name="provisioning_add_pass_to_shared_data_error_title">Error adding pass</string>
+    <string name="provisioning_add_pass_to_shared_data_error_message_md">There was an error adding the pass: %1$s</string>
 </resources>

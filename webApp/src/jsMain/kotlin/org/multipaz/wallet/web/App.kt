@@ -12,6 +12,7 @@ import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mpzpass.MpzPass
 import org.multipaz.util.Logger
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.deleteDocumentFromWalletBackend
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import react.FC
@@ -136,8 +137,7 @@ val App = FC<AppProps> { props ->
                         this.walletClient = props.walletClient
                         this.settingsModel = props.settingsModel
                         this.onCredentialIssuerClicked = { issuer ->
-                            // TODO: Handle credential issuer click
-                            setError("TODO: Handler issuer clicked: ${issuer.name}")
+                            setError("Provisioning credentials is not currently supported")
                         }
                         this.onImportMpzPass = { encodedMpzPass ->
                             val scope = CoroutineScope(Dispatchers.Main)
@@ -173,8 +173,7 @@ val App = FC<AppProps> { props ->
                             }
                         }
                         this.onCredentialIssuerUrl = { url ->
-                            // TODO: Handle custom issuer URL
-                            setError("TODO: connecting to custom issuer: $url")
+                            setError("Provisioning credentials is not currently supported")
                         }
                         this.onBack = {
                             window.location.hash = ""
@@ -215,27 +214,21 @@ val App = FC<AppProps> { props ->
     // Confirmation Dialog
     if (deleteConfirmationId != null) {
         ConfirmationDialog {
-            title = "Delete Document?"
-            message = "Are you sure you want to delete this document? This action cannot be undone."
+            title = "Delete pass?"
+            message = "This pass will be removed from your wallet on all devices you are signed in to. If you " +
+                    "want to add it again, you will need to start the process from the beginning."
             confirmButtonText = "Delete"
             onConfirm = {
                 val scope = CoroutineScope(Dispatchers.Main)
                 scope.launch {
                     try {
                         val document = props.documentStore.lookupDocument(deleteConfirmationId)
-                        if (document?.mpzPassId != null && props.walletClient.sharedData.value != null) {
-                            props.walletClient.refreshSharedData()
-                            props.walletClient.sharedData.value?.let { sharedData ->
-                                val pass = sharedData.getMpzPasses()
-                                    .find { it.uniqueId == document.mpzPassId }
-                                if (pass != null) {
-                                    props.walletClient.setSharedData(
-                                        sharedData.removeMpzPass(pass)
-                                    )
-                                }
-                            }
+                        document?.let {
+                            props.documentStore.deleteDocumentFromWalletBackend(
+                                document = document,
+                                walletClient = props.walletClient,
+                            )
                         }
-                        props.documentStore.deleteDocument(deleteConfirmationId)
                         setDeleteConfirmationId(null)
                         window.location.hash = ""
                     } catch (e: Exception) {

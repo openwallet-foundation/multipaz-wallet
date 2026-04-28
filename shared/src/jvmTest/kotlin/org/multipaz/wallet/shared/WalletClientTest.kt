@@ -50,8 +50,10 @@ import org.multipaz.util.toBase64Url
 import org.multipaz.util.truncateToWholeSeconds
 import org.multipaz.wallet.backend.WalletBackendBase
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.client.WalletClientSharedData
 import org.multipaz.wallet.client.WalletClientSignedInUser
+import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.toCbor
 import kotlin.random.Random
@@ -253,6 +255,24 @@ class WalletClientTest {
     private suspend fun getPass2() = createPass("pass2", 1L)
     private suspend fun getPass2v2() = createPass("pass2", 2L)
     private suspend fun getPass3() = createPass("pass3", 1L)
+
+    private fun getProvisionedDocument1() = WalletClientProvisionedDocumentOpenID4VCI(
+        identifier = "id1",
+        cardArt = null,
+        displayName = "Document 1",
+        typeDisplayName = "Type 1",
+        url = "https://example.com/issuer",
+        credentialId = "cred1"
+    )
+
+    private fun getProvisionedDocument2() = WalletClientProvisionedDocumentOpenID4VCI(
+        identifier = "id2",
+        cardArt = null,
+        displayName = "Document 2",
+        typeDisplayName = "Type 2",
+        url = "https://example.com/issuer",
+        credentialId = "cred2"
+    )
 
     private suspend fun TestScope.createWalletClientBase(
         clientStorage: Storage,
@@ -482,14 +502,14 @@ class WalletClientTest {
 
         // This is an unusual case but can happen if the shared encryption key stored in Google
         // Drive (for signing in with Google) gets corrupted. There is no good way to recover
-        // here except to tell the user "E2EE key isn't working. Would you like to clear the
+        // here except to tell the user "Encryption key isn't working. Would you like to clear the
         // data and start over fresh? All passes synced to other devices will be deleted" and
         // if the user does this, other clients will fail to decrypt the new data and thus
         // end up signing themselves out...
         //
         // Test this.
         //
-        // Also see the "Corrupt E2EE key in Google Drive" button in Developer Settings which
+        // Also see the "Corrupt encryption key in Google Drive" button in Developer Settings which
         // does the same for testing the UI side of this in the Wallet App.
         //
         val client2Nonce2 = client2.getNonce()
@@ -692,6 +712,150 @@ class WalletClientTest {
         val data9 = data8.removeMpzPass(pass1)
         assertNull(data9.encodedMpzPasses)
         assertEquals(listOf(), data9.getMpzPasses())
+    }
+
+    @Test
+    fun sharedDataProvisionedDocument() = runTest {
+        val doc1 = getProvisionedDocument1()
+        val doc2 = getProvisionedDocument2()
+
+        val data0 = WalletClientSharedData()
+        assertNull(data0.provisionedDocuments)
+        assertTrue(data0.provisionedDocuments.orEmpty().isEmpty())
+
+        val data1 = data0.addProvisionedDocument(doc1)
+        assertNotNull(data1.provisionedDocuments)
+        assertEquals(listOf(doc1), data1.provisionedDocuments)
+
+        val data2 = data1.addProvisionedDocument(doc2)
+        assertEquals(listOf(doc1, doc2), data2.provisionedDocuments)
+
+        val data3 = data2.removeProvisionedDocument(doc1)
+        assertEquals(listOf(doc2), data3.provisionedDocuments)
+
+        val data4 = data3.removeProvisionedDocument(doc2)
+        assertNull(data4.provisionedDocuments)
+        assertTrue(data4.provisionedDocuments.orEmpty().isEmpty())
+    }
+
+    @Test
+    fun testDocumentStoreSyncProvisionedDocuments() = runTest {
+        val doc1 = getProvisionedDocument1()
+        val doc2 = getProvisionedDocument2()
+
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        // Sign in on the first device ...
+        val client1Storage = EphemeralStorage()
+        val client1 = createWalletClientBase(client1Storage)
+        val client1Nonce = client1.getNonce()
+        client1.signInWithGoogle(
+            nonce = client1Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client1Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val client1DocumentStore = buildDocumentStore(
+            storage = client1Storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+        assertEquals(fooUser, client1.signedInUser.value)
+        assertEquals(0, client1DocumentStore.listDocuments().size)
+
+        // Add a provisioned document and add that to SharedData (source of truth)
+        client1.setSharedData(client1.sharedData.value!!.addProvisionedDocument(doc1))
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        assertNotNull(client1DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier })
+
+        // Now simulate signing in from another device and check we get the same data
+        val client2Storage = EphemeralStorage()
+        val client2 = createWalletClientBase(client2Storage)
+        val client2Nonce = client2.getNonce()
+        client2.signInWithGoogle(
+            nonce = client2Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client2Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val client2DocumentStore = buildDocumentStore(
+            storage = client2Storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+        assertEquals(fooUser, client2.signedInUser.value)
+        assertEquals(0, client2DocumentStore.listDocuments().size)
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        assertNotNull(client2DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier })
+
+        // Add doc2 to client2 ...
+        client2.setSharedData(client2.sharedData.value!!.addProvisionedDocument(doc2))
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        // ... check it's updated on client1
+        assertEquals(1, client1DocumentStore.listDocuments().size)
+        assertTrue(client1.refreshSharedData())
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        assertEquals(2, client1DocumentStore.listDocuments().size)
+        assertNotNull(client1DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier })
+        assertNotNull(client1DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc2.identifier })
+
+        // Delete doc2 on client2 ...
+        client2.setSharedData(client2.sharedData.value!!.removeProvisionedDocument(doc2))
+        assertNotNull(client2DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc2.identifier })
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        assertNull(client2DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc2.identifier })
+        // ... check that it's deleted on client1
+        assertTrue(client1.refreshSharedData())
+        assertNotNull(client1DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc2.identifier })
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        assertNull(client1DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc2.identifier })
     }
 
     @Test

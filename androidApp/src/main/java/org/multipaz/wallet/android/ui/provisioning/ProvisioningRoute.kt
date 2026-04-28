@@ -16,9 +16,14 @@ import org.multipaz.util.Logger
 import org.multipaz.wallet.client.WalletClient
 
 import coil3.ImageLoader
+import org.multipaz.document.Document
 import org.multipaz.provisioning.AuthorizationChallenge
+import org.multipaz.util.toBase64Url
+import org.multipaz.wallet.client.WalletClientProvisionedDocument
+import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
+import kotlin.random.Random
 
 private const val TAG = "ProvisioningRoute"
 
@@ -31,8 +36,9 @@ fun ProvisioningRoute(
     credentialIssuer: CredentialIssuer?,
     openID4VCICredentialOffer: String?,
     openID4VCIIssuerUrl: String?,
+    openID4VCICredentialId: String?,
     onCloseClicked: () -> Unit,
-    onComplete: (documentId: String) -> Unit,
+    onComplete: (document: Document, provisionedDocument: WalletClientProvisionedDocument) -> Unit,
     onFailed: (error: Throwable) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -61,17 +67,47 @@ fun ProvisioningRoute(
                 }
             } else {
                 issuerUrl.value = credentialIssuer.url
-                issuerMetadata.value = provisioningModel.getOpenID4VCIIssuerMetadata(
-                    issuerUrl = credentialIssuer.url,
-                    clientPreferences = walletClient.getOpenID4VCIClientPreferences()
-                )
+                try {
+                    issuerMetadata.value = provisioningModel.getOpenID4VCIIssuerMetadata(
+                        issuerUrl = credentialIssuer.url,
+                        clientPreferences = walletClient.getOpenID4VCIClientPreferences()
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Error getting issuer metadata from $credentialIssuer", e)
+                    error.value = e
+                }
             }
         } else if (openID4VCIIssuerUrl != null) {
             issuerUrl.value = openID4VCIIssuerUrl
-            issuerMetadata.value = provisioningModel.getOpenID4VCIIssuerMetadata(
-                issuerUrl = openID4VCIIssuerUrl,
-                clientPreferences = walletClient.getOpenID4VCIClientPreferences()
-            )
+            if (openID4VCICredentialId != null) {
+                try {
+                    provisioningModel.launchOpenID4VCIProvisioning(
+                        issuerUrl = issuerUrl.value!!,
+                        credentialId = openID4VCICredentialId,
+                        clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
+                        backend = walletClient.getOpenID4VCIBackend()
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Error provisioning from $openID4VCIIssuerUrl and $openID4VCICredentialId", e)
+                    error.value = e
+                }
+            } else {
+                try {
+                    issuerMetadata.value = provisioningModel.getOpenID4VCIIssuerMetadata(
+                        issuerUrl = openID4VCIIssuerUrl,
+                        clientPreferences = walletClient.getOpenID4VCIClientPreferences()
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Error getting issuer metadata from $openID4VCIIssuerUrl", e)
+                    error.value = e
+                }
+            }
         } else if (openID4VCICredentialOffer != null) {
             try {
                 provisioningModel.launchOpenID4VCIProvisioning(
@@ -155,7 +191,19 @@ fun ProvisioningRoute(
             ProvisioningModel.RequestingCredentials -> showProgress = true // "Requesting your credentials..."
             is ProvisioningModel.CredentialsIssued -> {
                 LaunchedEffect(Unit) {
-                    onComplete(provisioningState.document.identifier)
+                    val document = provisioningState.document
+                    val provisionedDocument = WalletClientProvisionedDocumentOpenID4VCI(
+                        identifier = Random.Default.nextBytes(16).toBase64Url(),
+                        cardArt = document.cardArt,
+                        displayName = document.displayName,
+                        typeDisplayName = document.typeDisplayName,
+                        url = provisioningModel.metadata.value!!.url,
+                        credentialId = provisioningModel.metadata.value!!.credentials.keys.first()
+                    )
+                    onComplete(
+                        provisioningState.document,
+                        provisionedDocument
+                    )
                 }
             }
             is ProvisioningModel.Error -> {
