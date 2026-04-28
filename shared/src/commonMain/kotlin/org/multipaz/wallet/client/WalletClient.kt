@@ -44,6 +44,7 @@ import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import org.multipaz.wallet.shared.WalletBackendStub
+import org.multipaz.wallet.shared.GoogleTokens
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.register
 import org.multipaz.wallet.shared.toCbor
@@ -331,6 +332,95 @@ class WalletClient private constructor(
                     throw WalletClientBackendUnreachableException(e.message, e)
                 }
             }
+        }
+    }
+
+    /**
+     * Exchanges a Google authorization code for tokens.
+     */
+    @Throws(
+        WalletClientBackendUnreachableException::class,
+        WalletClientAuthorizationException::class,
+        CancellationException::class
+    )
+    suspend fun exchangeCodeForTokens(
+        nonce: String,
+        authorizationCode: String,
+        redirectUri: String
+    ): GoogleTokens {
+        return lock.withLock {
+            val walletBackend = getWalletBackend()
+            withContext(session) {
+                try {
+                    walletBackend.exchangeCodeForTokens(nonce, authorizationCode, redirectUri)
+                } catch (e: HttpTransport.HttpClientException) {
+                    throw WalletClientBackendUnreachableException(e.message, e)
+                }
+            }
+        }
+    }
+
+    /**
+     * Signs the user in with a Google authorization code.
+     *
+     * @param nonce the nonce from [getNonce].
+     * @param authorizationCode the authorization code from Google.
+     * @param redirectUri the redirect URI used in the authorization request.
+     * @param signedInUser user information to store.
+     * @param walletBackendEncryptionKey the shared encryption key to use for server-side storage.
+     * @param resetSharedData if `true`, deletes any existing server-side shared data for the user.
+     * @return the access token for Drive access.
+     * @throws WalletBackendNonceException if the nonce didn't match.
+     * @throws WalletBackendIdTokenException if the ID token didn't verify.
+     * @throws WalletBackendEncryptionKeyMismatchException if the shared encryption key doesn't match
+     *   what's stored in the wallet backend.
+     * @throws WalletClientBackendUnreachableException if unable to reach the wallet backend.
+     * @throws WalletClientAuthorizationException if not authorized to access the wallet backend.
+     */
+    @Throws(
+        WalletClientBackendUnreachableException::class,
+        WalletClientAuthorizationException::class,
+        WalletBackendNonceException::class,
+        WalletBackendIdTokenException::class,
+        WalletBackendEncryptionKeyMismatchException::class,
+        CancellationException::class
+    )
+    suspend fun signInWithGoogleCode(
+        nonce: String,
+        authorizationCode: String,
+        redirectUri: String,
+        signedInUser: WalletClientSignedInUser,
+        walletBackendEncryptionKey: ByteString,
+        resetSharedData: Boolean
+    ): String {
+        return lock.withLock {
+            val walletBackend = getWalletBackend()
+            val accessToken = withContext(session) {
+                try {
+                    walletBackend.signInWithGoogleCode(
+                        nonce = nonce,
+                        authorizationCode = authorizationCode,
+                        redirectUri = redirectUri,
+                        walletServerEncryptionKeySha256 = ByteString(
+                            Crypto.digest(Algorithm.SHA256, walletBackendEncryptionKey.toByteArray())
+                        ),
+                        resetSharedData = resetSharedData,
+                        initialSharedData = createInitialSharedData(walletBackendEncryptionKey)
+                    )
+                } catch (e: HttpTransport.HttpClientException) {
+                    throw WalletClientBackendUnreachableException(e.message, e)
+                }
+            }
+            // OK, that worked. Stash the encryption key locally for future use.
+            saveEncryptionKey(walletBackendEncryptionKey)
+            // Initial load of data
+            getSharedDataInternal(
+                checkWithWalletBackend = true,
+                signedInUser = signedInUser
+            )
+            _signedInUser.value = localSharedData?.signedInUser
+            onSharedDataUpdated()
+            accessToken
         }
     }
 

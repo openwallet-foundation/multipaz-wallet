@@ -14,17 +14,14 @@ plugins {
 }
 
 
-// The version number of the project.
-//
-// For a tagged release, projectVersionNext should be blank and the next commit
-// following the release should bump it to the next version number.
-//
-val projectVersionLast: String? = null
-val projectVersionNext: String = "0.1.0"
-
 val appName: String by extra {
     System.getenv("MULTIPAZ_WALLET_APP_NAME")
         ?: "Multipaz Wallet Dev"
+}
+
+val androidAppId: String by extra {
+    System.getenv("MULTIPAZ_WALLET_ANDROID_APP_ID")
+        ?: "org.multipaz.wallet.android.dev"
 }
 
 val updateUrl: String by extra {
@@ -44,6 +41,11 @@ val backendUrl: String by extra {
 val backendClientId: String by extra {
     System.getenv("MULTIPAZ_WALLET_BACKEND_CLIENT_ID")
         ?: "1016113070986-54k257ap3h8hc40qm9kbl5lmhppjfel1.apps.googleusercontent.com"
+}
+
+val backendClientSecret: String by extra {
+    System.getenv("MULTIPAZ_WALLET_BACKEND_CLIENT_SECRET")
+        ?: "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"
 }
 
 val backendSecret: String by extra {
@@ -81,28 +83,19 @@ private fun runCommand(args: List<String>): String {
     }.standardOutput.asText.get().trim()
 }
 
-// Generate a project version meeting the requirements of Semantic Versioning 2.0.0
-// according to https://semver.org/
-//
-// Essentially, for tagged releases use the version number e.g. "0.91.0". Otherwise use
-// the next version number with a pre-release string set to "pre.N.H" where N is the
-// number of commits since the last version and H is the short commit hash of the
-// where we cut the pre-release from. Example: 0.91.0-pre.48.574b479c
-//
+// Generate a project version as "<year>.W<weekNumber>.<numCommits>-git-<gitSha1Ish>[-dirty]"
 val projectVersionName: String by extra {
     lazy {
-        if (projectVersionNext.isEmpty()) {
-            projectVersionLast!!
-        } else {
-            val numCommitsSinceTag =
-            if (projectVersionLast != null) {
-                runCommand(listOf("git", "rev-list", "${projectVersionLast}..", "--count"))
-            } else {
-                runCommand(listOf("git", "rev-list", "HEAD", "--count"))
-            }
-            val commitHash = runCommand(listOf("git", "rev-parse", "--short", "HEAD"))
-            projectVersionNext + "-pre.${numCommitsSinceTag}.${commitHash}"
-        }
+        val now = java.time.ZonedDateTime.now()
+        val year = now.year
+        val week = "%02d".format(now.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR))
+        val branchName = runCommand(listOf("git", "rev-parse", "--abbrev-ref", "HEAD"))
+        val subFieldPrefix = if (branchName == "main") "1-" else "0-$branchName-"
+        val numCommits = runCommand(listOf("git", "rev-list", "HEAD", "--count"))
+        val commitHash = runCommand(listOf("git", "rev-parse", "--short", "HEAD"))
+        val isDirty = runCommand(listOf("git", "status", "--porcelain", "-uno")).isNotEmpty()
+        val dirtySuffix = if (isDirty) "-dirty" else ""
+        "$year.W$week.$subFieldPrefix$numCommits-git-$commitHash$dirtySuffix"
     }.value
 }
 

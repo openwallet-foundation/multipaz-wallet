@@ -55,7 +55,7 @@ fun DocumentInfoScreen(
     val documentInfo = documentModel.documentInfos.collectAsState().value.find {
         it.document.identifier == documentId
     }
-    val credentialInfo = documentInfo?.credentialInfos?.first() ?: return
+    val credentialInfo = documentInfo?.credentialInfos?.firstOrNull() ?: return
 
     val typeDisplayName = documentInfo.document.typeDisplayName.orEmpty()
 

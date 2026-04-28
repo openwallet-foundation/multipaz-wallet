@@ -10,6 +10,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.compose.text.fromMarkdown
 
 @Composable
@@ -41,7 +42,7 @@ fun SignInClearEncryptionKeyDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(text = AnnotatedString.fromMarkdown(
-                    markdownString = stringResource(R.string.sign_in_clear_key_dialog_text)
+                    markdownString = stringResource(R.string.sign_in_clear_key_dialog_text, BuildConfig.APP_NAME)
                 ))
             }
         }

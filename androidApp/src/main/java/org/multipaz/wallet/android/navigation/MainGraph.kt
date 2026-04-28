@@ -77,6 +77,7 @@ import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
+import org.multipaz.wallet.shared.Domains
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -385,9 +386,9 @@ fun NavGraphBuilder.mainGraph(
                         )
                         documentStore.syncWithSharedData(
                             sharedData = walletClient.sharedData.value!!,
-                            mpzPassIsoMdocDomain = App.DOMAIN_MDOC_SOFTWARE,
-                            mpzPassSdJwtVcDomain = App.DOMAIN_SDJWT_SOFTWARE,
-                            mpzPassKeylessSdJwtVcDomain = App.DOMAIN_SDJWT_KEYLESS
+                            mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                            mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                            mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                         )
                         isSigningIn.value = false
                     }

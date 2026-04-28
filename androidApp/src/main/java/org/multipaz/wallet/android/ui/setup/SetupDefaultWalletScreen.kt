@@ -37,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.shared.BuildConfig
 
 @Composable
 fun SetupDefaultWalletScreen(
@@ -87,9 +88,9 @@ fun SetupDefaultWalletScreen(
 
             Text(
                 text = if (isDefaultWallet) {
-                    stringResource(R.string.setup_default_wallet_ready_text)
+                    stringResource(R.string.setup_default_wallet_ready_text, BuildConfig.APP_NAME)
                 } else {
-                    stringResource(R.string.setup_default_wallet_text)
+                    stringResource(R.string.setup_default_wallet_text, BuildConfig.APP_NAME)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,

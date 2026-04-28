@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+val androidAppId: String by rootProject.extra
+val appName: String by rootProject.extra
 val backendUrl: String by rootProject.extra
 val projectVersionCode: Int by rootProject.extra
 val projectVersionName: String by rootProject.extra
@@ -16,7 +18,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.multipaz.wallet.android"
+        applicationId = androidAppId
+        resValue("string", "app_name", appName)
+        manifestPlaceholders["appName"] = appName
         manifestPlaceholders["applinkHost"] = backendUrl.removePrefix("https://").removePrefix("http://")
         minSdk = 29
         targetSdk = 36
@@ -53,6 +57,7 @@ android {
     }
     buildFeatures {
         compose = true
+        resValues = true
     }
     packaging {
         resources {
@@ -95,7 +100,6 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.accompanist.drawablepainter)
     implementation(libs.accompanist.permissions)
-    implementation(libs.semver)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

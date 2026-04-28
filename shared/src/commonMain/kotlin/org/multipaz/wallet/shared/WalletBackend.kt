@@ -3,6 +3,7 @@ package org.multipaz.wallet.shared
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.rpc.annotation.RpcInterface
 import org.multipaz.rpc.annotation.RpcMethod
+import org.multipaz.cbor.annotation.CborSerializable
 
 /**
  * Interface between the wallet backend and the implementation details
@@ -24,6 +25,23 @@ interface WalletBackend {
         resetSharedData: Boolean,
         initialSharedData: ByteString
     )
+
+    @RpcMethod
+    suspend fun signInWithGoogleCode(
+        nonce: String,
+        authorizationCode: String,
+        redirectUri: String,
+        walletServerEncryptionKeySha256: ByteString,
+        resetSharedData: Boolean,
+        initialSharedData: ByteString
+    ): String
+
+    @RpcMethod
+    suspend fun exchangeCodeForTokens(
+        nonce: String,
+        authorizationCode: String,
+        redirectUri: String
+    ): GoogleTokens
 
     @RpcMethod
     suspend fun signOut()
@@ -65,11 +83,19 @@ interface WalletBackend {
     suspend fun getCredentialIssuers(): List<CredentialIssuer>
 
     /**
-     * Gets the EULA the user needs to accept.
+     * Gets the EULA (End User License Agreement) for the wallet.
      *
-     * @param locale BCP-47 language tag for the user's language.
-     * @return the EULA, as Markdown.
+     * @param locale the locale to get the EULA for.
+     * @return the EULA text.
      */
     @RpcMethod
     suspend fun getEula(locale: String): String
+}
+
+@CborSerializable
+data class GoogleTokens(
+    val idToken: String,
+    val accessToken: String
+) {
+    companion object
 }

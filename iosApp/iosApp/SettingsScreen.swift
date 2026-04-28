@@ -89,7 +89,7 @@ struct SettingsScreen: View {
                     ).onTapGesture {
                     }
                     FloatingItemText(
-                        text: "About Multipaz Wallet",
+                        text: "About \(BuildConfig.shared.APP_NAME)",
                         image: { Image(systemName: "info.circle") }
                     ).onTapGesture {
                     }

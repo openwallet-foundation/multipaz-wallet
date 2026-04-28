@@ -41,6 +41,7 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.context.applicationContext
 import org.multipaz.util.Logger
 import org.multipaz.util.toHex
+import org.multipaz.wallet.shared.BuildConfig
 import java.io.ByteArrayOutputStream
 import kotlin.random.Random
 
@@ -437,7 +438,7 @@ private fun buildDriveService(accessToken: String): Drive {
     }
 
     return Drive.Builder(transport, jsonFactory, requestInitializer)
-        .setApplicationName("Multipaz Wallet")
+        .setApplicationName(BuildConfig.APP_NAME)
         .build()
 }
 

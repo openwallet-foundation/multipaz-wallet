@@ -63,6 +63,7 @@ import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromAndroidLocation
 import org.multipaz.wallet.shared.toDataItem
@@ -136,10 +137,10 @@ class App private constructor() {
             },
             showConsentPromptFn = ::promptModelRequestConsent,
             preferSignatureToKeyAgreement = true,
-            domainsMdocSignature = listOf(DOMAIN_MDOC_USER_AUTH, DOMAIN_MDOC_SOFTWARE),
+            domainsMdocSignature = listOf(Domains.DOMAIN_MDOC_USER_AUTH, Domains.DOMAIN_MDOC_SOFTWARE),
             domainsMdocKeyAgreement = emptyList(),
-            domainsKeyBoundSdJwt = listOf(DOMAIN_SDJWT_USER_AUTH, DOMAIN_SDJWT_SOFTWARE),
-            domainsKeylessSdJwt = listOf(DOMAIN_SDJWT_KEYLESS, DOMAIN_SDJWT_SOFTWARE),
+            domainsKeyBoundSdJwt = listOf(Domains.DOMAIN_SDJWT_USER_AUTH, Domains.DOMAIN_SDJWT_SOFTWARE),
+            domainsKeylessSdJwt = listOf(Domains.DOMAIN_SDJWT_KEYLESS, Domains.DOMAIN_SDJWT_SOFTWARE),
         )
         val digitalCredentials = DigitalCredentials.getDefault()
         if (digitalCredentials.registerAvailable) {
@@ -359,14 +360,7 @@ class App private constructor() {
 
         private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
         private const val HAIP_VCI_URL_SCHEME = "haip-vci://"
-
-        const val DOMAIN_MDOC_USER_AUTH = "mdoc_user_auth"
-        const val DOMAIN_MDOC_SOFTWARE = "mdoc_software"
-        const val DOMAIN_SDJWT_USER_AUTH = "sdjwt_user_auth"
-        const val DOMAIN_SDJWT_KEYLESS = "sdjwt_keyless"
-        const val DOMAIN_SDJWT_SOFTWARE = "sdjwt_software"
-
-        const val ACTION_VIEW_DOCUMENT = "org.multipaz.wallet.android.action.viewDocument"
+        const val ACTION_VIEW_DOCUMENT = "${BuildConfig.ANDROID_APP_ID}.action.viewDocument"
 
         suspend fun getInstance(): App {
             lock.withLock {
