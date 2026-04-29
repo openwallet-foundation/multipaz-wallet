@@ -111,7 +111,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.Outlined.NoEncryption,
                             contentDescription = null
                         )
@@ -149,7 +148,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.Outlined.Remove,
                             contentDescription = null
                         )
@@ -164,7 +162,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.AutoMirrored.Outlined.Login,
                             contentDescription = null
                         )
@@ -185,7 +182,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.Outlined.Cloud,
                             contentDescription = null
                         )
@@ -200,7 +196,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.Outlined.RestartAlt,
                             contentDescription = null
                         )
@@ -215,7 +210,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.Outlined.RestartAlt,
                             contentDescription = null
                         )
@@ -231,7 +225,6 @@ fun DeveloperSettingsScreen(
                     },
                     image = {
                         Icon(
-                            modifier = Modifier.size(32.dp),
                             imageVector = Icons.Outlined.DoorBack,
                             contentDescription = null
                         )

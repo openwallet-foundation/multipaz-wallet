@@ -29,7 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Contactless
@@ -75,10 +74,12 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -100,8 +101,10 @@ import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isProximityPresentable
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.isSyncing
+import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
@@ -129,6 +132,7 @@ fun WalletScreen(
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -375,12 +379,14 @@ fun WalletScreen(
                             val documentInfo = cardInfo as DocumentInfo
                             DocumentInfoContent(
                                 documentInfo = documentInfo,
+                                settingsModel = settingsModel,
                                 justAdded = justAdded,
                                 onDocumentActivityClicked = onDocumentActivityClicked,
                                 onDocumentInfoClicked = onDocumentInfoClicked,
                                 onDocumentRemoveClicked = onDocumentRemoveClicked,
                                 onDocumentSetupClicked = onDocumentSetupClicked,
-                                onDocumentSyncClicked = onDocumentSyncClicked
+                                onDocumentSyncClicked = onDocumentSyncClicked,
+                                onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
                             )
                         },
                         emptyContent = {
@@ -456,12 +462,14 @@ private fun JustAdded() {
 @Composable
 private fun DocumentInfoContent(
     documentInfo: DocumentInfo,
+    settingsModel: SettingsModel,
     justAdded: Boolean,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
-    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit
+    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
     var showJustAdded by remember { mutableStateOf(justAdded) }
 
@@ -483,11 +491,13 @@ private fun DocumentInfoContent(
             ) {
                 DocumentInfoContentReal(
                     documentInfo = documentInfo,
+                    settingsModel = settingsModel,
                     onDocumentActivityClicked = onDocumentActivityClicked,
                     onDocumentInfoClicked = onDocumentInfoClicked,
                     onDocumentRemoveClicked = onDocumentRemoveClicked,
                     onDocumentSetupClicked = onDocumentSetupClicked,
-                    onDocumentSyncClicked = onDocumentSyncClicked
+                    onDocumentSyncClicked = onDocumentSyncClicked,
+                    onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
                 )
             }
         }
@@ -497,11 +507,13 @@ private fun DocumentInfoContent(
 @Composable
 private fun DocumentInfoContentReal(
     documentInfo: DocumentInfo,
+    settingsModel: SettingsModel,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
-    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit
+    onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
     val iconSize = 24.dp
     if (documentInfo.isProximityPresentable) {
@@ -531,7 +543,7 @@ private fun DocumentInfoContentReal(
                     tint = MaterialTheme.colorScheme.secondary
                 )
                 Text(
-                    text = "Hold to reader",
+                    text = stringResource(R.string.wallet_screen_hold_to_reader),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
@@ -539,80 +551,145 @@ private fun DocumentInfoContentReal(
             }
         }
     }
-    Spacer(modifier = Modifier.height(12.dp))
-    FloatingItemList {
-        val typeDisplayName = documentInfo.document.typeDisplayName
-            ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
-        if (documentInfo.document.isSyncing) {
-            FloatingItemText(
-                modifier = Modifier.clickable {
-                    onDocumentSyncClicked(documentInfo)
-                },
-                text = stringResource(R.string.wallet_screen_syncs_to_account),
-                image = {
-                    Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.Sync,
-                        contentDescription = null
-                    )
+    Column(
+        modifier = Modifier.verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(12.dp))
+        FloatingItemList {
+            val typeDisplayName = documentInfo.document.typeDisplayName
+                ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
+            if (documentInfo.document.isSyncing) {
+                val syncedSecondaryText = if (documentInfo.document.provisionedDocumentSetupNeeded) {
+                    stringResource(R.string.wallet_screen_setup)
+                } else {
+                    // TODO: Update to "Available across N devices" when we keep better track of
+                    //   devices currently signed in
+                    stringResource(R.string.wallet_screen_ready_to_use_on_this_device)
                 }
-            )
-        }
-        if (documentInfo.document.provisionedDocumentSetupNeeded) {
-            FloatingItemText(
-                modifier = Modifier.clickable {
-                    onDocumentSetupClicked(documentInfo)
-                },
-                text = stringResource(R.string.wallet_screen_setup),
-                image = {
-                    Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.AccountBalance,
-                        contentDescription = null
-                    )
-                }
-            )
-        } else {
-            FloatingItemText(
-                modifier = Modifier.clickable {
-                    onDocumentInfoClicked(documentInfo)
-                },
-                text = stringResource(R.string.wallet_screen_document_info, typeDisplayName),
-                image = {
-                    Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.Badge,
-                        contentDescription = null
-                    )
-                }
-            )
-            FloatingItemText(
-                modifier = Modifier.clickable {
-                    onDocumentActivityClicked(documentInfo)
-                },
-                text = stringResource(R.string.wallet_screen_activity),
-                image = {
-                    Icon(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.History,
-                        contentDescription = null
-                    )
-                }
-            )
-        }
-        FloatingItemText(
-            modifier = Modifier.clickable {
-                onDocumentRemoveClicked(documentInfo)
-            },
-            text = stringResource(R.string.wallet_screen_remove),
-            image = {
-                Icon(
-                    modifier = Modifier.size(iconSize),
-                    imageVector = Icons.Outlined.DeleteOutline,
-                    contentDescription = null
+                FloatingItemText(
+                    modifier = Modifier.clickable {
+                        if (documentInfo.document.provisionedDocumentSetupNeeded) {
+                            onDocumentSetupClicked(documentInfo)
+                        } else {
+                            onDocumentSyncClicked(documentInfo)
+                        }
+                    },
+                    text = stringResource(R.string.wallet_screen_syncs_to_account),
+                    secondary = syncedSecondaryText,
+                    image = {
+                        Icon(
+                            modifier = Modifier.size(iconSize),
+                            imageVector = Icons.Outlined.Sync,
+                            contentDescription = null
+                        )
+                    }
                 )
             }
-        )
+            if (!documentInfo.document.provisionedDocumentSetupNeeded) {
+                FloatingItemText(
+                    modifier = Modifier.clickable {
+                        onDocumentInfoClicked(documentInfo)
+                    },
+                    text = stringResource(R.string.wallet_screen_document_info, typeDisplayName),
+                    // TODO: Update to "Last update X" where X = today, yesterday, last week, etc
+                    //  when we have a way to know when the PII was actually updated
+                    secondary = stringResource(R.string.wallet_screen_document_info_secondary),
+                    image = {
+                        Icon(
+                            modifier = Modifier.size(iconSize),
+                            imageVector = Icons.Outlined.Badge,
+                            contentDescription = null
+                        )
+                    }
+                )
+                val activityLoggingEnabledText =
+                    if (settingsModel.eventLoggingEnabled.collectAsState().value) {
+                        stringResource(R.string.wallet_screen_logging_enabled)
+                    } else {
+                        stringResource(R.string.wallet_screen_logging_not_enabled)
+                    }
+                FloatingItemText(
+                    modifier = Modifier.clickable {
+                        onDocumentActivityClicked(documentInfo)
+                    },
+                    text = stringResource(R.string.wallet_screen_activity),
+                    secondary = activityLoggingEnabledText,
+                    image = {
+                        Icon(
+                            modifier = Modifier.size(iconSize),
+                            imageVector = Icons.Outlined.History,
+                            contentDescription = null
+                        )
+                    }
+                )
+                if (documentInfo.isProximityPresentable) {
+                    val preconsentSetting = documentInfo.document.preconsentSetting
+                        ?: DocumentPreconsentSetting.AlwaysRequireConsent
+                    FloatingItemText(
+                        modifier = Modifier.clickable {
+                            onDocumentPreconsentSettingsClicked(documentInfo)
+                        },
+                        text = stringResource(R.string.preconsent_screen_title),
+                        secondary = preconsentSetting.toHumanReadable(),
+                        secondaryColor = if (preconsentSetting is DocumentPreconsentSetting.NeverRequireConsent) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.secondary
+                        },
+                        image = {
+                            Icon(
+                                modifier = Modifier.size(iconSize),
+                                imageVector = Icons.Outlined.Contactless,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Make Remove stand out by having it in its own list
+        FloatingItemList {
+            FloatingItemText(
+                modifier = Modifier.clickable {
+                    onDocumentRemoveClicked(documentInfo)
+                },
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                        append(stringResource(R.string.wallet_screen_remove))
+                    }
+                },
+                image = {
+                    Icon(
+                        modifier = Modifier.size(iconSize),
+                        imageVector = Icons.Outlined.DeleteOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            )
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun DocumentPreconsentSetting.toHumanReadable(): String? {
+    return when (this) {
+        DocumentPreconsentSetting.AlwaysRequireConsent -> {
+            stringResource(R.string.wallet_screen_preconsent_always_ask)
+        }
+        DocumentPreconsentSetting.NeverRequireConsent -> {
+            stringResource(R.string.wallet_screen_preconsent_never_require)
+        }
+        is DocumentPreconsentSetting.RequestComplexityBased -> {
+            // We currently only support approvedSensitivity == PORTRAIT_IMAGE which include AGE_INFORMATION
+            stringResource(R.string.wallet_screen_preconsent_request_complexity)
+        }
+        is DocumentPreconsentSetting.ReaderIdentityBased -> {
+            stringResource(R.string.wallet_screen_preconsent_reader_identity)
+        }
     }
 }
 

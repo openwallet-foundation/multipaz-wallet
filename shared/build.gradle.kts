@@ -122,6 +122,7 @@ kotlin {
                 implementation(libs.kotlin.stdlib)
                 // Add KMP dependencies here
                 api(libs.multipaz)
+                api(libs.multipaz.doctypes)
             }
         }
 

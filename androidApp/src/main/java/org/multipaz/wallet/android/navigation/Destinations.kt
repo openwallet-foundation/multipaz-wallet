@@ -229,4 +229,20 @@ data class CredentialInfoDestination(
 ): Destination()
 
 @Serializable
+data class PreconsentSettingsDestination(
+    val documentId: String
+): Destination()
+
+@Serializable
+data class ManageTrustedReadersDestination(
+    val documentId: String
+): Destination()
+
+@Serializable
+data class ManageTrustedReadersAddReaderDialogDestination(
+    val documentId: String,
+    val certData: String
+): Destination()
+
+@Serializable
 data object AddToWalletDestination: Destination()

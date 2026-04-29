@@ -1,10 +1,11 @@
 package org.multipaz.wallet.client
 
+import kotlinx.io.bytestring.ByteString
 import org.multipaz.document.Document
 
 private const val PROVISIONED_DOCUMENT_IDENTIFIER_TAG_KEY = "org.multipaz.wallet.provisionedDocumentIdentifier"
-
 private const val PROVISIONED_DOCUMENT_SETUP_NEEDED_TAG_KEY = "org.multipaz.wallet.provisionedDocumentSetupNeeded"
+private const val PRECONSENT_SETTING_TAG_KEY = "org.multipaz.wallet.preconsentSetting"
 
 /**
  * Returns `true` if the document is synced to the backend and available on other devices.
@@ -51,5 +52,38 @@ val Document.provisionedDocumentSetupNeeded: Boolean
 suspend fun Document.setProvisionedDocumentSetupNeeded(value: Boolean) {
     edit {
         tags.setBoolean(PROVISIONED_DOCUMENT_SETUP_NEEDED_TAG_KEY, value)
+    }
+}
+
+
+/**
+ * Gets the configured [DocumentPreconsentSetting] for this [Document].
+ *
+ * This setting dictates the rules under which credentials belonging to this document
+ * can be presented without requiring explicit user consent.
+ *
+ * @receiver the [Document] to check.
+ * @return the pre-consent setting, or `null` if none is configured.
+ */
+val Document.preconsentSetting: DocumentPreconsentSetting?
+    get() = tags.getByteString(PRECONSENT_SETTING_TAG_KEY)?.let {
+        DocumentPreconsentSetting.fromCbor(it.toByteArray())
+    }
+
+/**
+ * Sets or clears the [DocumentPreconsentSetting] for this [Document].
+ *
+ * This configures the rules under which credentials belonging to this document
+ * can be presented without requiring explicit user consent.
+ *
+ * @receiver the [Document] to configure.
+ * @param value the new [DocumentPreconsentSetting] to apply, or `null` to remove
+ *              the existing setting.
+ */
+suspend fun Document.setPreconsentSetting(value: DocumentPreconsentSetting?) {
+    edit {
+        value?.let {
+            tags.setByteString(PRECONSENT_SETTING_TAG_KEY, ByteString(value.toCbor()))
+        } ?: tags.remove(PRECONSENT_SETTING_TAG_KEY)
     }
 }

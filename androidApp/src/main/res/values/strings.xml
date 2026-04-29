@@ -59,9 +59,11 @@
     <string name="wallet_screen_ble_permission_warning">Sharing info in-person require BLE permissions to be granted. Click here to grant permissions.</string>
     <string name="wallet_screen_syncs_to_account">Synced to your account</string>
     <string name="wallet_screen_setup">Complete setup…</string>
+    <string name="wallet_screen_ready_to_use_on_this_device">Ready to use on this device</string>
     <string name="wallet_screen_activity">View and manage activity</string>
     <string name="wallet_screen_document_type_name_fallback">Pass</string>
     <string name="wallet_screen_document_info">%1$s info</string>
+    <string name="wallet_screen_document_info_secondary">Pass details and certificate info</string>
     <string name="wallet_screen_issuer_website">Issuer website</string>
     <string name="wallet_screen_remove">Remove</string>
     <string name="wallet_screen_no_documents">Your wallet is empty.\nPress the + button to add passes</string>
@@ -331,4 +333,63 @@
 
     <string name="provisioning_add_pass_to_shared_data_error_title">Error adding pass</string>
     <string name="provisioning_add_pass_to_shared_data_error_message_md">There was an error adding the pass: %1$s</string>
+
+    <string name="preconsent_screen_title">In-person sharing and consent</string>
+    <string name="preconsent_screen_blurb">Choose how you want to share information from this pass when interacting with a reader in person.</string>
+    <string name="preconsent_screen_always_ask_title">Always ask</string>
+    <string name="preconsent_screen_always_ask_description">Always ask for your explicit consent before sharing any information, regardless of whether the reader\'s identity has been verified.</string>
+    <string name="preconsent_screen_age_checks_title">Allow age checks without consent</string>
+    <string name="preconsent_screen_age_checks_description">Automatically share basic information (like your age and portrait) without asking for your consent, even if the reader\'s identity cannot be verified. You will still be asked for consent if the reader asks for more sensitive data like your name or address.</string>
+    <string name="preconsent_screen_trusted_readers_title">Allow for trusted readers</string>
+    <string name="preconsent_screen_trusted_readers_description">Automatically share information without asking for your consent, but only if the reader\'s identity is verified and matches a specific, pre-approved trusted reader.</string>
+    <string name="preconsent_screen_share_automatically_title">Share automatically</string>
+    <string name="preconsent_screen_share_automatically_description">Never ask for your consent. Information will be shared automatically with anyone who asks, even if the reader\'s identity cannot be verified. Use with caution.</string>
+
+    <string name="manage_trusted_readers_blurb">Readers listed below will be able to access information from this pass automatically if their identity is verified.</string>
+    <string name="manage_trusted_readers_trusted_section">Trusted readers</string>
+    <string name="manage_trusted_readers_available_section">Available readers</string>
+    <string name="manage_trusted_readers_available_blurb">The following readers are available in your trust manager. Click one to add it to the trusted list for this pass.</string>
+    <string name="manage_trusted_readers_no_available_readers">No additional readers available.</string>
+
+    <string name="preconsent_trusted_readers_title">Trusted readers</string>
+    <string name="preconsent_trusted_readers_manage">Manage trusted readers</string>
+    <string name="preconsent_trusted_readers_no_readers">No trusted readers configured for this pass.</string>
+    <string name="preconsent_trusted_readers_add">Add trusted reader</string>
+    <string name="preconsent_trusted_readers_remove">Remove</string>
+    <string name="preconsent_trusted_readers_sensitivity_null">Can request any information, including unknown attributes</string>
+    <string name="preconsent_trusted_readers_sensitivity_pii">Can request any information</string>
+    <string name="preconsent_trusted_readers_sensitivity_portrait_age">Can request age and portrait</string>
+    <string name="preconsent_trusted_readers_sensitivity_age">Can request age info only</string>
+    <string name="preconsent_trusted_readers_sensitivity_validity">Can request validity info</string>
+    <string name="preconsent_trusted_readers_sensitivity_issuer">Can request issuer information</string>
+    <string name="preconsent_trusted_readers_add_dialog_title">Select reader to trust</string>
+    <string name="preconsent_trusted_readers_add_dialog_no_readers">No readers found. Add them in Settings first.</string>
+    <string name="preconsent_trusted_readers_add_age_checks_title">Age checks</string>
+    <string name="preconsent_trusted_readers_add_age_checks_description">Share basic information like your age and portrait automatically.</string>
+    <string name="preconsent_trusted_readers_add_any_info_title">Any information</string>
+    <string name="preconsent_trusted_readers_add_any_info_description">Share anything this reader asks for without asking you first.</string>
+    <string name="preconsent_trusted_readers_add_full_access_title">Any information, including unknown attributes</string>
+    <string name="preconsent_trusted_readers_add_full_access_description">Share everything, even data elements not recognized by this app.</string>
+    <string name="preconsent_trusted_readers_add_button">Add</string>
+    <string name="preconsent_trusted_readers_add_dialog_question">What level of access do you want to grant to %1$s?</string>
+
+    <string name="event_provisioning_type_initial">Document provisioning</string>
+    <string name="event_provisioning_type_refresh">Credential refresh</string>
+    <string name="event_unknown_document">Unknown document</string>
+    <string name="event_viewer_date_time">Date and time</string>
+    <string name="event_viewer_issuer">Issuer</string>
+    <string name="event_viewer_openid4vci_server">OpenID4VCI server</string>
+    <string name="event_viewer_type">Type</string>
+    <string name="event_viewer_credentials_heading">Credentials</string>
+    <string name="event_viewer_credentials_singular">1 credential downloaded</string>
+    <string name="event_viewer_credentials_plural">%1$d credentials downloaded</string>
+
+    <string name="wallet_screen_hold_to_reader">Hold to reader</string>
+    <string name="wallet_screen_privacy_and_controls">Privacy and controls</string>
+    <string name="wallet_screen_logging_enabled">Logging is enabled</string>
+    <string name="wallet_screen_logging_not_enabled">Logging is not enabled</string>
+    <string name="wallet_screen_preconsent_always_ask">Always ask before sharing</string>
+    <string name="wallet_screen_preconsent_never_require">Always share without asking</string>
+    <string name="wallet_screen_preconsent_request_complexity">Share age and portrait without asking</string>
+    <string name="wallet_screen_preconsent_reader_identity">Share without asking only with verified, trusted readers</string>
 </resources>

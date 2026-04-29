@@ -67,7 +67,12 @@ val developerModeAvailable: Boolean by extra {
 // For `versionCode` we just use the number of commits.
 val projectVersionCode: Int by extra {
     lazy {
-        runCommand(listOf("git", "rev-list", "HEAD", "--count")).toInt()
+        val res = runCommand(listOf("git", "rev-list", "HEAD", "--count"))
+        if (res.isEmpty()) {
+            1
+        } else {
+            res.toInt()
+        }
     }.value
 }
 
@@ -78,9 +83,13 @@ tasks.register("printVersionName") {
 }
 
 private fun runCommand(args: List<String>): String {
-    return providers.exec {
-        commandLine(args)
-    }.standardOutput.asText.get().trim()
+    return try {
+        providers.exec {
+            commandLine(args)
+        }.standardOutput.asText.get().trim()
+    } catch (e: Exception) {
+        ""
+    }
 }
 
 // Generate a project version as "<year>.W<weekNumber>.<numCommits>-git-<gitSha1Ish>[-dirty]"
@@ -89,11 +98,15 @@ val projectVersionName: String by extra {
         val now = java.time.ZonedDateTime.now()
         val year = now.year
         val week = "%02d".format(now.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR))
-        val branchName = runCommand(listOf("git", "rev-parse", "--abbrev-ref", "HEAD"))
+        val branchName = runCommand(listOf("git", "rev-parse", "--abbrev-ref", "HEAD")).ifEmpty { "unknown" }
         val subFieldPrefix = if (branchName == "main") "1-" else "0-$branchName-"
-        val numCommits = runCommand(listOf("git", "rev-list", "HEAD", "--count"))
-        val commitHash = runCommand(listOf("git", "rev-parse", "--short", "HEAD"))
-        val isDirty = runCommand(listOf("git", "status", "--porcelain", "-uno")).isNotEmpty()
+        val numCommits = runCommand(listOf("git", "rev-list", "HEAD", "--count")).ifEmpty { "0" }
+        val commitHash = runCommand(listOf("git", "rev-parse", "--short", "HEAD")).ifEmpty { "unknown" }
+        val isDirty = try {
+            runCommand(listOf("git", "status", "--porcelain", "-uno")).isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
         val dirtySuffix = if (isDirty) "-dirty" else ""
         "$year.W$week.$subFieldPrefix$numCommits-git-$commitHash$dirtySuffix"
     }.value

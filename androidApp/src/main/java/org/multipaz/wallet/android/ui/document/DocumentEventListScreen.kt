@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +50,8 @@ import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
+import org.multipaz.eventlogger.EventProvisioning
+import org.multipaz.eventlogger.EventSimple
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
@@ -137,12 +140,25 @@ fun DocumentEventListScreen(
                         )
                     } else {
                         documentEvents.forEach { event ->
-                            EventItemForDocument(
-                                modifier = Modifier
-                                    .clickable { onEventClicked(event) },
-                                event = event,
-                                imageLoader = imageLoader,
-                            )
+                            when (event) {
+                                is EventPresentment -> {
+                                    EventPresentmentForDocument(
+                                        modifier = Modifier
+                                            .clickable { onEventClicked(event) },
+                                        event = event,
+                                        imageLoader = imageLoader,
+                                    )
+                                }
+                                is EventProvisioning -> {
+                                    EventProvisioningForDocument(
+                                        modifier = Modifier
+                                            .clickable { onEventClicked(event) },
+                                        event = event,
+                                        imageLoader = imageLoader,
+                                    )
+                                }
+                                is EventSimple -> {}
+                            }
                         }
                     }
                 }
@@ -152,33 +168,67 @@ fun DocumentEventListScreen(
     }
 }
 
-// Shown when this is on a list for a specific document
 @Composable
-private fun EventItemForDocument(
-    event: Event,
+private fun EventProvisioningForDocument(
+    event: EventProvisioning,
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier,
-    imageSize: Dp = 40.dp,
+    imageSize: Dp = 24.dp,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
-    // Right now the all events are presentment events. This will change in the future as we add
-    // support for logging other events
-    val presentmentData = (event as EventPresentment).presentmentData
+    val eventType = if (event.initialProvisioning) {
+        "Document provisioning"
+    } else {
+        "Credential refresh"
+    }
 
-    val sharingType = event.getSharingType()
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
-    val text = stringResource(R.string.document_event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
+    val text = "$eventDateTimeString • $eventType"
+
     FloatingItemText(
         modifier = modifier,
         image = {
-            presentmentData.trustMetadata?.displayIcon?.let {
+            event.issuerData.display.logo?.let {
                 val bitmap = remember { decodeImage(it.toByteArray()) }
                 Image(
                     modifier = Modifier.size(imageSize),
                     bitmap = bitmap,
                     contentDescription = null
                 )
-            } ?: presentmentData.trustMetadata?.displayIconUrl?.let {
+            } ?: Icon(
+                modifier = Modifier.size(imageSize),
+                imageVector = Icons.Outlined.AccountBalance,
+                contentDescription = null
+            )
+        },
+        text = event.issuerData.display.text,
+        secondary = text,
+    )
+}
+
+// Shown when this is on a list for a specific document
+@Composable
+private fun EventPresentmentForDocument(
+    event: EventPresentment,
+    imageLoader: ImageLoader,
+    modifier: Modifier = Modifier,
+    imageSize: Dp = 24.dp,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
+    val sharingType = event.getSharingType()
+    val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
+    val text = stringResource(R.string.document_event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
+    FloatingItemText(
+        modifier = modifier,
+        image = {
+            event.presentmentData.trustMetadata?.displayIcon?.let {
+                val bitmap = remember { decodeImage(it.toByteArray()) }
+                Image(
+                    modifier = Modifier.size(imageSize),
+                    bitmap = bitmap,
+                    contentDescription = null
+                )
+            } ?: event.presentmentData.trustMetadata?.displayIconUrl?.let {
                 AsyncImage(
                     modifier = Modifier.size(imageSize),
                     model = it,
@@ -192,7 +242,7 @@ private fun EventItemForDocument(
                 contentDescription = null
             )
         },
-        text = presentmentData.trustMetadata?.displayName ?: stringResource(R.string.document_event_list_screen_unknown_requester_text),
+        text = event.presentmentData.trustMetadata?.displayName ?: stringResource(R.string.document_event_list_screen_unknown_requester_text),
         secondary = text,
     )
 }
