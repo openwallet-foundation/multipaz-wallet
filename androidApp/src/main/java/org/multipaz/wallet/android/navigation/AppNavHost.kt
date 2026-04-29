@@ -214,6 +214,7 @@ fun AppNavHost(
             userIssuerTrustManagerModel = userIssuerTrustManagerModel,
             backendReaderTrustManagerModel = backendReaderTrustManagerModel,
             userReaderTrustManagerModel = userReaderTrustManagerModel,
+            readerTrustManager = readerTrustManager,
             isSigningIn = isSigningIn,
             isSigningOut = isSigningOut,
             onSignIn = ::signIn,

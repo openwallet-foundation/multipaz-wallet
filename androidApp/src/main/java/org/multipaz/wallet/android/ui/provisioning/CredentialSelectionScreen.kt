@@ -97,7 +97,7 @@ fun CredentialSelectionScreen(
                             credential.display.logo?.let {
                                 val bitmap = remember { decodeImage(it.toByteArray()) }
                                 Box(
-                                    modifier = Modifier.size(40.dp),
+                                    modifier = Modifier.size(24.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Image(

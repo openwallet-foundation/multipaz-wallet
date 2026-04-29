@@ -8,7 +8,7 @@ lifecycleRuntimeKtx = "2.9.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.10"
 composeBom = "2026.03.00"
-multipaz = "0.99.0-pre.44.e28ff62c"
+multipaz = "0.99.0"
 jetbrainsKotlinJvm = "2.3.10"
 ktor = "3.4.1"
 kotlinx-coroutines = "1.10.2"
@@ -38,6 +38,7 @@ accompanist = "0.37.3"
 browser = "1.10.0"
 kotlin-wrappers = "2025.12.1"
 kotlin-wrappers-rx = "2025.12.1-19.2.0"
+bouncy-castle = "1.83"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -112,6 +113,7 @@ kotlin-wrappers-react = { module = "org.jetbrains.kotlin-wrappers:kotlin-react-j
 kotlin-wrappers-react-dom = { module = "org.jetbrains.kotlin-wrappers:kotlin-react-dom-js", version.ref="kotlin-wrappers-rx" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist"}
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist"}
+bouncy-castle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncy-castle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -84,12 +83,14 @@ import org.multipaz.eventlogger.EventPresentmentDigitalCredentialsOpenID4VP
 import org.multipaz.eventlogger.EventPresentmentIso18013AnnexA
 import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.EventPresentmentUriSchemeOpenID4VP
+import org.multipaz.eventlogger.EventProvisioning
+import org.multipaz.eventlogger.EventProvisioningIssuerDataOpenID4VCI
+import org.multipaz.eventlogger.EventSimple
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.toDataItem
 import org.multipaz.prompt.PromptModel
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.request.RequestedClaim
-import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.OpenStreetMap
 import org.multipaz.wallet.android.ui.getAddressFromCoordinates
@@ -202,14 +203,27 @@ fun EventViewerScreen(
 
                 else -> {
                     val event = currentEvents.find { it.identifier == eventId }
-                    if (event != null) {
-                        EventViewer(
-                            event = event,
-                            documentTypeRepository = documentTypeRepository,
-                            documentModel = documentModel,
-                            imageLoader = imageLoader,
-                            onViewCertificateChain = onViewCertificateChain
-                        )
+                    when (event) {
+                        null -> {}
+                        is EventPresentment -> {
+                            EventViewerPresentment(
+                                event = event,
+                                documentTypeRepository = documentTypeRepository,
+                                documentModel = documentModel,
+                                imageLoader = imageLoader,
+                                onViewCertificateChain = onViewCertificateChain
+                            )
+                        }
+                        is EventProvisioning -> {
+                            EventViewerProvisioning(
+                                event = event,
+                                documentTypeRepository = documentTypeRepository,
+                                documentModel = documentModel,
+                                imageLoader = imageLoader,
+                                onViewCertificateChain = onViewCertificateChain
+                            )
+                        }
+                        is EventSimple -> {}
                     }
                 }
             }
@@ -218,8 +232,88 @@ fun EventViewerScreen(
 }
 
 @Composable
-private fun EventViewer(
-    event: Event,
+private fun EventViewerProvisioning(
+    event: EventProvisioning,
+    documentTypeRepository: DocumentTypeRepository,
+    documentModel: DocumentModel,
+    imageLoader: ImageLoader,
+    onViewCertificateChain: (certChain: X509CertChain) -> Unit,
+    modifier: Modifier = Modifier,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
+    val docInfo = documentModel.documentInfos.collectAsState().value.find {
+        it.document.identifier == event.documentId
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (docInfo != null) {
+            Image(
+                modifier = Modifier.height(80.dp),
+                bitmap = docInfo.cardArt,
+                contentDescription = null
+            )
+        }
+        Text(
+            text = docInfo?.document?.displayName ?: event.documentName ?: stringResource(R.string.event_unknown_document),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+
+        val eventDateTime = event.timestamp.toLocalDateTime(timeZone = timeZone)
+        val eventDateTimeString = eventDateTime.formatLocalized(
+            dateStyle = FormatStyle.LONG,
+            timeStyle = FormatStyle.LONG
+        )
+
+        FloatingItemList(
+            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
+        ) {
+            FloatingItemHeadingAndText(
+                heading = stringResource(R.string.event_viewer_date_time),
+                text = eventDateTimeString
+            )
+            FloatingItemHeadingAndText(
+                heading = stringResource(R.string.event_viewer_issuer),
+                text = event.issuerData.display.text
+            )
+            when (event.issuerData) {
+                is EventProvisioningIssuerDataOpenID4VCI -> {
+                    FloatingItemHeadingAndText(
+                        heading = stringResource(R.string.event_viewer_openid4vci_server),
+                        text = (event.issuerData as EventProvisioningIssuerDataOpenID4VCI).url
+                    )
+                }
+            }
+            FloatingItemHeadingAndText(
+                heading = stringResource(R.string.event_viewer_type),
+                text = if (event.initialProvisioning) {
+                    stringResource(R.string.event_provisioning_type_initial)
+                } else {
+                    stringResource(R.string.event_provisioning_type_refresh)
+                }
+            )
+            var numCredentials = 0
+            event.credentialsFetched.forEach { (domain, credentials) -> numCredentials += credentials.size }
+            FloatingItemHeadingAndText(
+                heading = stringResource(R.string.event_viewer_credentials_heading),
+                text = if (numCredentials == 1) {
+                    stringResource(R.string.event_viewer_credentials_singular)
+                } else {
+                    stringResource(R.string.event_viewer_credentials_plural, numCredentials)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventViewerPresentment(
+    event: EventPresentment,
     documentTypeRepository: DocumentTypeRepository,
     documentModel: DocumentModel,
     imageLoader: ImageLoader,
@@ -232,10 +326,6 @@ private fun EventViewer(
         dateStyle = FormatStyle.LONG,
         timeStyle = FormatStyle.LONG
     )
-
-    // Right now the all events are presentment events. This will change in the future as we add
-    // support for logging other events
-    val presentmentData = (event as EventPresentment).presentmentData
 
     val protocol = when (event) {
         is EventPresentmentDigitalCredentialsMdocApi -> stringResource(R.string.event_viewer_screen_protocol_w3dc_18013_7_annex_c_text)
@@ -251,14 +341,14 @@ private fun EventViewer(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val imageSize = 80.dp
-        presentmentData.trustMetadata?.displayIcon?.let {
+        event.presentmentData.trustMetadata?.displayIcon?.let {
             val bitmap = remember { decodeImage(it.toByteArray()) }
             Image(
                 modifier = Modifier.size(imageSize),
                 bitmap = bitmap,
                 contentDescription = null
             )
-        } ?: presentmentData.trustMetadata?.displayIconUrl?.let {
+        } ?: event.presentmentData.trustMetadata?.displayIconUrl?.let {
             AsyncImage(
                 modifier = Modifier.size(imageSize),
                 model = it,
@@ -269,7 +359,7 @@ private fun EventViewer(
         }
 
         Text(
-            text = presentmentData.requesterName ?: stringResource(R.string.event_viewer_screen_unknown_requester_text),
+            text = event.presentmentData.requesterName ?: stringResource(R.string.event_viewer_screen_unknown_requester_text),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
@@ -371,7 +461,7 @@ private fun EventViewer(
             )
 
             val requesterTrusted = stringResource(R.string.event_viewer_screen_requester_trusted_text)
-            if (presentmentData.trustMetadata != null) {
+            if (event.presentmentData.trustMetadata != null) {
                 FloatingItemHeadingAndText(
                     heading = requesterTrusted,
                     text =  stringResource(R.string.event_viewer_screen_requester_in_trust_list_text)
@@ -388,7 +478,7 @@ private fun EventViewer(
             }
 
             val requesterCertificate = stringResource(R.string.event_viewer_screen_requester_certificate_text)
-            presentmentData.requesterCertChain?.let {
+            event.presentmentData.requesterCertChain?.let {
                 FloatingItemHeadingAndText(
                     heading = requesterCertificate,
                     text = stringResource(R.string.event_viewer_screen_certificate_click_to_view_text),
@@ -403,7 +493,7 @@ private fun EventViewer(
                 )
             }
 
-            presentmentData.trustMetadata?.privacyPolicyUrl?.let {
+            event.presentmentData.trustMetadata?.privacyPolicyUrl?.let {
                 FloatingItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_screen_requester_privacy_policy_text),
                     text = AnnotatedString.fromMarkdown(
@@ -414,7 +504,7 @@ private fun EventViewer(
         }
         Spacer(modifier = Modifier.size(20.dp))
 
-        presentmentData.requestedDocuments.forEach { requestedDocument ->
+        event.presentmentData.requestedDocuments.forEach { requestedDocument ->
             val info = documentModel.documentInfos.collectAsState().value.find {
                 it.document.identifier == requestedDocument.documentId
             }

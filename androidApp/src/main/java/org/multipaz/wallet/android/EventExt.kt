@@ -8,15 +8,25 @@ import org.multipaz.eventlogger.EventPresentmentDigitalCredentialsOpenID4VP
 import org.multipaz.eventlogger.EventPresentmentIso18013AnnexA
 import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.EventPresentmentUriSchemeOpenID4VP
+import org.multipaz.eventlogger.EventProvisioning
+import org.multipaz.eventlogger.EventSimple
 
 // Returns true iff the event is for the given document
 fun Event.isForDocumentId(documentId: String): Boolean {
-    if (this is EventPresentment) {
-        presentmentData.requestedDocuments.forEach {
-            if (it.documentId == documentId) {
+    when (this) {
+        is EventPresentment -> {
+            presentmentData.requestedDocuments.forEach {
+                if (it.documentId == documentId) {
+                    return true
+                }
+            }
+        }
+        is EventProvisioning -> {
+            if (this.documentId == documentId) {
                 return true
             }
         }
+        is EventSimple -> {}
     }
     return false
 }
