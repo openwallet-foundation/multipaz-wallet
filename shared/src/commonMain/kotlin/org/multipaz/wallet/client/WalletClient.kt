@@ -57,7 +57,7 @@ private const val TAG = "WalletClient"
  * Wallet backend client.
  *
  * The main purpose of [WalletClient] is to provide access to wallet backend services
- * as well as a way for multiple clients to share data between each other, end-to-end
+ * as well as a way for multiple clients to share data between each other, and
  * encrypted so the wallet backend cannot read the data. The latter requires the user
  * being logged in to an account provider. Currently, this supports Google accounts but
  * other account providers may be added in the future.

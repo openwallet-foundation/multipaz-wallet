@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -182,6 +183,7 @@ fun AddToWalletScreen(
                 .padding(innerPadding)
                 .verticalScroll(scrollState),
         ) {
+            val iconSize = 24.dp
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -207,7 +209,7 @@ fun AddToWalletScreen(
                                 image = {
                                     AsyncImage(
                                         modifier = Modifier
-                                            .width(40 * 1.586.dp).height(40.dp),
+                                            .width(1.586 * iconSize).height(iconSize),
                                         model = credentialIssuer.iconUrl,
                                         imageLoader = imageLoader,
                                         contentScale = ContentScale.Fit,
@@ -226,7 +228,7 @@ fun AddToWalletScreen(
                         image = {
                             Icon(
                                 modifier = Modifier
-                                    .width(40 * 1.586.dp).height(40.dp),
+                                    .width(1.586 * iconSize).height(iconSize),
                                 imageVector = Icons.Outlined.FileUpload,
                                 contentDescription = null
                             )
@@ -244,7 +246,7 @@ fun AddToWalletScreen(
                             image = {
                                 Icon(
                                     modifier = Modifier
-                                        .width(40 * 1.586.dp).height(40.dp),
+                                        .width(1.586 * iconSize).height(iconSize),
                                     imageVector = Icons.Outlined.AccountBalance,
                                     contentDescription = null
                                 )

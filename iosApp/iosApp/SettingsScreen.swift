@@ -56,12 +56,10 @@ struct SettingsScreen: View {
                 }
                 let markdown = if viewModel.signedInUser != nil {
                     "Passes that sync are available from any device signed in to this Google " +
-                            "account. Data is end-to-end encrypted. " +
-                            "[Learn more](https://wallet.multipaz.org/pass-syncing.html)"
+                            "account."
                 } else {
                     "Sign in to your Google account to make passes that sync available to any " +
-                            "device signed into the account. Data is end-to-end encrypted. " +
-                            "[Learn more](https://wallet.multipaz.org/pass-syncing.html)"
+                            "device signed into the account."
                 }
                 VStack(alignment: .leading, spacing: 5) {
                     Image(systemName: "info.circle")

@@ -41,7 +41,6 @@ import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
-import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -52,6 +51,7 @@ import org.multipaz.wallet.android.ui.CertificateViewerScreen
 import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.wallet.android.ui.DocumentQrPresentmentDialog
 import org.multipaz.wallet.android.ui.ErrorDialog
+import org.multipaz.wallet.android.ui.InfoDialog
 import org.multipaz.wallet.android.ui.SignInClearEncryptionKeyDialog
 import org.multipaz.wallet.android.ui.SignOutConfirmationDialog
 import org.multipaz.wallet.android.ui.WalletScreen
@@ -74,6 +74,11 @@ import org.multipaz.wallet.android.ui.settings.TrustEntryVicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
+import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
+import org.multipaz.wallet.client.deleteDocumentFromWalletBackend
+import org.multipaz.wallet.client.isSyncing
+import org.multipaz.wallet.client.provisionedDocumentIdentifier
+import org.multipaz.wallet.client.setProvisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
@@ -122,6 +127,7 @@ fun NavGraphBuilder.mainGraph(
     navigation<MainGraph>(startDestination = WalletDestination()) {
         composable<ProvisioningDestination> { backStackEntry ->
             val destination = backStackEntry.toRoute<ProvisioningDestination>()
+            Logger.i(TAG, "Provisioning destination: $destination")
             ProvisioningRoute(
                 provisioningModel = provisioningModel,
                 walletClient = walletClient,
@@ -129,6 +135,7 @@ fun NavGraphBuilder.mainGraph(
                 credentialIssuer = destination.credentialIssuer,
                 openID4VCICredentialOffer = destination.openID4VCICredentialOfferUri,
                 openID4VCIIssuerUrl = destination.openID4VCIIssuerUrl,
+                openID4VCICredentialId = destination.openID4VCICredentialId,
                 onCloseClicked = {
                     navController.popBackStack()
                     coroutineScope.launch {
@@ -136,18 +143,57 @@ fun NavGraphBuilder.mainGraph(
                         provisioningModel.cancel()
                     }
                 },
-                onComplete = { documentId ->
+                onComplete = { document, provisionedDocument ->
                     navController.navigate(WalletDestination(
-                        documentId = documentId,
+                        documentId = document.identifier,
                         justAddedAtMillis = Clock.System.now().toEpochMilliseconds()
                     )) {
                         popUpTo<WalletDestination> {
                             inclusive = true
                         }
                     }
-                    coroutineScope.launch {
-                        delay(3.seconds)
-                        provisioningModel.cancel()
+                    // If the user is signed in, deal with updating the Wallet Backend
+                    if (walletClient.signedInUser.value != null) {
+                        coroutineScope.launch {
+                            try {
+                                if (destination.provisionedDocumentIdentifier != null) {
+                                    // OK, we're done provisioning a document for that identifier. Delete
+                                    // the placeholder and set our newly provisioned document as holding
+                                    // the provisioned document
+                                    Logger.i(TAG, "Provisioned a document from provisioned document in shared data")
+                                    documentStore.listDocuments().find {
+                                        it.provisionedDocumentIdentifier == destination.provisionedDocumentIdentifier
+                                    }?.let { placeholderDocument ->
+                                        documentStore.deleteDocument(placeholderDocument.identifier)
+                                    }
+                                    document.setProvisionedDocumentIdentifier(destination.provisionedDocumentIdentifier)
+                                } else {
+                                    // We've provisioned a new document, add it to the shared data so other
+                                    // clients can pick it up.
+                                    document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
+                                    Logger.i(TAG, "Adding a new provisioned document to shared data")
+                                    walletClient.refreshSharedData()
+                                    walletClient.setSharedData(
+                                        sharedData = walletClient.sharedData.value!!.addProvisionedDocument(
+                                            provisionedDocument
+                                        )
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                navController.navigate(
+                                    ErrorDialogDestination(
+                                        title = context.getString(R.string.provisioning_add_pass_to_shared_data_error_title),
+                                        textMarkdown = context.getString(
+                                            R.string.provisioning_add_pass_to_shared_data_error_message_md,
+                                            e.toString()
+                                        )
+                                    )
+                                )
+                            }
+                            delay(3.seconds)
+                            provisioningModel.cancel()
+                        }
                     }
                 },
                 onFailed = {
@@ -184,20 +230,46 @@ fun NavGraphBuilder.mainGraph(
                 justAdded = justAdded,
                 onAvatarClicked = { navController.navigate(SettingsDestination) },
                 onAddClicked = { navController.navigate(AddToWalletDestination) },
-                onDocumentClicked = { documentId ->
-                    focusedDocumentId = documentId
+                onDocumentClicked = { documentInfo ->
+                    focusedDocumentId = documentInfo.document.identifier
                 },
-                onDocumentQrClicked = { documentId ->
-                    navController.navigate(DocumentQrPresentmentDialogDestination(documentId))
+                onDocumentQrClicked = { documentInfo ->
+                    navController.navigate(DocumentQrPresentmentDialogDestination(documentInfo.document.identifier))
                 },
-                onDocumentActivityClicked = { documentId ->
-                    navController.navigate(DocumentEventListDestination(documentId))
+                onDocumentActivityClicked = { documentInfo ->
+                    navController.navigate(DocumentEventListDestination(documentInfo.document.identifier))
                 },
-                onDocumentInfoClicked = { documentId ->
-                    navController.navigate(DocumentInfoDestination(documentId))
+                onDocumentInfoClicked = { documentInfo ->
+                    navController.navigate(DocumentInfoDestination(documentInfo.document.identifier))
                 },
-                onDocumentRemoveClicked = { documentId ->
-                    navController.navigate(RemoveDocumentConfirmationDialogDestination(documentId))
+                onDocumentRemoveClicked = { documentInfo ->
+                    navController.navigate(RemoveDocumentConfirmationDialogDestination(
+                        documentId = documentInfo.document.identifier,
+                        isSyncing = documentInfo.document.isSyncing
+                    ))
+                },
+                onDocumentSetupClicked = { documentInfo ->
+                    walletClient.sharedData.value?.provisionedDocuments?.find {
+                        it.identifier == documentInfo.document.provisionedDocumentIdentifier
+                    }?.let { provisionedDocument ->
+                        // Only support OpenID4VCI right now
+                        provisionedDocument as WalletClientProvisionedDocumentOpenID4VCI
+                        navController.navigate(ProvisioningDestination(
+                            openID4VCIIssuerUrl = provisionedDocument.url,
+                            openID4VCICredentialId = provisionedDocument.credentialId,
+                            provisionedDocumentIdentifier = provisionedDocument.identifier
+                        ))
+                    }
+                },
+                onDocumentSyncClicked = { documentInfo ->
+                    navController.navigate(InfoDialogDestination(
+                        title = context.getString(R.string.wallet_screen_sync_info_dialog_title),
+                        textMarkdown = if (documentInfo.document.mpzPassId != null) {
+                            context.getString(R.string.wallet_screen_sync_info_dialog_text_mpzpass_md)
+                        } else {
+                            context.getString(R.string.wallet_screen_sync_info_dialog_text_provisioned_document_md)
+                        }
+                    ))
                 },
                 onBackClicked = {
                     if (focusedDocumentId != null) {
@@ -224,33 +296,26 @@ fun NavGraphBuilder.mainGraph(
         }
         dialog<RemoveDocumentConfirmationDialogDestination> { backStackEntry ->
             val destination = backStackEntry.toRoute<RemoveDocumentConfirmationDialogDestination>()
+            val textMarkdown = if (destination.isSyncing) {
+                stringResource(R.string.app_navigation_remove_document_text_syncing)
+            } else {
+                stringResource(R.string.app_navigation_remove_document_text)
+            }
             ConfirmationDialog(
                 title = stringResource(R.string.app_navigation_remove_document_title),
-                textMarkdown = stringResource(R.string.app_navigation_remove_document_text),
+                textMarkdown = textMarkdown,
                 confirmButtonText = stringResource(R.string.app_navigation_remove_document_confirm),
                 onDismissed = { navController.popBackStack() },
                 onConfirmClicked = {
                     coroutineScope.launch {
-                        // Remove pass from shared data, if applicable...
-                        //
-                        // Note that this can go wrong if e.g. we don't have an Internet connection
-                        // or the wallet backend is down. This means that you need to be online to delete a pass,
-                        // we may want to relax this requirement in the future.
-                        //
                         try {
                             val document = documentStore.lookupDocument(destination.documentId)
-                            if (document?.mpzPassId != null && walletClient.sharedData.value != null) {
-                                walletClient.refreshSharedData()
-                                walletClient.sharedData.value?.let { sharedData ->
-                                    val pass = sharedData.getMpzPasses().find { it.uniqueId == document.mpzPassId }
-                                    if (pass != null) {
-                                        walletClient.setSharedData(
-                                            sharedData.removeMpzPass(pass)
-                                        )
-                                    }
-                                }
+                            document?.let {
+                                documentStore.deleteDocumentFromWalletBackend(
+                                    document = document,
+                                    walletClient = walletClient,
+                                )
                             }
-                            documentStore.deleteDocument(destination.documentId)
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e
                             navController.navigate(ErrorDialogDestination(
@@ -384,12 +449,14 @@ fun NavGraphBuilder.mainGraph(
                             explicitSignIn = true,
                             resetEncryptionKey = false,
                         )
-                        documentStore.syncWithSharedData(
-                            sharedData = walletClient.sharedData.value!!,
-                            mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                            mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                            mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
-                        )
+                        walletClient.sharedData.value?.let {
+                            documentStore.syncWithSharedData(
+                                sharedData = it,
+                                mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                                mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                                mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                            )
+                        }
                         isSigningIn.value = false
                     }
                 },
@@ -765,6 +832,16 @@ fun NavGraphBuilder.mainGraph(
         dialog<ErrorDialogDestination> { backStackEntry ->
             val destination = backStackEntry.toRoute<ErrorDialogDestination>()
             ErrorDialog(
+                title = destination.title,
+                textMarkdown = destination.textMarkdown,
+                onDismissed = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        dialog<InfoDialogDestination> { backStackEntry ->
+            val destination = backStackEntry.toRoute<InfoDialogDestination>()
+            InfoDialog(
                 title = destination.title,
                 textMarkdown = destination.textMarkdown,
                 onDismissed = {

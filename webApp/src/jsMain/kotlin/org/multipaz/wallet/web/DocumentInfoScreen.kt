@@ -12,6 +12,7 @@ import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.util.fromBase64Url
+import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import react.FC
 import react.Props
 import react.PropsWithChildren
@@ -74,6 +75,17 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
 
         main {
             className = ClassName("flex-grow max-w-2xl mx-auto px-4 sm:px-6 py-8 w-full space-y-8")
+
+            if (documentInfo.document.provisionedDocumentIdentifier != null) {
+                div {
+                    FloatingItemList {
+                        FloatingItemHeadingAndText {
+                            heading = "Device-bound credential"
+                            text = "Device-bound credentials are currently not supported"
+                        }
+                    }
+                }
+            }
 
             if (credentialInfo != null) {
                 // Claims List
@@ -142,10 +154,12 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
                     }
                 }
             } else {
+                /*
                 div {
                     className = ClassName("text-center py-12 text-slate-500")
                     +"No credential information available"
                 }
+                 */
             }
             
             // Bottom spacing
