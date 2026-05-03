@@ -188,6 +188,10 @@
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/mdoc_nfc_data_transfer_service" />
         </service>
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${googleMapsApiKey}" />
     </application>
 
     <!-- Needed for custom browser tabs -->

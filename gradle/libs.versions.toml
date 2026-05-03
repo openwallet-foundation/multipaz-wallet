@@ -8,7 +8,7 @@ lifecycleRuntimeKtx = "2.9.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.10"
 composeBom = "2026.03.00"
-multipaz = "0.99.0-pre.44.e28ff62c"
+multipaz = "0.99.0-pre.47.150e6267"
 jetbrainsKotlinJvm = "2.3.10"
 ktor = "3.4.1"
 kotlinx-coroutines = "1.10.2"
@@ -33,6 +33,8 @@ play-services-coroutines = "1.10.2"
 google-api-client-android = "2.9.0"
 google-api-services-drive = "v3-rev20260305-2.0.0"
 gson = "2.13.2"
+maps-compose = "6.4.1"
+play-services-maps = "19.0.0"
 skie = "0.10.10"
 accompanist = "0.37.3"
 browser = "1.10.0"
@@ -104,6 +106,8 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 lottie = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
 play-services-coroutines = {module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "play-services-coroutines" }
+google-maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "play-services-maps" }
 google-api-client-android = { module = "com.google.api-client:google-api-client-android", version.ref = "google-api-client-android" }
 google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "google-api-services-drive" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
