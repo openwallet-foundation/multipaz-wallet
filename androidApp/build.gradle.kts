@@ -10,6 +10,7 @@ val appName: String by rootProject.extra
 val backendUrl: String by rootProject.extra
 val projectVersionCode: Int by rootProject.extra
 val projectVersionName: String by rootProject.extra
+val googleMapsApiKey: String by rootProject.extra
 
 android {
     namespace = "org.multipaz.wallet.android"
@@ -20,6 +21,8 @@ android {
     defaultConfig {
         applicationId = androidAppId
         resValue("string", "app_name", appName)
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
+        buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"$googleMapsApiKey\"")
         manifestPlaceholders["appName"] = appName
         manifestPlaceholders["applinkHost"] = backendUrl.removePrefix("https://").removePrefix("http://")
         minSdk = 29
@@ -58,6 +61,7 @@ android {
     buildFeatures {
         compose = true
         resValues = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -95,7 +99,10 @@ dependencies {
     implementation(libs.coil.ktor3)
     implementation(libs.lottie)
     implementation(libs.play.services.coroutines)
+    implementation(libs.google.maps.compose)
+    implementation(libs.play.services.maps)
     implementation(libs.google.api.client.android)
+
     implementation(libs.google.api.services.drive)
     implementation(libs.gson)
     implementation(libs.accompanist.drawablepainter)

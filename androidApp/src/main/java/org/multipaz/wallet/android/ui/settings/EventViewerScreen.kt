@@ -1,5 +1,7 @@
 package org.multipaz.wallet.android.ui.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -91,7 +93,7 @@ import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.request.RequestedClaim
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
-import org.multipaz.wallet.android.ui.OpenStreetMap
+import org.multipaz.wallet.android.ui.MapView
 import org.multipaz.wallet.android.ui.getAddressFromCoordinates
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Location
@@ -114,7 +116,7 @@ fun EventViewerScreen(
     promptModel: PromptModel,
     showToast: (message: String) -> Unit
 ) {
-    val context = LocalContext.current
+    val localContext = LocalContext.current
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
@@ -161,7 +163,7 @@ fun EventViewerScreen(
                                         ).encodeToByteArray(),
                                         filename = "event-${timeStampString}.txt",
                                         mimeType = "text/plain",
-                                        title = context.getString(R.string.event_viewer_screen_file_name_text, BuildConfig.APP_NAME, event.timestamp)
+                                        title = localContext.getString(R.string.event_viewer_screen_file_name_text, BuildConfig.APP_NAME, event.timestamp)
                                     )
                                 }
                             }
@@ -289,9 +291,10 @@ private fun EventViewer(
                 var address by remember { mutableStateOf<String?>(null) }
                 var isLoadingAddress by remember { mutableStateOf(true) }
                 
+                val localContext = LocalContext.current
                 LaunchedEffect(location) {
                     isLoadingAddress = true
-                    address = location.getAddressFromCoordinates()
+                    address = location.getAddressFromCoordinates(localContext)
                     isLoadingAddress = false
                 }
 
@@ -304,32 +307,38 @@ private fun EventViewer(
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        OpenStreetMap(
+                        MapView(
                             location = location,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
                         )
+                        val coordinates = "${location.latitude}, ${location.longitude}"
                         if (isLoadingAddress) {
                             Text(
-                                text = stringResource(R.string.event_viewer_screen_location_looking_up_address),
+                                text = stringResource(R.string.event_viewer_screen_location_looking_up_address) + " ($coordinates)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else {
-                            address?.let {
-                                SelectionContainer {
-                                    Text(
-                                        text = it,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } ?: Text(
-                                text = stringResource(R.string.event_viewer_screen_location_address_not_found),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            val displayText = address ?: coordinates
+                            SelectionContainer {
+                                Text(
+                                    text = displayText,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                    ),
+                                    modifier = Modifier.clickable {
+                                        val geoUri = if (address != null) {
+                                            "geo:${location.latitude},${location.longitude}?q=${Uri.encode(address)}"
+                                        } else {
+                                            "geo:${location.latitude},${location.longitude}"
+                                        }
+                                        localContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(geoUri)))
+                                    }
+                                )
+                            }
                         }
                     }
                 }

@@ -53,6 +53,11 @@ val backendSecret: String by extra {
         ?: "1234567890"
 }
 
+val googleMapsApiKey: String by extra {
+    System.getenv("MULTIPAZ_WALLET_GOOGLE_MAPS_API_KEY")
+        ?: project.findProperty("GOOGLE_MAPS_API_KEY") as? String ?: ""
+}
+
 val developerModeAvailable: Boolean by extra {
     val str = System.getenv("MULTIPAZ_WALLET_DEVELOPER_MODE_AVAILABLE")
     str?.let {
