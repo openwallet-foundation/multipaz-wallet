@@ -26,7 +26,7 @@ private const val TAG = "OpenStreetMap"
  * @receiver the [Location] to get an address from.
  * @return The formatted display name (e.g., business name, street, city, country) or null if lookup fails.
  */
-suspend fun Location.getAddressFromCoordinates(): String? = withContext(Dispatchers.IO) {
+suspend fun Location.getAddressFromOpenStreetMap(): String? = withContext(Dispatchers.IO) {
     val accuracy: Double? = horizontalAccuracyMeters
     val zoom = when {
         accuracy == null -> 18
