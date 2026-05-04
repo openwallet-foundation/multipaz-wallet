@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +27,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
@@ -39,6 +41,7 @@ import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
@@ -59,6 +62,9 @@ import org.multipaz.wallet.android.ui.document.CredentialInfoScreen
 import org.multipaz.wallet.android.ui.document.DocumentEventListScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoExtrasScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoScreen
+import org.multipaz.wallet.android.ui.document.ManageTrustedReadersAddReaderDialog
+import org.multipaz.wallet.android.ui.document.ManageTrustedReadersScreen
+import org.multipaz.wallet.android.ui.document.PreconsentSettingsScreen
 import org.multipaz.wallet.android.ui.provisioning.ProvisioningRoute
 import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
@@ -109,6 +115,7 @@ fun NavGraphBuilder.mainGraph(
     userIssuerTrustManagerModel: TrustManagerModel,
     backendReaderTrustManagerModel: TrustManagerModel,
     userReaderTrustManagerModel: TrustManagerModel,
+    readerTrustManager: CompositeTrustManager,
     isSigningIn: MutableState<Boolean>,
     isSigningOut: MutableState<Boolean>,
     onSignIn: suspend (Context, WalletClient, SignInWithGoogle, NavController, Boolean, Boolean) -> Unit,
@@ -138,10 +145,6 @@ fun NavGraphBuilder.mainGraph(
                 openID4VCICredentialId = destination.openID4VCICredentialId,
                 onCloseClicked = {
                     navController.popBackStack()
-                    coroutineScope.launch {
-                        delay(3.seconds)
-                        provisioningModel.cancel()
-                    }
                 },
                 onComplete = { document, provisionedDocument ->
                     navController.navigate(WalletDestination(
@@ -191,17 +194,11 @@ fun NavGraphBuilder.mainGraph(
                                     )
                                 )
                             }
-                            delay(3.seconds)
-                            provisioningModel.cancel()
                         }
                     }
                 },
                 onFailed = {
                     navController.popBackStack()
-                    coroutineScope.launch {
-                        delay(3.seconds)
-                        provisioningModel.cancel()
-                    }
                 }
             )
         }
@@ -212,6 +209,13 @@ fun NavGraphBuilder.mainGraph(
                 Clock.System.now() - Instant.fromEpochMilliseconds(it) < 1.seconds
             } ?: false
             var justAdded by remember { mutableStateOf(justAddedRecently) }
+
+            println("destination: ${destination}")
+            documentModel.documentInfos.collectAsState().value.firstOrNull {
+                it.document.identifier ==  destination.documentId
+            }?.let {
+                println(" document.displayName: ${it.document.displayName}")
+            } ?: println(" no document")
 
             LaunchedEffect(destination.documentId) {
                 if (destination.documentId != null) {
@@ -270,6 +274,9 @@ fun NavGraphBuilder.mainGraph(
                             context.getString(R.string.wallet_screen_sync_info_dialog_text_provisioned_document_md)
                         }
                     ))
+                },
+                onDocumentPreconsentSettingsClicked = { documentInfo ->
+                    navController.navigate(PreconsentSettingsDestination(documentInfo.document.identifier))
                 },
                 onBackClicked = {
                     if (focusedDocumentId != null) {
@@ -377,6 +384,49 @@ fun NavGraphBuilder.mainGraph(
                 onCredentialClicked = { credentialId ->
                     navController.navigate(CredentialInfoDestination(destination.documentId, credentialId))
                 }
+            )
+        }
+        composable<PreconsentSettingsDestination> { backStackEntry ->
+            val destination = backStackEntry.toRoute<PreconsentSettingsDestination>()
+            PreconsentSettingsScreen(
+                documentId = destination.documentId,
+                documentModel = documentModel,
+                onBackClicked = { navController.popBackStack() },
+                onManageTrustedReaders = {
+                    navController.navigate(ManageTrustedReadersDestination(destination.documentId))
+                }
+            )
+        }
+        composable<ManageTrustedReadersDestination> { backStackEntry ->
+            val destination = backStackEntry.toRoute<ManageTrustedReadersDestination>()
+            ManageTrustedReadersScreen(
+                documentId = destination.documentId,
+                documentModel = documentModel,
+                readerTrustManager = readerTrustManager,
+                imageLoader = imageLoader,
+                onBackClicked = { navController.popBackStack() },
+                onAddReaderClicked = { certData ->
+                    navController.navigate(
+                        ManageTrustedReadersAddReaderDialogDestination(
+                            destination.documentId,
+                            certData
+                        )
+                    )
+                },
+                onViewCertificateClicked = { cert ->
+                    navController.navigate(CertificateViewerDestination.create(cert))
+                }
+            )
+        }
+        dialog<ManageTrustedReadersAddReaderDialogDestination> { backStackEntry ->
+            val destination = backStackEntry.toRoute<ManageTrustedReadersAddReaderDialogDestination>()
+            ManageTrustedReadersAddReaderDialog(
+                documentId = destination.documentId,
+                certData = destination.certData,
+                documentModel = documentModel,
+                readerTrustManager = readerTrustManager,
+                imageLoader = imageLoader,
+                onDismissed = { navController.popBackStack() }
             )
         }
         composable<CredentialInfoDestination> { backStackEntry ->

@@ -100,6 +100,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.accompanist.drawablepainter)
     implementation(libs.accompanist.permissions)
+    implementation(libs.bouncy.castle.bcprov)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

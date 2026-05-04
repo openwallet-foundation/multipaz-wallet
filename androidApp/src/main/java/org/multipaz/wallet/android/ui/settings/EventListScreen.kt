@@ -44,6 +44,8 @@ import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
+import org.multipaz.eventlogger.EventProvisioning
+import org.multipaz.eventlogger.EventSimple
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
@@ -124,13 +126,27 @@ fun EventListScreen(
                         )
                     } else {
                         currentEvents.forEach { event ->
-                            EventItem(
-                                modifier = Modifier
-                                    .clickable { onEventClicked(event) },
-                                event = event,
-                                imageLoader = imageLoader,
-                                documentModel = documentModel
-                            )
+                            when (event) {
+                                is EventPresentment -> {
+                                    EventItemPresentment(
+                                        modifier = Modifier
+                                            .clickable { onEventClicked(event) },
+                                        event = event,
+                                        imageLoader = imageLoader,
+                                        documentModel = documentModel
+                                    )
+                                }
+                                is EventProvisioning -> {
+                                    EventItemProvisioning(
+                                        modifier = Modifier
+                                            .clickable { onEventClicked(event) },
+                                        event = event,
+                                        imageLoader = imageLoader,
+                                        documentModel = documentModel
+                                    )
+                                }
+                                is EventSimple -> {}
+                            }
                         }
                     }
                 }
@@ -141,21 +157,57 @@ fun EventListScreen(
 }
 
 @Composable
-private fun EventItem(
-    event: Event,
+private fun EventItemProvisioning(
+    event: EventProvisioning,
     imageLoader: ImageLoader,
     documentModel: DocumentModel,
     modifier: Modifier = Modifier,
-    imageSize: Dp = 40.dp,
+    imageSize: Dp = 24.dp,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
-    // Right now the all events are presentment events. This will change in the future as we add
-    // support for logging other events
-    val presentmentData = (event as EventPresentment).presentmentData
+    val docInfo = event.documentId.let { documentId ->
+        documentModel.documentInfos.collectAsState().value.find {
+            it.document.identifier == documentId
+        }
+    }
 
+    val eventType = if (event.initialProvisioning) {
+        stringResource(R.string.event_provisioning_type_initial)
+    } else {
+        stringResource(R.string.event_provisioning_type_refresh)
+    }
+
+    val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
+    val text = "$eventDateTimeString • $eventType"
+
+    FloatingItemText(
+        modifier = modifier,
+        image = {
+            docInfo?.cardArt?.let {
+                Image(
+                    modifier = modifier.size(imageSize),
+                    bitmap = it,
+                    contentDescription = null
+                )
+            } ?: Spacer(modifier = Modifier.size(imageSize))
+        },
+        text = docInfo?.document?.displayName ?: event.documentName ?: stringResource(R.string.event_unknown_document),
+        secondary = text,
+    )
+}
+
+@Composable
+private fun EventItemPresentment(
+    event: EventPresentment,
+    imageLoader: ImageLoader,
+    documentModel: DocumentModel,
+    modifier: Modifier = Modifier,
+    imageSize: Dp = 24.dp,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
     val sharingType = event.getSharingType()
 
-    val firstDoc = presentmentData.requestedDocuments.firstOrNull()
+    val firstDoc = event.presentmentData.requestedDocuments.firstOrNull()
     val firstDocInfo = firstDoc?.let { requestedDocument ->
         documentModel.documentInfos.collectAsState().value.find {
             it.document.identifier == requestedDocument.documentId

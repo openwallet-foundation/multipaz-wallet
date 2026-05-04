@@ -47,11 +47,15 @@ fun ProvisioningRoute(
     val issuerUrl = remember { mutableStateOf<String?>(null) }
     val issuerMetadata = remember { mutableStateOf<ProvisioningMetadata?>(null) }
     val error = remember { mutableStateOf<Throwable?>(null) }
+    val modelResetAtStart = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        provisioningModel.reset()
+        modelResetAtStart.value = true
         if (credentialIssuer != null) {
             credentialIssuer as CredentialIssuerOpenID4VCI  // only one we support right now
             if (credentialIssuer.id != null) {
+                issuerUrl.value = credentialIssuer.url
                 try {
                     provisioningModel.launchOpenID4VCIProvisioning(
                         issuerUrl = credentialIssuer.url,
@@ -96,6 +100,7 @@ fun ProvisioningRoute(
                     error.value = e
                 }
             } else {
+                issuerUrl.value = openID4VCIIssuerUrl
                 try {
                     issuerMetadata.value = provisioningModel.getOpenID4VCIIssuerMetadata(
                         issuerUrl = openID4VCIIssuerUrl,
@@ -136,82 +141,91 @@ fun ProvisioningRoute(
         )
     } else {
         var showProgress = false
-        when (provisioningState) {
-            ProvisioningModel.Idle -> {
-                if (issuerMetadata.value != null) {
-                    CredentialSelectionScreen(
-                        metadata = issuerMetadata.value!!,
-                        onCloseClicked = {
-                            onCloseClicked()
-                        },
-                        onCredentialSelected = { selectedId ->
-                            coroutineScope.launch {
-                                provisioningModel.launchOpenID4VCIProvisioning(
-                                    issuerUrl = issuerUrl.value!!,
-                                    credentialId = selectedId,
-                                    clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
-                                    backend = walletClient.getOpenID4VCIBackend()
-                                )
+        // Don't do anything until ProvisioningModel has been reset.
+        if (!modelResetAtStart.value) {
+            showProgress = true
+        } else {
+            when (provisioningState) {
+                ProvisioningModel.Idle -> {
+                    if (issuerMetadata.value != null) {
+                        CredentialSelectionScreen(
+                            metadata = issuerMetadata.value!!,
+                            onCloseClicked = {
+                                onCloseClicked()
+                            },
+                            onCredentialSelected = { selectedId ->
+                                coroutineScope.launch {
+                                    provisioningModel.launchOpenID4VCIProvisioning(
+                                        issuerUrl = issuerUrl.value!!,
+                                        credentialId = selectedId,
+                                        clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
+                                        backend = walletClient.getOpenID4VCIBackend()
+                                    )
+                                }
                             }
+                        )
+                    } else if (openID4VCICredentialOffer != null) {
+                        showProgress = true // "Processing offer..."
+                    } else {
+                        showProgress = true // "Starting..."
+                    }
+                }
+
+                ProvisioningModel.Initial -> showProgress = true // "Connecting to issuer..."
+                ProvisioningModel.Connected -> showProgress = true // "Connected to issuer..."
+                is ProvisioningModel.Authorizing -> {
+                    when (val challenge = provisioningState.authorizationChallenges.first()) {
+                        is AuthorizationChallenge.OAuth -> {
+                            AuthorizationScreenOAuth(
+                                provisioningModel = provisioningModel,
+                                walletClient = walletClient,
+                                challenge = challenge,
+                                onCloseClicked = {
+                                    onCloseClicked()
+                                },
+                            )
                         }
-                    )
-                } else if (openID4VCICredentialOffer != null) {
-                    showProgress = true // "Processing offer..."
-                } else {
-                    showProgress = true // "Starting..."
-                }
-            }
-            ProvisioningModel.Initial -> showProgress = true // "Connecting to issuer..."
-            ProvisioningModel.Connected -> showProgress = true // "Connected to issuer..."
-            is ProvisioningModel.Authorizing -> {
-                when (val challenge = provisioningState.authorizationChallenges.first()) {
-                    is AuthorizationChallenge.OAuth -> {
-                        AuthorizationScreenOAuth(
-                            provisioningModel = provisioningModel,
-                            walletClient = walletClient,
-                            challenge = challenge,
-                            onCloseClicked = {
-                                onCloseClicked()
-                            },
-                        )
-                    }
-                    is AuthorizationChallenge.SecretText -> {
-                        AuthorizationScreenSecretText(
-                            provisioningModel = provisioningModel,
-                            challenge = challenge,
-                            onCloseClicked = {
-                                onCloseClicked()
-                            },
-                        )
+
+                        is AuthorizationChallenge.SecretText -> {
+                            AuthorizationScreenSecretText(
+                                provisioningModel = provisioningModel,
+                                challenge = challenge,
+                                onCloseClicked = {
+                                    onCloseClicked()
+                                },
+                            )
+                        }
                     }
                 }
-            }
-            ProvisioningModel.ProcessingAuthorization -> showProgress = true // "Verifying authorization..."
-            ProvisioningModel.Authorized -> showProgress = true // "Authorized!"
-            ProvisioningModel.RequestingCredentials -> showProgress = true // "Requesting your credentials..."
-            is ProvisioningModel.CredentialsIssued -> {
-                LaunchedEffect(Unit) {
-                    val document = provisioningState.document
-                    val provisionedDocument = WalletClientProvisionedDocumentOpenID4VCI(
-                        identifier = Random.Default.nextBytes(16).toBase64Url(),
-                        cardArt = document.cardArt,
-                        displayName = document.displayName,
-                        typeDisplayName = document.typeDisplayName,
-                        url = provisioningModel.metadata.value!!.url,
-                        credentialId = provisioningModel.metadata.value!!.credentials.keys.first()
-                    )
-                    onComplete(
-                        provisioningState.document,
-                        provisionedDocument
+
+                ProvisioningModel.ProcessingAuthorization -> showProgress = true // "Verifying authorization..."
+                ProvisioningModel.Authorized -> showProgress = true // "Authorized!"
+                ProvisioningModel.RequestingCredentials -> showProgress = true // "Requesting your credentials..."
+                is ProvisioningModel.CredentialsIssued -> {
+                    LaunchedEffect(Unit) {
+                        val document = provisioningState.document
+                        val provisionedDocument = WalletClientProvisionedDocumentOpenID4VCI(
+                            identifier = Random.nextBytes(16).toBase64Url(),
+                            cardArt = document.cardArt,
+                            displayName = document.displayName,
+                            typeDisplayName = document.typeDisplayName,
+                            url = provisioningModel.metadata.value!!.url,
+                            credentialId = provisioningModel.metadata.value!!.credentials.keys.first()
+                        )
+                        onComplete(
+                            provisioningState.document,
+                            provisionedDocument
+                        )
+                    }
+                }
+
+                is ProvisioningModel.Error -> {
+                    ProvisioningErrorScreen(
+                        onAnimationComplete = {
+                            onFailed(provisioningState.err)
+                        },
                     )
                 }
-            }
-            is ProvisioningModel.Error -> {
-                ProvisioningErrorScreen(
-                    onAnimationComplete = {
-                        onFailed(provisioningState.err)
-                    },
-                )
             }
         }
         if (showProgress) {

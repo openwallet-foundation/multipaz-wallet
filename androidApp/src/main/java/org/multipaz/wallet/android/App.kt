@@ -29,6 +29,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.io.bytestring.ByteString
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.multipaz.cbor.DataItem
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.document.DocumentModel
@@ -49,29 +50,41 @@ import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.mdoc.zkp.longfellow.LongfellowZkSystem
+import org.multipaz.presentment.CredentialPresentmentData
+import org.multipaz.presentment.CredentialPresentmentSelection
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.prompt.promptModelRequestConsent
+import org.multipaz.prompt.promptModelSilentConsent
 import org.multipaz.provisioning.DocumentProvisioningHandler
+import org.multipaz.provisioning.DocumentProvisioningSettings
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.request.Requester
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.securearea.software.SoftwareSecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.trustmanagement.TrustManager
+import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.checkPreconsent
+import org.multipaz.wallet.client.isProximityReader
+import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromAndroidLocation
 import org.multipaz.wallet.shared.toDataItem
+import java.security.Security
+import kotlin.String
 
 class App private constructor() {
 
@@ -141,7 +154,7 @@ class App private constructor() {
                 }
                 return@SimplePresentmentSource null
             },
-            showConsentPromptFn = ::promptModelRequestConsent,
+            showConsentPromptFn = ::showConsentPromptFn,
             getBadgesFn = ::getBadges,
             preferSignatureToKeyAgreement = true,
             domainsMdocSignature = listOf(Domains.DOMAIN_MDOC_USER_AUTH, Domains.DOMAIN_MDOC_SOFTWARE),
@@ -183,13 +196,21 @@ class App private constructor() {
         provisioningModel = ProvisioningModel(
             documentProvisioningHandler = DocumentProvisioningHandler(
                 documentStore = documentStore,
-                secureArea = secureArea
+                secureArea = secureArea,
+                defaultDocumentProvisioningSettings = DocumentProvisioningSettings(
+                    mdocUserAuthDomain = Domains.DOMAIN_MDOC_USER_AUTH,
+                    mdocNoUserAuthDomain = Domains.DOMAIN_MDOC_NO_USER_AUTH,
+                    sdJwtUserAuthDomain = Domains.DOMAIN_SDJWT_USER_AUTH,
+                    sdJwtNoUserAuthDomain = Domains.DOMAIN_SDJWT_NO_USER_AUTH,
+                    sdJwtKeylessDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                )
             ),
             httpClient = HttpClient(Android) {
                 followRedirects = false
             },
             promptModel = promptModel,
-            authorizationSecureArea = secureArea
+            authorizationSecureArea = secureArea,
+            eventLogger = eventLogger
         )
 
         settingsModel = SettingsModel.create(storage)
@@ -228,8 +249,43 @@ class App private constructor() {
         backendReaderTrustManagerModel = TrustManagerModel(walletClient.readerTrustManager, coroutineScope)
     }
 
+    // Called by SimplePresentmentSource for consent prompt, including handling
+    // the cases where pre-consent is used.
+    private suspend fun showConsentPromptFn(
+        requester: Requester,
+        trustMetadata: TrustMetadata?,
+        credentialPresentmentData: CredentialPresentmentData,
+        preselectedDocuments: List<Document>,
+        onDocumentsInFocus: (documents: List<Document>) -> Unit
+    ): CredentialPresentmentSelection? {
+        // Process preconsent, but only for proximity readers.
+        if (requester.isProximityReader) {
+            credentialPresentmentData.checkPreconsent(
+                requester = requester,
+                domainRewriter = { domain ->
+                    when (domain) {
+                        Domains.DOMAIN_MDOC_USER_AUTH -> Domains.DOMAIN_MDOC_NO_USER_AUTH
+                        Domains.DOMAIN_SDJWT_USER_AUTH -> Domains.DOMAIN_SDJWT_NO_USER_AUTH
+                        else -> domain
+                    }
+                }
+            )?.let { selection ->
+                onDocumentsInFocus(selection.matches.map { it.credential.document })
+                return selection
+            }
+        }
+        // Otherwise fall back to consent prompt...
+        return promptModelRequestConsent(
+            requester = requester,
+            trustMetadata = trustMetadata,
+            credentialPresentmentData = credentialPresentmentData,
+            preselectedDocuments = preselectedDocuments,
+            onDocumentsInFocus = onDocumentsInFocus
+        )
+    }
+
     // Called by DocumentModel whenever a document has changed, to recalculate
-    // which badges to use for a document.
+    // which badges to use for a document. Also called by SimplePresentmentSource.
     //
     private fun getBadges(document: Document): List<DocumentBadge> {
         val badges = mutableListOf<DocumentBadge>()
@@ -383,11 +439,28 @@ class App private constructor() {
         private const val HAIP_VCI_URL_SCHEME = "haip-vci://"
         const val ACTION_VIEW_DOCUMENT = "${BuildConfig.ANDROID_APP_ID}.action.viewDocument"
 
+        private var cryptoInitialized = false
+        private val cryptoInitLock = Mutex()
+
+        // Need this for Brainpool support... maybe make it a build setting if some downstream don't want
+        // (or can't) use BouncyCastle.
+        private suspend fun cryptoInit() {
+            cryptoInitLock.withLock {
+                if (!cryptoInitialized) {
+                    Logger.i(TAG, "Forcing BouncyCastle to the top of the JCA provider list")
+                    Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
+                    Security.insertProviderAt(BouncyCastleProvider(), 1)
+                    cryptoInitialized = true
+                }
+            }
+        }
+
         suspend fun getInstance(): App {
             lock.withLock {
                 if (app != null) {
                     return app!!
                 }
+                cryptoInit()
                 app = App()
                 app!!.initialize()
                 return app!!
