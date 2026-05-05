@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep BouncyCastle security provider and keystore implementations
+-keep class org.bouncycastle.jce.provider.** { *; }
+-keep class org.bouncycastle.jcajce.provider.** { *; }
+
+# Tell R8 to ignore missing JNDI classes used by BouncyCastle's LDAP features
+-dontwarn javax.naming.**
