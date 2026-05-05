@@ -393,4 +393,6 @@
     <string name="wallet_screen_preconsent_request_complexity">Share age and portrait without asking</string>
     <string name="wallet_screen_preconsent_request_complexity_no_portrait">Share age without asking</string>
     <string name="wallet_screen_preconsent_reader_identity">Share without asking only with verified, trusted readers</string>
+
+    <string name="verification_screen_title">Verification</string>
 </resources>

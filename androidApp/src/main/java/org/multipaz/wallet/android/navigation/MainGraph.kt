@@ -70,6 +70,7 @@ import org.multipaz.wallet.android.ui.settings.TrustEntryRicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryVicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
+import org.multipaz.wallet.android.ui.verification.VerificationScreen
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
@@ -196,7 +197,7 @@ fun mainGraph(
                 )
             }
             is WalletDestination -> {
-                val previousKey = backStack.lastOrNull()
+                val previousKey = backStack.getOrNull(backStack.size - 2)
                 val metadata = if (previousKey is WalletDestination) {
                     NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
                             NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None }
@@ -225,6 +226,7 @@ fun mainGraph(
                         justAdded = justAdded,
                         onAvatarClicked = { backStack.add(SettingsDestination) },
                         onAddClicked = { backStack.add(AddToWalletDestination) },
+                        onVerifyClicked = { backStack.add(VerificationDestination) },
                         onDocumentClicked = { documentInfo ->
                             backStack.add(WalletDestination(
                                 documentId = documentInfo.document.identifier
@@ -1087,6 +1089,14 @@ fun mainGraph(
                         onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     )
                 }
+            }
+            is VerificationDestination -> NavEntry(key) {
+                VerificationScreen(
+                    walletClient = walletClient,
+                    settingsModel = settingsModel,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    showToast = showToast
+                )
             }
             else -> null
         }
