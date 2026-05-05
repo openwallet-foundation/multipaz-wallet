@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.navigation
 
+import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 import org.multipaz.cbor.Cbor
 import org.multipaz.crypto.X509Cert
@@ -12,7 +13,7 @@ import org.multipaz.wallet.shared.toCbor
 import kotlin.time.Instant
 
 @Serializable
-sealed class Destination
+sealed class Destination : NavKey
 
 @Serializable
 data object SetupGraph: Destination()
@@ -82,7 +83,7 @@ data class WalletDestination(
 @Serializable
 data class DocumentQrPresentmentDialogDestination(
     val documentId: String
-)
+): Destination()
 
 @Serializable
 data object AboutDestination: Destination()

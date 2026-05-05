@@ -89,6 +89,7 @@ import com.airbnb.lottie.compose.rememberLottiePainter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.multipaz.compose.cards.VerticalCardList
+import org.multipaz.compose.cards.VerticalCardListState
 import org.multipaz.compose.cards.WarningCard
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
@@ -118,6 +119,7 @@ private const val TAG = "WalletScreen"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(
+    verticalCardListState: VerticalCardListState,
     walletClient: WalletClient,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
@@ -376,6 +378,7 @@ fun WalletScreen(
                         allowCardReordering = true,
                         showStackWhileFocused = false,
                         cardMaxHeight = maxCardHeight,
+                        state = verticalCardListState,
                         showCardInfo = { cardInfo ->
                             val documentInfo = cardInfo as DocumentInfo
                             DocumentInfoContent(

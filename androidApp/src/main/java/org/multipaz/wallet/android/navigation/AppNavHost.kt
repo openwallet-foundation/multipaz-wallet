@@ -5,21 +5,29 @@ import android.content.Context
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.DialogSceneStrategy
+import androidx.navigation3.ui.NavDisplay
 import coil3.ImageLoader
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
+import org.multipaz.compose.cards.rememberVerticalCardListState
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.document.DocumentStore
@@ -30,7 +38,6 @@ import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
-import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
@@ -73,20 +80,17 @@ fun AppNavHost(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val signInWithGoogle = rememberSignInWithGoogle()
-    val navController = rememberNavController()
     val context = LocalContext.current
     val isSigningIn = remember { mutableStateOf(false) }
     val isSigningOut = remember { mutableStateOf(false) }
+    val verticalCardListState = rememberVerticalCardListState()
 
-    fun getTrustManagerModelFromId(identifier: String): TrustManagerModel {
-        return when (identifier) {
-            "backendIssuerTrustManager" -> backendIssuerTrustManagerModel
-            "userIssuerTrustManager" -> userIssuerTrustManagerModel
-            "backendReaderTrustManager" -> backendReaderTrustManagerModel
-            "userReaderTrustManager" -> userReaderTrustManagerModel
-            else -> throw IllegalStateException("Unexpected TrustManager id $identifier")
-        }
+    val startDestination: Destination = if (settingsModel.firstTimeSetupDone.collectAsState().value) {
+        WalletDestination()
+    } else {
+        SetupWelcomeScreenDestination
     }
+    val backStack = rememberNavBackStack(startDestination)
 
     LaunchedEffect(Unit) {
         // TODO: Only run this code the first time this screen is shown
@@ -101,7 +105,7 @@ fun AppNavHost(
     LaunchedEffect(true) {
         while (true) {
             val credentialOffer = credentialOffers.receive()
-            navController.navigate(ProvisioningDestination(
+            backStack.add(ProvisioningDestination(
                 credentialIssuer = null,
                 openID4VCICredentialOfferUri = credentialOffer,
                 openID4VCIIssuerUrl = null
@@ -117,7 +121,7 @@ fun AppNavHost(
                 val existingDoc = documentStore.listDocuments().find { it.mpzPassId == pass!!.uniqueId }
                 existingDoc?.mpzPassVersion?.let { existingVersion ->
                     if (existingVersion >= pass!!.version) {
-                        navController.navigate(ErrorDialogDestination(
+                        backStack.add(ErrorDialogDestination(
                             title = context.getString(R.string.app_navigation_error_importing_pass_title),
                             textMarkdown = context.getString(R.string.app_navigation_error_importing_pass_already_in_wallet)
                         ))
@@ -146,7 +150,7 @@ fun AppNavHost(
                         keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                     )
 
-                    navController.navigate(
+                    backStack.add(
                         WalletDestination(
                             documentId = document.identifier,
                             justAddedAtMillis = Clock.System.now().toEpochMilliseconds()
@@ -155,7 +159,7 @@ fun AppNavHost(
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                navController.navigate(ErrorDialogDestination(
+                backStack.add(ErrorDialogDestination(
                     title = context.getString(R.string.app_navigation_error_importing_pass_title),
                     textMarkdown = context.getString(R.string.app_navigation_error_importing_pass_something_went_wrong, e.toString())
                 ))
@@ -166,68 +170,72 @@ fun AppNavHost(
     LaunchedEffect(true) {
         while (true) {
             val documentId = documentIdToViewChannel.receive()
-            navController.navigate(WalletDestination(documentId = documentId))
+            backStack.add(WalletDestination(documentId = documentId))
         }
     }
 
-    val startDestination: Destination = if (settingsModel.firstTimeSetupDone.collectAsState().value) {
-        MainGraph
-    } else {
-        SetupGraph
-    }
+    val setupEntryProvider = setupGraph(
+        backStack = backStack,
+        walletClient = walletClient,
+        documentStore = documentStore,
+        settingsModel = settingsModel,
+        signInWithGoogle = signInWithGoogle,
+        coroutineScope = coroutineScope,
+        context = context,
+        showToast = showToast,
+        onAppJustLaunched = ::appJustLaunched,
+        onSignIn = ::signIn,
+        onSignOut = ::signOut
+    )
+    val mainEntryProvider = mainGraph(
+        backStack = backStack,
+        verticalCardListState = verticalCardListState,
+        walletClient = walletClient,
+        documentStore = documentStore,
+        documentModel = documentModel,
+        settingsModel = settingsModel,
+        eventLogger = eventLogger,
+        documentTypeRepository = documentTypeRepository,
+        provisioningModel = provisioningModel,
+        imageLoader = imageLoader,
+        promptModel = promptModel,
+        signInWithGoogle = signInWithGoogle,
+        mpzPassesToImportChannel = mpzPassesToImportChannel,
+        coroutineScope = coroutineScope,
+        context = context,
+        showToast = showToast,
+        backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+        userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+        backendReaderTrustManagerModel = backendReaderTrustManagerModel,
+        userReaderTrustManagerModel = userReaderTrustManagerModel,
+        readerTrustManager = readerTrustManager,
+        isSigningIn = isSigningIn,
+        isSigningOut = isSigningOut,
+        onSignIn = ::signIn,
+        onSignOut = ::signOut
+    )
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        setupGraph(
-            navController = navController,
-            walletClient = walletClient,
-            documentStore = documentStore,
-            settingsModel = settingsModel,
-            signInWithGoogle = signInWithGoogle,
-            coroutineScope = coroutineScope,
-            context = context,
-            showToast = showToast,
-            onAppJustLaunched = ::appJustLaunched,
-            onSignIn = ::signIn,
-            onSignOut = ::signOut
-        )
-        mainGraph(
-            navController = navController,
-            walletClient = walletClient,
-            documentStore = documentStore,
-            documentModel = documentModel,
-            settingsModel = settingsModel,
-            eventLogger = eventLogger,
-            documentTypeRepository = documentTypeRepository,
-            provisioningModel = provisioningModel,
-            imageLoader = imageLoader,
-            promptModel = promptModel,
-            signInWithGoogle = signInWithGoogle,
-            mpzPassesToImportChannel = mpzPassesToImportChannel,
-            coroutineScope = coroutineScope,
-            context = context,
-            showToast = showToast,
-            backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
-            userIssuerTrustManagerModel = userIssuerTrustManagerModel,
-            backendReaderTrustManagerModel = backendReaderTrustManagerModel,
-            userReaderTrustManagerModel = userReaderTrustManagerModel,
-            readerTrustManager = readerTrustManager,
-            isSigningIn = isSigningIn,
-            isSigningOut = isSigningOut,
-            onSignIn = ::signIn,
-            onSignOut = ::signOut
-        )
-    }
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        sceneStrategies = listOf(DialogSceneStrategy()),
+        modifier = Modifier.fillMaxSize(),
+        entryProvider = { key ->
+            setupEntryProvider(key) ?: mainEntryProvider(key)
+                ?: throw IllegalStateException("No entry for $key")
+        }
+    )
 }
 
 internal suspend fun signIn(
     context: Context,
     walletClient: WalletClient,
     signInWithGoogle: SignInWithGoogle,
-    navController: NavController,
+    backStack: MutableList<NavKey>,
     explicitSignIn: Boolean,
     resetEncryptionKey: Boolean,
 ) {
@@ -241,15 +249,15 @@ internal suspend fun signIn(
     } catch (_: SignInWithGoogleDismissedException) {
         /* Do nothing */
     } catch (_: WalletBackendEncryptionKeyMismatchException) {
-        navController.navigate(SignInClearEncryptionKeyDialogDestination)
+        backStack.add(SignInClearEncryptionKeyDialogDestination)
     } catch (_: WalletClientBackendUnreachableException) {
-        navController.navigate(ErrorDialogDestination(
+        backStack.add(ErrorDialogDestination(
             title = context.getString(R.string.app_navigation_error_signing_in_unreachable_title),
             textMarkdown = context.getString(R.string.app_navigation_error_signing_in_unreachable_text)
         ))
     } catch (e: Exception) {
         if (e is CancellationException) throw e
-        navController.navigate(ErrorDialogDestination(
+        backStack.add(ErrorDialogDestination(
             title = context.getString(R.string.app_navigation_error_signing_in_unreachable_title),
             textMarkdown = context.getString(R.string.app_navigation_error_signing_in_text, e.toString())
         ))
