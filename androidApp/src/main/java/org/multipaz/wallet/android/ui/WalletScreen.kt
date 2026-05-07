@@ -30,7 +30,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
@@ -38,13 +40,17 @@ import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingToolbarColors
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -116,7 +122,7 @@ import kotlin.time.Duration.Companion.seconds
 private const val TAG = "WalletScreen"
 
 @SuppressLint("LocalContextGetResourceValueCall")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WalletScreen(
     verticalCardListState: VerticalCardListState,
@@ -128,6 +134,7 @@ fun WalletScreen(
     justAdded: Boolean,
     onAvatarClicked: () -> Unit,
     onAddClicked: () -> Unit,
+    onVerifyClicked: () -> Unit,
     onDocumentClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentQrClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -156,12 +163,18 @@ fun WalletScreen(
     }
     val maxCardHeight = screenHeightDp / 3
 
+    // Local state to drive animations since navigation swap is instant
+    var titleAndFabVisible by remember { mutableStateOf(focusedDocumentId != null) }
+    LaunchedEffect(focusedDocumentId) {
+        titleAndFabVisible = focusedDocumentId == null
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     AnimatedVisibility(
-                        visible = focusedDocumentId == null,
+                        visible = titleAndFabVisible,
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
@@ -203,86 +216,118 @@ fun WalletScreen(
                     }
                 },
                 navigationIcon = {
-                    Crossfade(
-                        targetState = focusedDocument != null,
-                        label = "NavigationIconCrossfade"
-                    ) { isFocused ->
-                        if (isFocused) {
-                            IconButton(onClick = {
-                                onBackClicked()
-                            }) {
+                    Row {
+                        Box {
+                            this@Row.AnimatedVisibility(
+                                visible = !titleAndFabVisible,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                IconButton(onClick = {
+                                    onBackClicked()
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = null
+                                    )
+                                }
+                            }
+                            this@Row.AnimatedVisibility(
+                                visible = titleAndFabVisible,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = null
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .size(32.dp),
+                                    painter = painterResource(R.drawable.app_icon),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified
                                 )
                             }
-                        } else {
-                            Icon(
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(32.dp),
-                                painter = painterResource(R.drawable.app_icon),
-                                contentDescription = null,
-                                tint = Color.Unspecified
-                            )
                         }
                     }
                 },
                 actions = {
-                    Crossfade(
-                        targetState = focusedDocument != null,
-                        label = "ActionIconsCrossfade"
-                    ) { isFocused ->
-                       if (isFocused) {
-                           if (focusedDocument?.isProximityPresentable == true) {
-                               IconButton(
-                                   onClick = { onDocumentQrClicked(focusedDocument) }
-                               ) {
-                                   Icon(
-                                       modifier = Modifier.size(32.dp),
-                                       imageVector = Icons.Outlined.QrCode2,
-                                       contentDescription = null,
-                                   )
-                               }
-                           }
-                       } else {
-                           val signedIn = walletClient.signedInUser.collectAsState().value
-                           IconButton(
-                               onClick = { onAvatarClicked() }
-                           ) {
-                               if (signedIn != null) {
-                                   signedIn.ProfilePicture(size = 32.dp)
-                               } else {
-                                   Icon(
-                                       modifier = Modifier.size(32.dp),
-                                       imageVector = Icons.Outlined.AccountCircle,
-                                       contentDescription = null,
-                                   )
-                               }
-                           }
-                       }
+                    Row {
+                        Box {
+                            this@Row.AnimatedVisibility(
+                                visible = !titleAndFabVisible,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                if (focusedDocument?.isProximityPresentable == true) {
+                                    IconButton(
+                                        onClick = { onDocumentQrClicked(focusedDocument) }
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.size(32.dp),
+                                            imageVector = Icons.Outlined.QrCode2,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                }
+                            }
+                            this@Row.AnimatedVisibility(
+                                visible = titleAndFabVisible,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                val signedIn = walletClient.signedInUser.collectAsState().value
+                                IconButton(
+                                    onClick = { onAvatarClicked() }
+                                ) {
+                                    if (signedIn != null) {
+                                        signedIn.ProfilePicture(size = 32.dp)
+                                    } else {
+                                        Icon(
+                                            modifier = Modifier.size(32.dp),
+                                            imageVector = Icons.Outlined.AccountCircle,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
             )
         },
         floatingActionButton = {
             AnimatedVisibility(
-                visible = focusedDocument == null,
-                enter = scaleIn() + fadeIn(),
-                exit = scaleOut() + fadeOut()
+                visible = titleAndFabVisible,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                FloatingActionButton(
-                    onClick = onAddClicked,
-                    elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                    content = {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = null,
-                        )
+                // Add padding to provide space for the shadow to draw during animation
+                Box(modifier = Modifier.padding(bottom = 12.dp)) {
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
+                        expandedShadowElevation = 6.dp
+                    ) {
+                        TextButton(
+                            onClick = onVerifyClicked,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircle,
+                                contentDescription = null,
+                            )
+                        }
+                        TextButton(
+                            onClick = onAddClicked,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Add,
+                                contentDescription = null,
+                            )
+                        }
                     }
-                )
+                }
             }
         },
+        floatingActionButtonPosition = FabPosition.End,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Column(

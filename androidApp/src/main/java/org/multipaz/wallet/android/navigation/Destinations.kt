@@ -247,3 +247,6 @@ data class ManageTrustedReadersAddReaderDialogDestination(
 
 @Serializable
 data object AddToWalletDestination: Destination()
+
+@Serializable
+data object VerificationDestination: Destination()
