@@ -157,6 +157,20 @@
         </service>
 
         <service
+            android:name=".WalletMdocNfcV2Service"
+            android:exported="true"
+            android:label="@string/mdoc_nfcv2_service_description"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/mdoc_nfcv2_service" />
+        </service>
+
+        <service
             android:name=".WalletQuickAccessWalletService"
             android:label="${appName}"
             android:icon="@drawable/ic_stat_name"

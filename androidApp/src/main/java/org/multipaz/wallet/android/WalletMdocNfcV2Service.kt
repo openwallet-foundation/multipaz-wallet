@@ -1,15 +1,16 @@
 package org.multipaz.wallet.android
 
 import org.multipaz.compose.mdoc.MdocNdefService
+import org.multipaz.compose.mdoc.MdocNfcV2Service
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.crypto.EcCurve
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.util.Logger
 import kotlin.time.Clock
 
-private const val TAG = "WalletMdocNdefService"
+private const val TAG = "WalletMdocNfcV2Service"
 
-class WalletMdocNdefService: MdocNdefService() {
+class WalletMdocNfcV2Service: MdocNfcV2Service() {
 
     override suspend fun getSettings(): Settings {
         // TODO: optimize initialization of App so we can just get settingsModel and presentmentSource() out
@@ -33,12 +34,7 @@ class WalletMdocNdefService: MdocNdefService() {
             useNegotiatedHandover = true,
             negotiatedHandoverPreferredOrder = listOf(
                 "ble:central_client_mode:",
-                "ble:peripheral_server_mode:",
-                "nfc:"
             ),
-            staticHandoverBleCentralClientModeEnabled = true,
-            staticHandoverBlePeripheralServerModeEnabled = true,
-            staticHandoverNfcDataTransferEnabled = false,
             transportOptions = MdocTransportOptions(
                 bleUseL2CAP = false,
                 bleUseL2CAPInEngagement = true

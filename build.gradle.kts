@@ -68,7 +68,6 @@ val developerModeAvailable: Boolean by extra {
     true
 }
 
-
 // For `versionCode` we just use the number of commits.
 val projectVersionCode: Int by extra {
     lazy {
@@ -117,4 +116,21 @@ val projectVersionName: String by extra {
     }.value
 }
 
+val appAboutTextMd: String by extra {
+    System.getenv("MULTIPAZ_WALLET_APP_ABOUT_TEXT_MD")
+        ?: ("""
+            [$appName](https://github.com/openwallet-foundation/multipaz-wallet) version $projectVersionName.
+
+            Built using [Multipaz SDK](https://developer.multipaz.org) version ${libs.versions.multipaz.get()}.
+
+            | Commit | Date | Message |
+            |---|---|---|
+        """.trimIndent().trim() + "\n" +
+                runCommand(listOf(
+                    "git",
+                    "log",
+                    "--date=short",
+                    "--pretty=format:| [`%h`](https://github.com/openwallet-foundation/multipaz-wallet/commit/%H) | %ad | %s |"
+                )))
+}
 

@@ -67,6 +67,9 @@ android {
         resources {
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/DEPENDENCIES"
+            // Work-around for https://github.com/openwallet-foundation/multipaz/issues/1714#issuecomment-4432798229
+            pickFirsts += "values-*/strings.json"
+            pickFirsts += "values/strings.json"
         }
     }
 }
