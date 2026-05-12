@@ -11,6 +11,7 @@ plugins {
 
 val androidAppId: String by rootProject.extra
 val appName: String by rootProject.extra
+val appAboutTextMd: String by rootProject.extra
 val backendUrl: String by rootProject.extra
 val backendClientId: String  by rootProject.extra
 val backendClientSecret: String  by rootProject.extra
@@ -24,6 +25,7 @@ val updateWebsite: String by rootProject.extra
 buildConfig {
     packageName("org.multipaz.wallet.shared")
     buildConfigField("APP_NAME", appName)
+    buildConfigField("APP_ABOUT_TEXT_MD", appAboutTextMd)
     buildConfigField("ANDROID_APP_ID", androidAppId)
     buildConfigField("VERSION", projectVersionName)
     buildConfigField("BACKEND_URL", backendUrl)

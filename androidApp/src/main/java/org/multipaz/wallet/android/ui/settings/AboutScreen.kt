@@ -38,6 +38,7 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.HttpStatusCode
 import org.multipaz.compose.cards.InfoCard
+import org.multipaz.compose.webview.MarkdownText
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.wallet.android.R
@@ -84,8 +85,9 @@ fun AboutScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppUpdateCard()
-            Text("${BuildConfig.APP_NAME} version ${BuildConfig.VERSION}")
-            Text("Built using Multipaz SDK version ${Platform.version}")
+            MarkdownText(
+                content = BuildConfig.APP_ABOUT_TEXT_MD
+            )
         }
     }
 }

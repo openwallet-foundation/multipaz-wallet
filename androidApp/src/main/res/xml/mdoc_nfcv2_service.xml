@@ -2,14 +2,14 @@
 
 <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:description="@string/nfc_ndef_service_description"
+    android:description="@string/mdoc_nfcv2_service_description"
     android:requireDeviceUnlock="false"
     android:requireDeviceScreenOn="false"
     tools:ignore="UnusedAttribute">
 
-    <aid-group android:description="@string/mdoc_nfc_data_transfer_service_aid_group_description" android:category="other">
-        <!-- Defined in ISO 18013-5:2021 clause 8.3.3.1.2 -->
-        <aid-filter android:name="A0000002480400"/>
+    <aid-group android:description="@string/mdoc_nfcv2_service_aid_group_description" android:category="other">
+        <!-- Defined in ISO/IEC 18013-5 Second Edition  -->
+        <aid-filter android:name="A0000002480401"/>
     </aid-group>
 
 </host-apdu-service>
