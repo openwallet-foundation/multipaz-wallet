@@ -73,6 +73,7 @@ import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.checkPreconsent
 import org.multipaz.wallet.client.isProximityReader
@@ -111,6 +112,7 @@ class App private constructor() {
     private lateinit var userReaderTrustManagerModel: TrustManagerModel
     private lateinit var backendReaderTrustManagerModel: TrustManagerModel
     private lateinit var settingsModel: SettingsModel
+    private lateinit var proximityReaderModel: ProximityReaderModel
     private val promptModel = Platform.promptModel
 
     private val credentialOffers = Channel<String>()
@@ -221,6 +223,7 @@ class App private constructor() {
             secret = BuildConfig.BACKEND_SECRET,
             storage = storage,
             secureArea = secureArea,
+            numReaderKeys = 10,
             httpClientEngineFactory = Android
         )
 
@@ -247,6 +250,8 @@ class App private constructor() {
         backendIssuerTrustManagerModel = TrustManagerModel(walletClient.issuerTrustManager, coroutineScope)
         userReaderTrustManagerModel = TrustManagerModel(userReaderTrustManager, coroutineScope)
         backendReaderTrustManagerModel = TrustManagerModel(walletClient.readerTrustManager, coroutineScope)
+
+        proximityReaderModel = ProximityReaderModel()
     }
 
     // Called by SimplePresentmentSource for consent prompt, including handling
@@ -370,6 +375,7 @@ class App private constructor() {
             )
             AppNavHost(
                 walletClient = walletClient,
+                secureArea = secureArea,
                 promptModel = promptModel,
                 documentStore = documentStore,
                 documentModel = documentModel,
@@ -377,6 +383,7 @@ class App private constructor() {
                 settingsModel = settingsModel,
                 eventLogger = eventLogger,
                 provisioningModel = provisioningModel,
+                proximityReaderModel = proximityReaderModel,
                 imageLoader = imageLoader,
                 userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                 backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,

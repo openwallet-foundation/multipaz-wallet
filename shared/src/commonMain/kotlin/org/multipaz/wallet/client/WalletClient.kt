@@ -15,6 +15,7 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.annotation.CborSerializable
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
+import org.multipaz.crypto.X509CertChain
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackendStub
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
@@ -25,6 +26,8 @@ import org.multipaz.rpc.handler.RpcDispatcher
 import org.multipaz.rpc.handler.RpcExceptionMap
 import org.multipaz.rpc.handler.RpcNotifier
 import org.multipaz.rpc.transport.HttpTransport
+import org.multipaz.securearea.CreateKeySettings
+import org.multipaz.securearea.KeyInfo
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.NoRecordStorageException
 import org.multipaz.storage.Storage
@@ -36,7 +39,7 @@ import org.multipaz.util.inflate
 import org.multipaz.wallet.client.WalletClient.Companion.create
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuer
-import org.multipaz.wallet.shared.WalletClientPublicData
+import org.multipaz.wallet.shared.GoogleTokens
 import org.multipaz.wallet.shared.WalletBackend
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendException
@@ -44,12 +47,13 @@ import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import org.multipaz.wallet.shared.WalletBackendStub
-import org.multipaz.wallet.shared.GoogleTokens
+import org.multipaz.wallet.shared.WalletClientPublicData
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.register
 import org.multipaz.wallet.shared.toCbor
-import kotlin.collections.set
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 private const val TAG = "WalletClient"
 
@@ -98,6 +102,10 @@ private const val TAG = "WalletClient"
  * and the [refreshPublicData] and [refreshSharedData] calls transmit the version currently
  * held by the client, payload is only downloaded if there's a newer version.
  *
+ * The client also manages a pool of reader authentication keys certified by the backend
+ * and the application should call [refreshReaderKeys] at application start-up and from
+ * time to time.
+ *
  * The backend may at any time in the future decide that the user is no longer signed
  * in (for example if all backend data is cleared) which causes [org.multipaz.wallet.shared.WalletBackend] to return
  * [org.multipaz.wallet.shared.WalletBackendNotSignedInException] for operations, sets [sharedData] to `null`,
@@ -110,6 +118,7 @@ class WalletClient private constructor(
     private val secret: String,
     private val storage: Storage,
     private val secureArea: SecureArea?,
+    private val numReaderKeys: Int,
     private val httpClientEngineFactory: HttpClientEngineFactory<*>?,
     private val dispatcherAndNotifier: Pair<RpcDispatcher, RpcNotifier>?
 ) {
@@ -942,6 +951,224 @@ class WalletClient private constructor(
         localPublicData = null
     }
 
+    @CborSerializable
+    internal data class CertifiedKey(
+        val alias: String,
+        val certification: X509CertChain,
+        val validFrom: Instant,
+        val validUntil: Instant,
+        val refreshAt: Instant,
+        val forReaderIdentity: String?
+    ) {
+        companion object
+    }
+
+    // Maps from rowId to CertifiedKey
+    private var certifiedKeys: MutableMap<String, CertifiedKey>? = null
+
+    private suspend fun ensureCertifiedKeys() {
+        check(lock.isLocked)
+
+        if (certifiedKeys != null) {
+            return
+        }
+        certifiedKeys = mutableMapOf()
+        val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
+        for ((key, encodedData) in certifiedKeysTable.enumerateWithData()) {
+            certifiedKeys!!.put(key, CertifiedKey.fromCbor(encodedData.toByteArray()))
+        }
+    }
+
+    // Ensures we have at least numReaderKeys/2 fresh keys. Also removes expired keys.
+    //
+    private suspend fun ensureReplenished(
+        readerIdentityId: String? = null,
+        atTime: Instant = Clock.System.now()
+    ) {
+        check(lock.isLocked) { "Called without holding lock" }
+        check(secureArea != null) { "SecureArea is null" }
+
+        ensureCertifiedKeys()
+
+        val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
+
+        // First, go through and immediately delete all keys that don't match readerIdentityId. We never
+        // want those to linger or stick around in case the server isn't reachable.
+        val keysNotMatchingReaderIdentityId = mutableListOf<Pair<String, CertifiedKey>>()
+        for ((id, certifiedKey) in certifiedKeys!!.entries) {
+            if (certifiedKey.forReaderIdentity != readerIdentityId) {
+                keysNotMatchingReaderIdentityId.add(Pair(id, certifiedKey))
+            }
+        }
+        keysNotMatchingReaderIdentityId.forEach {
+            secureArea.deleteKey(it.second.alias)
+            certifiedKeysTable.delete(it.first)
+            certifiedKeys!!.remove(it.first)
+        }
+
+        var numGoodKeys = 0
+        val toDelete = mutableListOf<Pair<String, CertifiedKey>>()
+        for ((id, certifiedKey) in certifiedKeys!!.entries) {
+            if (atTime > certifiedKey.refreshAt) {
+                toDelete.add(Pair(id, certifiedKey))
+            } else if (atTime > certifiedKey.validFrom && atTime < certifiedKey.validUntil) {
+                numGoodKeys += 1
+            }
+        }
+        // Note: We only delete these keys if either we have enough good keys OR if we successfully
+        // replenish. This is to avoid ending up in a situation where we don't have keys left!
+
+        Logger.i(TAG, "Before reader key replenishing: $numReaderKeys keys ($numGoodKeys good)")
+
+        // Only replenish if we are running below 50%...
+        if (numGoodKeys > numReaderKeys / 2) {
+            toDelete.forEach {
+                secureArea.deleteKey(it.second.alias)
+                certifiedKeysTable.delete(it.first)
+                certifiedKeys!!.remove(it.first)
+            }
+            Logger.i(TAG, "Not replenishing reader keys")
+            return
+        }
+        val numKeysNeeded = numReaderKeys - numGoodKeys
+
+        val keysToCertify = mutableListOf<KeyInfo>()
+        repeat(numKeysNeeded) {
+            keysToCertify.add(secureArea.createKey(null, CreateKeySettings()))
+        }
+
+        val walletBackend = getWalletBackend()
+        val readerCertifications = withContext(session) {
+            walletBackend.certifyReaderKeys(
+                readerKeys = keysToCertify.map { it.attestation }
+            )
+        }
+        check(readerCertifications.size == keysToCertify.size)
+        Logger.i(TAG, "Retrieved ${readerCertifications.size} new reader keys")
+
+        var n = 0
+        for (readerCertification in readerCertifications) {
+            // Refresh a key once it's past two thirds of its life. We do b/c otherwise folks might have
+            // certificates w/ very little life left (say, 1 day) and then they turn on Airplane Mode (or
+            // otherwise lose Internet connectivity) and then verification won't work.
+            //
+            val validFrom = readerCertification.certificates[0].validityNotBefore
+            val validUntil = readerCertification.certificates[0].validityNotAfter
+            val validFor = validUntil - validFrom
+            val refreshAt = validFrom + validFor * 2 / 3
+            val keyInfo = keysToCertify[n++]
+            val certifiedKey = CertifiedKey(
+                alias = keyInfo.alias,
+                certification = readerCertification,
+                validFrom = validFrom,
+                validUntil = validUntil,
+                refreshAt = refreshAt,
+                forReaderIdentity = readerIdentityId,
+            )
+            val id = certifiedKeysTable.insert(
+                key = null,
+                data = ByteString(certifiedKey.toCbor())
+            )
+            certifiedKeys!!.put(id, certifiedKey)
+        }
+
+        toDelete.forEach {
+            secureArea.deleteKey(it.second.alias)
+            certifiedKeysTable.delete(it.first)
+            certifiedKeys!!.remove(it.first)
+        }
+    }
+
+    /**
+     * Gets a reader authentication key.
+     *
+     * This may involve network I/O to the wallet backend for certification of freshly
+     * created keys and other housekeeping.
+     *
+     * When the key has been used, call [markReaderKeyAsUsed] to ensure it won't be used again.
+     *
+     * It's allowable to call this function to just prime the pool (ie. the result isn't used) so
+     * network I/O is reduced for future calls. For example, it might be advantageous to do this
+     * at application startup.
+     *
+     * @param atTime the current time, to take into consideration for purposing of evicting expired keys.
+     * @return a [KeyInfo] for a key in [SecureArea] and the certification from the reader backend.
+     */
+    suspend fun getReaderKey(
+        atTime: Instant = Clock.System.now()
+    ): Pair<KeyInfo, X509CertChain> {
+        lock.withLock {
+            ensureCertifiedKeys()
+            try {
+                ensureReplenished(
+                    readerIdentityId = null,
+                    atTime = atTime
+                )
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Ignoring error replenishing keys", e)
+            }
+            // Return the oldest certificate
+            val sortedCertifiedKeys = certifiedKeys!!.values
+                .filter { it.validFrom < atTime && atTime < it.validUntil }
+                .sortedBy { it.validFrom }
+            if (sortedCertifiedKeys.isEmpty()) {
+                throw IllegalStateException("No currently valid keys available")
+            }
+            return Pair(
+                secureArea!!.getKeyInfo(sortedCertifiedKeys[0].alias),
+                sortedCertifiedKeys[0].certification
+            )
+        }
+    }
+
+    /**
+     * Marks a key retrieved with [getReaderKey] as used.
+     *
+     * @param keyInfo the [KeyInfo] returned from the [getReaderKey] call.
+     * @param atTime the current time, to take into consideration for purposing of evicting expired keys.
+     */
+    suspend fun markReaderKeyAsUsed(
+        keyInfo: KeyInfo,
+        atTime: Instant = Clock.System.now()
+    ) {
+        lock.withLock {
+            ensureCertifiedKeys()
+            val entry = certifiedKeys!!.entries.find { (key, certifiedKey) ->
+                certifiedKey.alias == keyInfo.alias
+            } ?: throw IllegalArgumentException("No such certified key to mark as used")
+
+            // If this was the last key, replenish immediately. If that fails (e.g. no Internet connectivity)
+            // leave the key around but mark that it's already been used
+            if (certifiedKeys!!.size == 1) {
+                try {
+                    ensureReplenished(readerIdentityId = null, atTime)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Logger.w(TAG, "Ignoring error replenishing keys so keeping around last key", e)
+                    return
+                }
+            }
+
+            val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
+            secureArea!!.deleteKey(entry.value.alias)
+            certifiedKeysTable.delete(key = entry.key)
+            certifiedKeys!!.remove(entry.key)
+        }
+    }
+
+    /**
+     * Refreshes reader keys.
+     */
+    suspend fun refreshReaderKeys() {
+        if (numReaderKeys == 0) {
+            return
+        }
+        lock.withLock {
+            ensureReplenished()
+        }
+    }
+
     companion object {
         private const val LOCAL_PUBLIC_DATA_KEY = "LocalPublicData"
         private val localPublicDataTableSpec = StorageTableSpec(
@@ -964,6 +1191,12 @@ class WalletClient private constructor(
             supportPartitions = false
         )
 
+        private val certifiedKeysSpec = StorageTableSpec(
+            name = "CertifiedKeys",
+            supportExpiration = false,
+            supportPartitions = false
+        )
+
         /**
          * Creates a new [WalletClient] instance.
          *
@@ -971,6 +1204,7 @@ class WalletClient private constructor(
          * @param secret the secret for the wallet backend.
          * @param storage the storage to use for caching.
          * @param secureArea the [SecureArea] to use for device attestations.
+         * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          * @param httpClientEngineFactory a [HttpClientEngineFactory] to use for the HTTP client.
          */
         suspend fun create(
@@ -978,6 +1212,7 @@ class WalletClient private constructor(
             secret: String,
             storage: Storage,
             secureArea: SecureArea,
+            numReaderKeys: Int = 0,
             httpClientEngineFactory: HttpClientEngineFactory<*>,
         ): WalletClient {
             val client = WalletClient(
@@ -985,6 +1220,7 @@ class WalletClient private constructor(
                 secret = secret,
                 storage = storage,
                 secureArea = secureArea,
+                numReaderKeys = numReaderKeys,
                 httpClientEngineFactory = httpClientEngineFactory,
                 dispatcherAndNotifier = null
             )
@@ -998,18 +1234,23 @@ class WalletClient private constructor(
          * @param dispatcher the [RpcDispatcher] to use.
          * @param notifier the [RpcNotifier] to use.
          * @param storage the storage to use for caching.
+         * @param secureArea the [SecureArea] to use for device attestations.
+         * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          */
         suspend fun create(
             dispatcher: RpcDispatcher,
             notifier: RpcNotifier,
-            storage: Storage
+            storage: Storage,
+            secureArea: SecureArea,
+            numReaderKeys: Int = 0,
         ): WalletClient {
             val client = WalletClient(
                 backendUrl = "http://127.0.0.1",
                 secret = "",
                 storage = storage,
-                secureArea = null,
+                secureArea = secureArea,
                 httpClientEngineFactory = null,
+                numReaderKeys = numReaderKeys,
                 dispatcherAndNotifier = Pair(dispatcher, notifier)
             )
             client.initialize()

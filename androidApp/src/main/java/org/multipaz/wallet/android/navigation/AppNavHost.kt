@@ -36,6 +36,7 @@ import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.mpzpass.MpzPass
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -43,6 +44,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.signin.SignInWithGoogleDismissedException
 import org.multipaz.wallet.android.signin.rememberSignInWithGoogle
+import org.multipaz.wallet.client.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
@@ -59,6 +61,7 @@ private const val TAG = "AppNavHost"
 @Composable
 fun AppNavHost(
     walletClient: WalletClient,
+    secureArea: SecureArea,
     promptModel: PromptModel,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
@@ -66,6 +69,7 @@ fun AppNavHost(
     settingsModel: SettingsModel,
     eventLogger: SimpleEventLogger,
     provisioningModel: ProvisioningModel,
+    proximityReaderModel: ProximityReaderModel,
     imageLoader: ImageLoader,
     userIssuerTrustManagerModel: TrustManagerModel,
     backendIssuerTrustManagerModel: TrustManagerModel,
@@ -191,12 +195,14 @@ fun AppNavHost(
         backStack = backStack,
         verticalCardListState = verticalCardListState,
         walletClient = walletClient,
+        secureArea = secureArea,
         documentStore = documentStore,
         documentModel = documentModel,
         settingsModel = settingsModel,
         eventLogger = eventLogger,
         documentTypeRepository = documentTypeRepository,
         provisioningModel = provisioningModel,
+        proximityReaderModel = proximityReaderModel,
         imageLoader = imageLoader,
         promptModel = promptModel,
         signInWithGoogle = signInWithGoogle,
@@ -209,6 +215,7 @@ fun AppNavHost(
         backendReaderTrustManagerModel = backendReaderTrustManagerModel,
         userReaderTrustManagerModel = userReaderTrustManagerModel,
         readerTrustManager = readerTrustManager,
+        issuerTrustManager = issuerTrustManager,
         isSigningIn = isSigningIn,
         isSigningOut = isSigningOut,
         onSignIn = ::signIn,
@@ -325,19 +332,30 @@ internal suspend fun appJustLaunched(
         } catch (e: WalletBackendNotSignedInException) {
             Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)
         } catch (e: WalletClientBackendUnreachableException) {
-            Logger.i(TAG, "Failed refreshing with wallet backend at start-up, it's unreachable", e)
+            Logger.i(TAG, "Failed refreshing shared data with wallet backend at start-up, it's unreachable", e)
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            Logger.w(TAG, "Unexpected exception at start-up while refreshing", e)
+            Logger.w(TAG, "Unexpected exception refreshing shared data at start-up", e)
         }
     }
+
     try {
         Logger.i(TAG, "Refreshing public data with wallet backend at start-up")
         walletClient.refreshPublicData()
     } catch (e: WalletClientBackendUnreachableException) {
-        Logger.i(TAG, "Failed refreshing with wallet backend at start-up, it's unreachable", e)
+        Logger.i(TAG, "Failed refreshing public data with wallet backend at start-up, it's unreachable", e)
     } catch (e: Exception) {
         if (e is CancellationException) throw e
-        Logger.w(TAG, "Unexpected exception at start-up while refreshing", e)
+        Logger.w(TAG, "Unexpected exception refreshing public data at start-up", e)
+    }
+
+    try {
+        Logger.i(TAG, "Refreshing reader keys at start-up")
+        walletClient.refreshReaderKeys()
+    } catch (e: WalletClientBackendUnreachableException) {
+        Logger.i(TAG, "Failed refreshing reader keys with wallet backend at start-up, it's unreachable", e)
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        Logger.w(TAG, "Unexpected exception refreshing reader keys at start-up", e)
     }
 }

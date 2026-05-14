@@ -26,6 +26,7 @@ import org.multipaz.cbor.CborArray
 import org.multipaz.compose.cards.VerticalCardListState
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.trustmanagement.TrustManagerModel
+import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.document.DocumentStore
@@ -33,6 +34,7 @@ import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
@@ -70,7 +72,11 @@ import org.multipaz.wallet.android.ui.settings.TrustEntryRicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryVicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
+import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferErrorScreen
+import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferScreen
 import org.multipaz.wallet.android.ui.verification.VerificationScreen
+import org.multipaz.wallet.android.ui.verification.VerificationShowResultsScreen
+import org.multipaz.wallet.client.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
@@ -92,12 +98,14 @@ fun mainGraph(
     backStack: MutableList<NavKey>,
     verticalCardListState: VerticalCardListState,
     walletClient: WalletClient,
+    secureArea: SecureArea,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
     settingsModel: SettingsModel,
     eventLogger: SimpleEventLogger,
     documentTypeRepository: DocumentTypeRepository,
     provisioningModel: ProvisioningModel,
+    proximityReaderModel: ProximityReaderModel,
     imageLoader: ImageLoader,
     promptModel: PromptModel,
     signInWithGoogle: SignInWithGoogle,
@@ -110,6 +118,7 @@ fun mainGraph(
     backendReaderTrustManagerModel: TrustManagerModel,
     userReaderTrustManagerModel: TrustManagerModel,
     readerTrustManager: CompositeTrustManager,
+    issuerTrustManager: CompositeTrustManager,
     isSigningIn: MutableState<Boolean>,
     isSigningOut: MutableState<Boolean>,
     onSignIn: suspend (Context, WalletClient, SignInWithGoogle, MutableList<NavKey>, Boolean, Boolean) -> Unit,
@@ -1094,8 +1103,84 @@ fun mainGraph(
                 VerificationScreen(
                     walletClient = walletClient,
                     settingsModel = settingsModel,
+                    promptModel = promptModel,
+                    onNfcHandover = { scanResult, readerQuery ->
+                        Logger.i(TAG, "scanResult: $scanResult")
+
+                        coroutineScope.launch {
+                            proximityReaderModel.reset()
+                            proximityReaderModel.setConnectionEndpoint(
+                                // TODO: Update Multipaz to use a DataItem for DeviceEngagement
+                                deviceEngagement = Cbor.decode(scanResult.encodedDeviceEngagement.toByteArray()),
+                                handover = scanResult.handover,
+                                existingTransport = scanResult.transport
+                            )
+                            val keyInfoAndCertification = try {
+                                walletClient.getReaderKey()
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.w(TAG, "Error getting reader key", e)
+                                null
+                            }
+                            proximityReaderModel.setDeviceRequest(
+                                readerQuery = readerQuery,
+                                deviceRequest = readerQuery.generateDeviceRequest(
+                                    sessionTranscript = proximityReaderModel.sessionTranscript,
+                                    readerAuthKey = keyInfoAndCertification?.let {
+                                        AsymmetricKey.X509CertifiedSecureAreaBased(
+                                            certChain = keyInfoAndCertification.second,
+                                            secureArea = secureArea,
+                                            keyInfo = keyInfoAndCertification.first,
+                                        )
+                                    },
+                                    intentToRetain = false // TODO
+                                )
+                            )
+                            if (keyInfoAndCertification != null) {
+                                walletClient.markReaderKeyAsUsed(
+                                    keyInfo = keyInfoAndCertification.first
+                                )
+                            }
+                            backStack.add(VerificationProximityTransferDestination)
+                        }
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
+                )
+            }
+            is VerificationProximityTransferDestination -> NavEntry(key) {
+                VerificationProximityTransferScreen(
+                    proximityReaderModel = proximityReaderModel,
+                    onBackClicked = {
+                        // TODO: cancel the transfer
+                        backStack.removeAt(backStack.size - 1)
+                    },
+                    onTransferComplete = {
+                        if (proximityReaderModel.error == null) {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(VerificationShowResultsDestination)
+                        } else {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(VerificationProximityTransferErrorDestination)
+                        }
+                    }
+                )
+            }
+            is VerificationProximityTransferErrorDestination -> NavEntry(key) {
+                VerificationProximityTransferErrorScreen(
+                    onAnimationComplete = {
+                        backStack.removeAt(backStack.size - 1)
+                    }
+                )
+            }
+            is VerificationShowResultsDestination -> NavEntry(key) {
+                VerificationShowResultsScreen(
+                    proximityReaderModel = proximityReaderModel,
+                    issuerTrustManager = issuerTrustManager,
+                    settingsModel = settingsModel,
+                    onBackClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                    }
                 )
             }
             else -> null

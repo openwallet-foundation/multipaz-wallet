@@ -250,3 +250,13 @@ data object AddToWalletDestination: Destination()
 
 @Serializable
 data object VerificationDestination: Destination()
+
+@Serializable
+data object VerificationProximityTransferDestination: Destination()
+
+@Serializable
+data object VerificationProximityTransferErrorDestination: Destination()
+
+// TODO: make this into a data class which has the results (using Peter's VerificationSession work)
+@Serializable
+data object VerificationShowResultsDestination: Destination()

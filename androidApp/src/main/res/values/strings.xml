@@ -397,4 +397,6 @@
     <string name="wallet_screen_preconsent_reader_identity">Share without asking only with verified, trusted readers</string>
 
     <string name="verification_screen_title">Verification</string>
+
+    <string name="verification_proximity_transfer_error_screen_message">Something went wrong</string>
 </resources>

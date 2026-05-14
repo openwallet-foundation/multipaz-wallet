@@ -137,6 +137,7 @@ class SettingsModel private constructor(
         bind(eventLoggingEnabled, "eventLoggingEnabled", true)
         bind(eventLoggingLocationEnabled, "eventLoggingLocationEnabled", true)
         bind(provisioningServerUrl, "provisioningServerUrl", DEFAULT_PROVISIONING_SERVER_URL)
+        bind(readerSelectedQueryId, "readerSelectedQueryId", null)
     }
 
     val explicitlySignedOut = MutableStateFlow<Boolean>(false)
@@ -146,4 +147,5 @@ class SettingsModel private constructor(
     val eventLoggingEnabled = MutableStateFlow<Boolean>(true)
     val eventLoggingLocationEnabled = MutableStateFlow<Boolean>(false)
     val provisioningServerUrl = MutableStateFlow<String>(DEFAULT_PROVISIONING_SERVER_URL)
+    val readerSelectedQueryId = MutableStateFlow<String?>(null)
 }
