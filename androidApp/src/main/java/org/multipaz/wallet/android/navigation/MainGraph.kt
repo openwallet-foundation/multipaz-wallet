@@ -8,8 +8,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.res.stringResource
-import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import coil3.ImageLoader
@@ -26,13 +26,17 @@ import org.multipaz.cbor.CborArray
 import org.multipaz.compose.cards.VerticalCardListState
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.trustmanagement.TrustManagerModel
+import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.mdoc.transport.MdocTransportOptions
+import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
@@ -40,8 +44,6 @@ import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
-import org.multipaz.wallet.android.ui.settings.AboutScreen
-import org.multipaz.wallet.android.ui.provisioning.AddToWalletScreen
 import org.multipaz.wallet.android.ui.CertificateViewerScreen
 import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.wallet.android.ui.DocumentQrPresentmentDialog
@@ -57,7 +59,9 @@ import org.multipaz.wallet.android.ui.document.DocumentInfoScreen
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersAddReaderDialog
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersScreen
 import org.multipaz.wallet.android.ui.document.PreconsentSettingsScreen
+import org.multipaz.wallet.android.ui.provisioning.AddToWalletScreen
 import org.multipaz.wallet.android.ui.provisioning.ProvisioningRoute
+import org.multipaz.wallet.android.ui.settings.AboutScreen
 import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
@@ -70,7 +74,14 @@ import org.multipaz.wallet.android.ui.settings.TrustEntryRicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryVicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
-import org.multipaz.wallet.android.ui.verification.VerificationScreen
+import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUrlScreen
+import org.multipaz.wallet.android.ui.verification.RequestVerificationScreen
+import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
+import org.multipaz.wallet.android.ui.verification.SelectVerificationTypeScreen
+import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferErrorScreen
+import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferScreen
+import org.multipaz.wallet.android.ui.verification.VerificationShowResponseDeveloperExtrasScreen
+import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScreen
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
@@ -79,6 +90,8 @@ import org.multipaz.wallet.client.isSyncing
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.setProvisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
+import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.Domains
@@ -92,12 +105,15 @@ fun mainGraph(
     backStack: MutableList<NavKey>,
     verticalCardListState: VerticalCardListState,
     walletClient: WalletClient,
+    secureArea: SecureArea,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
     settingsModel: SettingsModel,
     eventLogger: SimpleEventLogger,
     documentTypeRepository: DocumentTypeRepository,
+    zkSystemRepository: ZkSystemRepository,
     provisioningModel: ProvisioningModel,
+    proximityReaderModel: ProximityReaderModel,
     imageLoader: ImageLoader,
     promptModel: PromptModel,
     signInWithGoogle: SignInWithGoogle,
@@ -110,6 +126,7 @@ fun mainGraph(
     backendReaderTrustManagerModel: TrustManagerModel,
     userReaderTrustManagerModel: TrustManagerModel,
     readerTrustManager: CompositeTrustManager,
+    issuerTrustManager: CompositeTrustManager,
     isSigningIn: MutableState<Boolean>,
     isSigningOut: MutableState<Boolean>,
     onSignIn: suspend (Context, WalletClient, SignInWithGoogle, MutableList<NavKey>, Boolean, Boolean) -> Unit,
@@ -226,7 +243,7 @@ fun mainGraph(
                         justAdded = justAdded,
                         onAvatarClicked = { backStack.add(SettingsDestination) },
                         onAddClicked = { backStack.add(AddToWalletDestination) },
-                        onVerifyClicked = { backStack.add(VerificationDestination) },
+                        onVerifyClicked = { backStack.add(RequestVerificationDestination) },
                         onDocumentClicked = { documentInfo ->
                             backStack.add(WalletDestination(
                                 documentId = documentInfo.document.identifier
@@ -789,6 +806,12 @@ fun mainGraph(
                     onClearAppDataClicked = {
                         backStack.add(DeveloperSettingsClearAppDataDialogDestination)
                     },
+                    onClearReaderKeys = {
+                        coroutineScope.launch {
+                            walletClient.clearReaderKeys()
+                            walletClient.refreshReaderKeys()
+                        }
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
                 )
@@ -1090,12 +1113,203 @@ fun mainGraph(
                     )
                 }
             }
-            is VerificationDestination -> NavEntry(key) {
-                VerificationScreen(
+            is RequestVerificationDestination -> NavEntry(key) {
+                RequestVerificationScreen(
                     walletClient = walletClient,
                     settingsModel = settingsModel,
+                    documentModel = documentModel,
+                    promptModel = promptModel,
+                    onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
+                    onNfcHandover = { scanResult ->
+                        coroutineScope.launch {
+                            try {
+                                proximityReaderModel.reset()
+                                proximityReaderModel.setMdocTransportOptions(
+                                    MdocTransportOptions(
+                                        bleUseL2CAP = false,             // Doesn't work with Apple Wallet
+                                        bleUseL2CAPInEngagement = true
+                                    )
+                                )
+                                proximityReaderModel.setConnectionEndpoint(
+                                    // TODO: Update Multipaz to use a DataItem for DeviceEngagement
+                                    deviceEngagement = Cbor.decode(scanResult.encodedDeviceEngagement.toByteArray()),
+                                    handover = scanResult.handover,
+                                    existingTransport = scanResult.transport,
+                                    nfcHandoverType = scanResult.type,
+                                    durationNfcTapToEngagement = scanResult.processingDuration
+                                )
+                                val keyInfoAndCertification = try {
+                                    walletClient.getReaderKey()
+                                } catch (e: Exception) {
+                                    if (e is CancellationException) throw e
+                                    Logger.w(TAG, "Error getting reader key", e)
+                                    null
+                                }
+                                val query = settingsModel.readerQuery.value
+                                proximityReaderModel.setDeviceRequest(
+                                    query = query,
+                                    deviceRequest = query.generateDeviceRequest(
+                                        sessionTranscript = proximityReaderModel.sessionTranscript,
+                                        readerAuthKey = keyInfoAndCertification?.let {
+                                            AsymmetricKey.X509CertifiedSecureAreaBased(
+                                                certChain = keyInfoAndCertification.second,
+                                                secureArea = secureArea,
+                                                keyInfo = keyInfoAndCertification.first,
+                                            )
+                                        },
+                                        intentToRetain = false // TODO
+                                    )
+                                )
+                                if (keyInfoAndCertification != null) {
+                                    walletClient.markReaderKeyAsUsed(
+                                        keyInfo = keyInfoAndCertification.first
+                                    )
+                                }
+                                backStack.add(VerificationProximityTransferDestination)
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.w(TAG, "Error handling NFC handover", e)
+                            }
+                        }
+                    },
+                    onQrCodeScanned = { qrCode ->
+                        coroutineScope.launch {
+                            if (qrCode?.startsWith("mdoc:") == true) {
+                                // It's entirely possible the QR code can bounce like this
+                                //
+                                //  QR, null, QR, null, QR, null
+                                //
+                                // Deal this with by just ignoring subsequent QR codes.
+                                //
+                                if (proximityReaderModel.state.value == ProximityReaderModel.State.WAITING_FOR_DEVICE_REQUEST) {
+                                    Logger.i(TAG, "Debouncing QR code scan")
+                                    return@launch
+                                }
+                                handleQrCodeScanned(
+                                    backStack = backStack,
+                                    mdocUrl = qrCode,
+                                    walletClient = walletClient,
+                                    secureArea = secureArea,
+                                    settingsModel = settingsModel,
+                                    proximityReaderModel = proximityReaderModel
+                                )
+                            }
+                        }
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
+                )
+            }
+            is RequestVerificationFromMdocUrlDestination -> NavEntry(key) {
+                RequestVerificationFromMdocUrlScreen(
+                    walletClient = walletClient,
+                    settingsModel = settingsModel,
+                    documentModel = documentModel,
+                    onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
+                    onContinueClicked = {
+                        coroutineScope.launch {
+                            handleQrCodeScanned(
+                                backStack = backStack,
+                                mdocUrl = key.mdocUrl,
+                                walletClient = walletClient,
+                                secureArea = secureArea,
+                                settingsModel = settingsModel,
+                                proximityReaderModel = proximityReaderModel
+                            )
+                            if (backStack.size >= 3) {
+                                // We were at [Wallet, MdocUrl, Transfer]. Remove MdocUrl.
+                                backStack.removeAt(backStack.size - 2)
+                            } else if (backStack.size == 2) {
+                                // We were at [MdocUrl, Transfer]. Replace MdocUrl with Wallet at bottom.
+                                backStack.add(0, WalletDestination())
+                                backStack.removeAt(1)
+                            }
+                        }
+                    },
+                    onBackClicked = {
+                        if (backStack.size > 1) {
+                            backStack.removeAt(backStack.size - 1)
+                        } else {
+                            backStack.clear()
+                            backStack.add(WalletDestination())
+                        }
+                    }
+                )
+            }
+            is SelectVerificationTypeDestination -> NavEntry(key) {
+                SelectVerificationTypeScreen(
+                    settingsModel = settingsModel,
+                    onCustomAgeClicked = {
+                        backStack.add(SelectCustomAgeDestination)
+                    },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is SelectCustomAgeDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                SelectCustomAgeDialog(
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmed = { age ->
+                        settingsModel.readerQuery.value = AgeOverQuery(age)
+                        backStack.removeAt(backStack.size - 1)
+                    }
+                )
+            }
+            is VerificationProximityTransferDestination -> NavEntry(key) {
+                VerificationProximityTransferScreen(
+                    proximityReaderModel = proximityReaderModel,
+                    onBackClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                    },
+                    onTransferComplete = {
+                        if (proximityReaderModel.error == null) {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(VerificationShowResponseDestination)
+                        } else {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(VerificationProximityTransferErrorDestination)
+                        }
+                    }
+                )
+            }
+            is VerificationProximityTransferErrorDestination -> NavEntry(key) {
+                VerificationProximityTransferErrorScreen(
+                    onAnimationComplete = {
+                        backStack.removeAt(backStack.size - 1)
+                    }
+                )
+            }
+            is VerificationShowResponseDestination -> NavEntry(key) {
+                VerificationShowResponseScreen(
+                    proximityReaderModel = proximityReaderModel,
+                    issuerTrustManager = issuerTrustManager,
+                    builtInIssuerTrustManager = backendIssuerTrustManagerModel.trustManager,
+                    userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
+                    settingsModel = settingsModel,
+                    imageLoader = imageLoader,
+                    onDeveloperExtrasClicked = {
+                        backStack.add(VerificationShowResponseDeveloperExtrasDestination)
+                    },
+                    onBackClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                    }
+                )
+            }
+            is VerificationShowResponseDeveloperExtrasDestination -> NavEntry(key) {
+                VerificationShowResponseDeveloperExtrasScreen(
+                    proximityReaderModel = proximityReaderModel,
+                    issuerTrustManager = issuerTrustManager,
+                    settingsModel = settingsModel,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
+                    onBackClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                    },
+                    onViewCertChain = { certChain ->
+                        backStack.add(CertificateViewerDestination.create(certChain))
+                    }
                 )
             }
             else -> null

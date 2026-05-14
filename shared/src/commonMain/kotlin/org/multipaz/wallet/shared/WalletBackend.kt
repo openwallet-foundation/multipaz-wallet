@@ -4,6 +4,9 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.rpc.annotation.RpcInterface
 import org.multipaz.rpc.annotation.RpcMethod
 import org.multipaz.cbor.annotation.CborSerializable
+import org.multipaz.crypto.EcPublicKey
+import org.multipaz.crypto.X509CertChain
+import org.multipaz.securearea.KeyAttestation
 
 /**
  * Interface between the wallet backend and the implementation details
@@ -90,6 +93,17 @@ interface WalletBackend {
      */
     @RpcMethod
     suspend fun getEula(locale: String): String
+
+    /**
+     * Certifies reader authentication keys generated on the client.
+     *
+     * @param readerKeys a list of reader keys to certify.
+     * @return a list of certifications.
+     */
+    @RpcMethod
+    suspend fun certifyReaderKeys(
+        readerKeys: List<KeyAttestation>
+    ): List<X509CertChain>
 }
 
 @CborSerializable

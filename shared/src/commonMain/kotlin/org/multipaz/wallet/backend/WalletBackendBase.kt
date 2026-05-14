@@ -6,10 +6,18 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
+import org.multipaz.asn1.ASN1Integer
+import org.multipaz.cbor.annotation.CborSerializable
+import org.multipaz.crypto.AsymmetricKey
+import org.multipaz.crypto.EcPrivateKey
+import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
+import org.multipaz.crypto.X509CertChain
+import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.rpc.backend.BackendEnvironment
 import org.multipaz.rpc.backend.Configuration
 import org.multipaz.rpc.backend.getTable
+import org.multipaz.securearea.KeyAttestation
 import org.multipaz.storage.NoRecordStorageException
 import org.multipaz.storage.StorageTableSpec
 import org.multipaz.trustmanagement.TrustEntry
@@ -18,6 +26,7 @@ import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
+import org.multipaz.util.truncateToWholeSeconds
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.GetSharedDataResult
@@ -30,7 +39,12 @@ import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import org.multipaz.wallet.shared.GoogleTokens
 import kotlin.random.Random
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 private const val TAG = "WalletBackendBase"
 
@@ -56,6 +70,11 @@ abstract class WalletBackendBase: WalletBackend {
      */
     abstract suspend fun googleCodeExchanger(authorizationCode: String, redirectUri: String, expectedNonce: String): Pair<String, String>
 
+    /**
+     * Gets the client instance identifier representing the remote caller.
+     *
+     * @return the client instance identifier.
+     */
     abstract suspend fun getClientId(): String
 
     override suspend fun getNonce(): String {
@@ -335,6 +354,36 @@ abstract class WalletBackendBase: WalletBackend {
         )
         return newVersion
     }
+
+    // Helper for certifyReaderKeys used in both WalletBackendImpl and TestWalletBackendImpl
+    suspend fun certifyReaderKeys(
+        readerKeys: List<KeyAttestation>,
+        readerRootKey: AsymmetricKey.X509Certified,
+        random: Random = Random.Default,
+        atTime: Instant = Clock.System.now(),
+        validFor: Duration = 30.days,
+        jitterSize: Duration = 12.hours
+    ): List<X509CertChain> {
+        return readerKeys.map { readerKey ->
+            // Introduce a bit of jitter so it's not possible for someone to correlate two keys
+            val jitterFrom = jitterSize*random.nextDouble()
+            val jitterUntil = jitterSize*random.nextDouble()
+            val validFrom = atTime - jitterFrom
+            val validUntil = atTime + jitterUntil + validFor
+            val readerCert = MdocUtil.generateReaderCertificate(
+                readerRootKey = readerRootKey,
+                readerKey = readerKey.publicKey,
+                subject = X500Name.fromName("CN=Multipaz Wallet Reader Key"),
+                dnsName = null,
+                serial = ASN1Integer.fromRandom(numBits = 128, random = random),
+                validFrom = validFrom.truncateToWholeSeconds(),
+                validUntil = validUntil.truncateToWholeSeconds(),
+                extensions = listOf()
+            )
+            X509CertChain(certificates = listOf(readerCert))
+        }
+    }
+
 
     private var latestPublicData: WalletClientPublicData? = null
 

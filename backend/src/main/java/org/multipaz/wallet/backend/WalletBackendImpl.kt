@@ -4,17 +4,31 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
-import kotlinx.io.bytestring.ByteString
+import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.annotation.CborSerializable;
+import org.multipaz.crypto.AsymmetricKey
+import org.multipaz.crypto.X500Name
+import org.multipaz.crypto.X509CertChain
+import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.rpc.annotation.RpcState;
 import org.multipaz.rpc.backend.RpcAuthBackendDelegate
 import org.multipaz.rpc.handler.RpcAuthContext
 import org.multipaz.rpc.handler.RpcAuthInspector
+import org.multipaz.securearea.KeyAttestation
+import org.multipaz.server.enrollment.ServerIdentity
+import org.multipaz.server.enrollment.getServerIdentity
+import org.multipaz.util.Logger
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.WalletBackend
 import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.GoogleTokens
+import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
+
+private const val TAG = "WalletBackendImpl"
 
 @RpcState(
     endpoint = "wallet_backend",
@@ -99,6 +113,15 @@ class WalletBackendImpl: WalletBackendBase(), WalletBackend, RpcAuthInspector by
     }
 
     override suspend fun getClientId() = RpcAuthContext.getClientId()
+
+    override suspend fun certifyReaderKeys(readerKeys: List<KeyAttestation>): List<X509CertChain> {
+        // TODO: if dealing with Android client, verify attestations
+        val identity = getServerIdentity(ServerIdentity.READER_ROOT) as AsymmetricKey.X509CertifiedExplicit
+        return certifyReaderKeys(
+            readerKeys = readerKeys,
+            readerRootKey = identity,
+        )
+    }
 
     companion object
 }

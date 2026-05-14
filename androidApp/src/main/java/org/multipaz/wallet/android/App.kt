@@ -1,10 +1,6 @@
 package org.multipaz.wallet.android
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.widget.Toast
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -17,11 +13,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -55,7 +48,6 @@ import org.multipaz.presentment.CredentialPresentmentSelection
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.prompt.promptModelRequestConsent
-import org.multipaz.prompt.promptModelSilentConsent
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.DocumentProvisioningSettings
 import org.multipaz.provisioning.ProvisioningModel
@@ -71,12 +63,12 @@ import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
+import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
 import org.multipaz.wallet.android.settings.SettingsModel
-import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.checkPreconsent
 import org.multipaz.wallet.client.isProximityReader
-import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
@@ -85,6 +77,10 @@ import org.multipaz.wallet.shared.fromAndroidLocation
 import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 import kotlin.String
+import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
 
 class App private constructor() {
 
@@ -111,6 +107,7 @@ class App private constructor() {
     private lateinit var userReaderTrustManagerModel: TrustManagerModel
     private lateinit var backendReaderTrustManagerModel: TrustManagerModel
     private lateinit var settingsModel: SettingsModel
+    private lateinit var proximityReaderModel: ProximityReaderModel
     private val promptModel = Platform.promptModel
 
     private val credentialOffers = Channel<String>()
@@ -221,6 +218,7 @@ class App private constructor() {
             secret = BuildConfig.BACKEND_SECRET,
             storage = storage,
             secureArea = secureArea,
+            numReaderKeys = 10,
             httpClientEngineFactory = Android
         )
 
@@ -247,6 +245,8 @@ class App private constructor() {
         backendIssuerTrustManagerModel = TrustManagerModel(walletClient.issuerTrustManager, coroutineScope)
         userReaderTrustManagerModel = TrustManagerModel(userReaderTrustManager, coroutineScope)
         backendReaderTrustManagerModel = TrustManagerModel(walletClient.readerTrustManager, coroutineScope)
+
+        proximityReaderModel = ProximityReaderModel()
     }
 
     // Called by SimplePresentmentSource for consent prompt, including handling
@@ -348,6 +348,51 @@ class App private constructor() {
         get() = this is EventPresentmentIso18013Proximity
 
     @Composable
+    fun MdocUrlVerificationContent(mdocUrl: String) {
+        val context = LocalPlatformContext.current
+        val imageLoader = remember {
+            val engineFactory = Android
+            val httpClient = HttpClient(engineFactory.create()) {
+            }
+            ImageLoader.Builder(context)
+                .components {
+                    add(KtorNetworkFetcherFactory(httpClient))
+                }
+                .build()
+        }
+        val currentBranding = Branding.Current.collectAsState().value
+        currentBranding.theme {
+            PromptDialogs(
+                promptModel = promptModel,
+                imageLoader = imageLoader
+            )
+            MdocUrlVerificationNavHost(
+                mdocUrl = mdocUrl,
+                walletClient = walletClient,
+                secureArea = secureArea,
+                promptModel = promptModel,
+                documentStore = documentStore,
+                documentModel = documentModel,
+                documentTypeRepository = documentTypeRepository,
+                zkSystemRepository = zkSystemRepository,
+                settingsModel = settingsModel,
+                eventLogger = eventLogger,
+                provisioningModel = provisioningModel,
+                proximityReaderModel = proximityReaderModel,
+                imageLoader = imageLoader,
+                userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+                backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+                userReaderTrustManagerModel = userReaderTrustManagerModel,
+                backendReaderTrustManagerModel = backendReaderTrustManagerModel,
+                issuerTrustManager = issuerTrustManager,
+                readerTrustManager = readerTrustManager,
+                showToast = ::showToast,
+                onFinish = { (context as? android.app.Activity)?.finish() }
+            )
+        }
+    }
+
+    @Composable
     fun Content() {
         val context = LocalPlatformContext.current
         val imageLoader = remember {
@@ -370,13 +415,16 @@ class App private constructor() {
             )
             AppNavHost(
                 walletClient = walletClient,
+                secureArea = secureArea,
                 promptModel = promptModel,
                 documentStore = documentStore,
                 documentModel = documentModel,
                 documentTypeRepository = documentTypeRepository,
+                zkSystemRepository = zkSystemRepository,
                 settingsModel = settingsModel,
                 eventLogger = eventLogger,
                 provisioningModel = provisioningModel,
+                proximityReaderModel = proximityReaderModel,
                 imageLoader = imageLoader,
                 userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                 backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,

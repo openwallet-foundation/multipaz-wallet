@@ -1,6 +1,10 @@
 package org.multipaz.wallet.android.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
+import android.view.WindowManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,12 +19,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
@@ -41,6 +47,7 @@ import kotlinx.coroutines.plus
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
+import org.multipaz.cbor.toDataItem
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.compose.qrcode.generateQrCode
 import org.multipaz.context.applicationContext
@@ -50,6 +57,7 @@ import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
+import org.multipaz.mdoc.engagement.Capability
 import org.multipaz.mdoc.engagement.buildDeviceEngagement
 import org.multipaz.mdoc.role.MdocRole
 import org.multipaz.mdoc.transport.MdocTransportFactory
@@ -78,6 +86,27 @@ fun  DocumentQrPresentmentDialog(
 ) {
     var qrCodeToShow by remember { mutableStateOf<String?>(null) }
     var transactionJob by remember { mutableStateOf<Job?>(null) }
+
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val activity = context.findActivity()
+        val window = activity?.window
+        val originalBrightness = window?.attributes?.screenBrightness
+
+        window?.let {
+            val layoutParams = it.attributes
+            layoutParams.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+            it.attributes = layoutParams
+        }
+
+        onDispose {
+            window?.let {
+                val layoutParams = it.attributes
+                layoutParams.screenBrightness = originalBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                it.attributes = layoutParams
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         val document = documentStore.lookupDocument(documentId)
@@ -191,6 +220,8 @@ private fun proximityPresentment(
             )
             val deviceEngagement = buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey) {
                 advertisedTransports.forEach { addConnectionMethod(it.connectionMethod) }
+                addCapability(Capability.READER_AUTH_ALL_SUPPORT, true.toDataItem())
+                addCapability(Capability.EXTENDED_REQUEST_SUPPORT, true.toDataItem())
             }.toDataItem()
             val encodedDeviceEngagement = ByteString(Cbor.encode(deviceEngagement))
             val qrCode = "mdoc:" + encodedDeviceEngagement.toByteArray().toBase64Url()
@@ -259,4 +290,15 @@ private fun proximityPresentment(
             listenForCancellationFromUiJob = null
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is Activity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    return null
 }

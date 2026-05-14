@@ -18,6 +18,10 @@ import org.multipaz.crypto.X509CertChain
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
+import org.multipaz.wallet.client.verification.IdentificationQuery
+import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.fromDataItem
+import org.multipaz.wallet.client.verification.toDataItem
 import kotlin.time.Instant
 
 class SettingsModel private constructor(
@@ -82,6 +86,7 @@ class SettingsModel private constructor(
                     EcCurve::class -> EcCurve.entries.find { it.name == dataItem.asTstr }
                     EcPrivateKey::class -> EcPrivateKey.fromDataItem(dataItem)
                     X509CertChain::class -> X509CertChain.fromDataItem(dataItem)
+                    Query::class -> Query.fromDataItem(dataItem)
                     else -> { throw IllegalStateException("Type not supported") }
                 }
             }
@@ -108,6 +113,7 @@ class SettingsModel private constructor(
                             EcCurve::class -> (newValue as EcCurve).name.toDataItem()
                             EcPrivateKey::class -> (newValue as EcPrivateKey).toDataItem()
                             X509CertChain::class -> (newValue as X509CertChain).toDataItem()
+                            Query::class -> (newValue as Query).toDataItem()
                             else -> { throw IllegalStateException("Type not supported") }
                         }
                     }
@@ -137,6 +143,7 @@ class SettingsModel private constructor(
         bind(eventLoggingEnabled, "eventLoggingEnabled", true)
         bind(eventLoggingLocationEnabled, "eventLoggingLocationEnabled", true)
         bind(provisioningServerUrl, "provisioningServerUrl", DEFAULT_PROVISIONING_SERVER_URL)
+        bind(readerQuery, "readerQuery", IdentificationQuery(false))
     }
 
     val explicitlySignedOut = MutableStateFlow<Boolean>(false)
@@ -146,4 +153,5 @@ class SettingsModel private constructor(
     val eventLoggingEnabled = MutableStateFlow<Boolean>(true)
     val eventLoggingLocationEnabled = MutableStateFlow<Boolean>(false)
     val provisioningServerUrl = MutableStateFlow<String>(DEFAULT_PROVISIONING_SERVER_URL)
+    val readerQuery = MutableStateFlow<Query>(IdentificationQuery(false))
 }

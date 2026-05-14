@@ -101,9 +101,7 @@ class WalletQuickAccessWalletService: QuickAccessWalletService() {
                     /* flags = */ PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             },
-            preferredServices = listOf(
-                ComponentName(applicationContext, WalletMdocNdefService::class.java)
-            )
+            preferredService = ComponentName(applicationContext, WalletCombinedNfcService::class.java),
         )
     }
 }
