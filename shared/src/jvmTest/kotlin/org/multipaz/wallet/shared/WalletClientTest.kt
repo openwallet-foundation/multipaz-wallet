@@ -22,11 +22,14 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
+import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
+import org.multipaz.crypto.X509CertChain
 import org.multipaz.crypto.X509KeyUsage
 import org.multipaz.crypto.buildX509Cert
 import org.multipaz.document.buildDocumentStore
+import org.multipaz.mdoc.util.MdocUtil
 import org.multipaz.mpzpass.MpzPass
 import org.multipaz.mpzpass.MpzPassSdJwtVc
 import org.multipaz.rpc.annotation.RpcState
@@ -40,6 +43,8 @@ import org.multipaz.rpc.handler.RpcNotificationsLocal
 import org.multipaz.rpc.handler.RpcNotifier
 import org.multipaz.rpc.handler.RpcPoll
 import org.multipaz.sdjwt.SdJwt
+import org.multipaz.securearea.KeyAttestation
+import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.securearea.software.SoftwareSecureArea
 import org.multipaz.storage.Storage
@@ -67,8 +72,11 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 
 @RpcState(
     endpoint = "wallet_backend",
@@ -117,6 +125,23 @@ class TestWalletBackendImpl: WalletBackendBase(), WalletBackend {
         return testClientData!!.clientId
     }
 
+    override suspend fun certifyReaderKeys(readerKeys: List<KeyAttestation>): List<X509CertChain> {
+        val testClientData = BackendEnvironment.getInterface(TestClientData::class)!!
+        val readerKeyTestData = BackendEnvironment.getInterface(ReaderKeyTestData::class)!!
+        if (readerKeyTestData.disableCertifyKeys) {
+            throw IllegalStateException("Server is disabled")
+        }
+        readerKeyTestData.certifyKeysNumCalled += 1
+        return certifyReaderKeys(
+            readerKeys = readerKeys,
+            readerRootKey = AsymmetricKey.X509CertifiedExplicit(
+                certChain = X509CertChain(certificates = listOf(testClientData.readerRootCert)),
+                privateKey = testClientData.readerRootKey
+            ),
+            atTime = readerKeyTestData.currentTime
+        )
+    }
+
     companion object {
 
         fun buildTestGoogleIdTokenString(
@@ -134,7 +159,15 @@ class TestWalletBackendImpl: WalletBackendBase(), WalletBackend {
 }
 
 data class TestClientData(
-    val clientId: String
+    val clientId: String,
+    val readerRootKey: EcPrivateKey,
+    val readerRootCert: X509Cert,
+)
+
+data class ReaderKeyTestData(
+    var currentTime: Instant = Clock.System.now(),
+    var certifyKeysNumCalled: Int = 0,
+    var disableCertifyKeys: Boolean = false
 )
 
 class TestBackendEnvironment(
@@ -143,6 +176,7 @@ class TestBackendEnvironment(
     private val storage: Storage,
     private val testClientData: TestClientData,
     private val serverConfiguration: Configuration?,
+    private val readerKeyTestData: ReaderKeyTestData,
     private var poll: RpcPoll? = null
 ): BackendEnvironment {
     override fun <T : Any> getInterface(clazz: KClass<T>): T =
@@ -153,6 +187,7 @@ class TestBackendEnvironment(
             Storage::class -> storage
             TestClientData::class -> testClientData
             Configuration::class -> serverConfiguration
+            ReaderKeyTestData::class -> readerKeyTestData
             else -> throw IllegalArgumentException("No implementation for $clazz")
         })
 }
@@ -163,6 +198,9 @@ private fun TestScope.buildLocalDispatcher(
     clientId: String,
     backendStorage: Storage,
     serverConfiguration: Configuration?,
+    readerRootKey: EcPrivateKey,
+    readerRootCert: X509Cert,
+    readerKeyTestData: ReaderKeyTestData,
     exceptionMap: RpcExceptionMap,
 ): RpcDispatcherLocal {
     val builder = RpcDispatcherLocal.Builder()
@@ -174,9 +212,12 @@ private fun TestScope.buildLocalDispatcher(
         notifier = local,
         storage = backendStorage,
         testClientData = TestClientData(
-            clientId = clientId
+            clientId = clientId,
+            readerRootKey = readerRootKey,
+            readerRootCert = readerRootCert
         ),
-        serverConfiguration = serverConfiguration
+        serverConfiguration = serverConfiguration,
+        readerKeyTestData = readerKeyTestData,
     )
     return builder.build(environment, cipher, exceptionMap)
 }
@@ -276,18 +317,35 @@ class WalletClientTest {
 
     private suspend fun TestScope.createWalletClientBase(
         clientStorage: Storage,
-        serverConfiguration: Configuration? = null
+        clientSecureArea: SecureArea,
+        serverConfiguration: Configuration? = null,
+        readerKeyTestData: ReaderKeyTestData? = null
     ): WalletClient {
+        val now = Clock.System.now()
+        val readerRootKey = Crypto.createEcPrivateKey(EcCurve.P256)
+        val readerRootCert = MdocUtil.generateReaderRootCertificate(
+            readerRootKey = AsymmetricKey.AnonymousExplicit(readerRootKey),
+            subject = X500Name.fromName("CN=Test Reader Root CA"),
+            serial = ASN1Integer.fromRandom(numBits = 128),
+            validFrom = now - 30.days,
+            validUntil = now + 120.days,
+            crlUrl = "https://www.example.com/crl"
+        )
         val localDispatcher = buildLocalDispatcher(
             "client${clientCounter++}",
             backendStorage = backendStorage,
             serverConfiguration = serverConfiguration,
+            readerRootKey = readerRootKey,
+            readerRootCert = readerRootCert,
+            readerKeyTestData = readerKeyTestData ?: ReaderKeyTestData(),
             exceptionMap = exceptionMap
         )
         val client = WalletClient.create(
             dispatcher = localDispatcher,
             notifier = localDispatcher.environment.getInterface(RpcNotifier::class)!!,
-            storage = clientStorage
+            storage = clientStorage,
+            secureArea = clientSecureArea,
+            numReaderKeys = 10,
         )
         return client
     }
@@ -295,7 +353,8 @@ class WalletClientTest {
     @Test
     fun notSignedIn() = runTest {
         val clientStorage = EphemeralStorage()
-        val client = createWalletClientBase(clientStorage)
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
         assertNull(client.signedInUser.value)
 
         // Signing out fails if not signed in
@@ -322,7 +381,8 @@ class WalletClientTest {
         val fooEncryptionKey = ByteString(Random.nextBytes(32))
 
         val clientStorage = EphemeralStorage()
-        val client = createWalletClientBase(clientStorage)
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
         val clientNonce = client.getNonce()
         client.signInWithGoogle(
             nonce = clientNonce,
@@ -343,7 +403,7 @@ class WalletClientTest {
 
         // Simulate restarting the wallet app (that is, using same storage) and check
         // that the data at the end of the other run is the same.
-        val clientNextRun = createWalletClientBase(clientStorage)
+        val clientNextRun = createWalletClientBase(clientStorage, clientSecureArea)
         assertEquals(fooUser, clientNextRun.signedInUser.value)
         assertEquals(sharedData, clientNextRun.getSharedData())
     }
@@ -358,7 +418,8 @@ class WalletClientTest {
         val fooEncryptionKey = ByteString(Random.nextBytes(32))
 
         val client1Storage = EphemeralStorage()
-        val client1 = createWalletClientBase(client1Storage)
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea)
         val client1Nonce = client1.getNonce()
         client1.signInWithGoogle(
             nonce = client1Nonce,
@@ -376,7 +437,8 @@ class WalletClientTest {
 
         // Now simulate signing in from another device and check we get the same data
         val client2Storage = EphemeralStorage()
-        val client2 = createWalletClientBase(client2Storage)
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea)
         val client2Nonce = client2.getNonce()
         client2.signInWithGoogle(
             nonce = client2Nonce,
@@ -422,7 +484,8 @@ class WalletClientTest {
         val barEncryptionKey = ByteString(Random.nextBytes(32))
 
         val client1Storage = EphemeralStorage()
-        val client1 = createWalletClientBase(client1Storage)
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea)
         val client1Nonce = client1.getNonce()
         client1.signInWithGoogle(
             nonce = client1Nonce,
@@ -440,7 +503,8 @@ class WalletClientTest {
         // Now simulate signing in with another account (bar) and check that we don't
         // get the data from the first account (foo)
         val client2Storage = EphemeralStorage()
-        val client2 = createWalletClientBase(client2Storage)
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea)
         val client2Nonce = client2.getNonce()
         client2.signInWithGoogle(
             nonce = client2Nonce,
@@ -466,7 +530,8 @@ class WalletClientTest {
         val fooEncryptionKey = ByteString(Random.nextBytes(32))
 
         val client1Storage = EphemeralStorage()
-        val client1 = createWalletClientBase(client1Storage)
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea)
         val client1Nonce = client1.getNonce()
         client1.signInWithGoogle(
             nonce = client1Nonce,
@@ -484,7 +549,8 @@ class WalletClientTest {
         // Now simulate signing in from another device but present a different encryption
         // key and check that it fails with WalletBackendEncryptionKeyMismatchException
         val client2Storage = EphemeralStorage()
-        val client2 = createWalletClientBase(client2Storage)
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea)
         val client2Nonce = client2.getNonce()
         val fooEncryptionKeyDifferent = ByteString(Random.nextBytes(32))
         assertFailsWith(WalletBackendEncryptionKeyMismatchException::class) {
@@ -586,8 +652,10 @@ class WalletClientTest {
         })
 
         val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
         val client = createWalletClientBase(
             clientStorage = clientStorage,
+            clientSecureArea = clientSecureArea,
             serverConfiguration = serverConfiguration
         )
 
@@ -758,7 +826,8 @@ class WalletClientTest {
 
         // Sign in on the first device ...
         val client1Storage = EphemeralStorage()
-        val client1 = createWalletClientBase(client1Storage)
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea)
         val client1Nonce = client1.getNonce()
         client1.signInWithGoogle(
             nonce = client1Nonce,
@@ -789,7 +858,8 @@ class WalletClientTest {
 
         // Now simulate signing in from another device and check we get the same data
         val client2Storage = EphemeralStorage()
-        val client2 = createWalletClientBase(client2Storage)
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea)
         val client2Nonce = client2.getNonce()
         client2.signInWithGoogle(
             nonce = client2Nonce,
@@ -881,7 +951,8 @@ class WalletClientTest {
 
         // Sign in on the first device ...
         val client1Storage = EphemeralStorage()
-        val client1 = createWalletClientBase(client1Storage)
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea)
         val client1Nonce = client1.getNonce()
         client1.signInWithGoogle(
             nonce = client1Nonce,
@@ -911,7 +982,8 @@ class WalletClientTest {
 
         // Now simulate signing in from another device and check we get the same data
         val client2Storage = EphemeralStorage()
-        val client2 = createWalletClientBase(client2Storage)
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea)
         val client2Nonce = client2.getNonce()
         client2.signInWithGoogle(
             nonce = client2Nonce,
@@ -1004,6 +1076,166 @@ class WalletClientTest {
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
         assertNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
+    }
+
+    @Test
+    fun testReaderKeysHappyPath() = runTest {
+        val readerKeyTestData = ReaderKeyTestData()
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea, readerKeyTestData = readerKeyTestData)
+
+        val (_, certChain) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        certChain.validate(validateAt = readerKeyTestData.currentTime)
+        assertEquals(1, certChain.certificates.size)
+
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Check validity dates, taking into account the jitter the server injects.
+        val readerCert = certChain.certificates[0]
+        assertTrue(readerCert.validityNotBefore <= readerKeyTestData.currentTime)
+        assertTrue(readerCert.validityNotBefore >= readerKeyTestData.currentTime - 12.hours)
+        assertTrue(readerCert.validityNotAfter >= readerKeyTestData.currentTime + 30.days)
+        assertTrue(readerCert.validityNotAfter <= readerKeyTestData.currentTime + 30.days + 12.hours)
+
+        // Use up just enough keys to cause an RPC for replenishing on the call following the next call
+        repeat(5) {
+            val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            client.markReaderKeyAsUsed(keyInfo)
+        }
+
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+        val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertEquals(2, readerKeyTestData.certifyKeysNumCalled)
+    }
+
+    @Test
+    fun testReaderKeysReplenish() = runTest {
+        val readerKeyTestData = ReaderKeyTestData()
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea, readerKeyTestData = readerKeyTestData)
+
+        // First call should cause 1 RPCs
+        val (_, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Unless we use the key, it won't get replenished, so check getKey() can be called 100 times
+        // without causing any additional RPCs.
+        repeat(100) { client.getReaderKey(atTime = readerKeyTestData.currentTime) }
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Now use up 5 keys, and make sure we saw different keys everytime. Because we only
+        // replenish when we fall below 50% this means no additional RPC is done. Check this.
+        val seenAliases = mutableSetOf<String>()
+        repeat(5) {
+            val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            client.markReaderKeyAsUsed(keyInfo)
+            seenAliases.add(keyInfo.alias)
+        }
+        assertEquals(5, seenAliases.size)
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Next time we'll use a key it'll cause RPC to replenish. Check this.
+        val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        client.markReaderKeyAsUsed(keyInfo)
+        assertEquals(2, readerKeyTestData.certifyKeysNumCalled)
+
+        // Check replenishing works ad infinitum (example: 100 uses) and we only do RPCs once half empty.
+        seenAliases.clear()
+        repeat(100) {
+            val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            client.markReaderKeyAsUsed(keyInfo)
+            seenAliases.add(keyInfo.alias)
+        }
+        assertEquals(100, seenAliases.size)
+        assertEquals(22, readerKeyTestData.certifyKeysNumCalled)
+    }
+
+    @Test
+    fun testReaderKeysExpiration() = runTest {
+        val readerKeyTestData = ReaderKeyTestData()
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea, readerKeyTestData = readerKeyTestData)
+
+        // First call should cause 1 RPC
+        val (_, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Advance the time to 15 days past, should not cause RPC.
+        readerKeyTestData.currentTime += 15.days
+        val (_, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Another 6 days to bring us to 21 days. This will cause 1 RPCs since all keys will be
+        // replaced after two thirds of 30 days which is 20 days.
+        readerKeyTestData.currentTime += 6.days
+        val (_, certChain) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertEquals(2, readerKeyTestData.certifyKeysNumCalled)
+        certChain.validate(validateAt = readerKeyTestData.currentTime)
+        assertEquals(1, certChain.certificates.size)
+
+        // Check validity dates, taking into account the jitter the server injects.
+        val readerCert = certChain.certificates[0]
+        assertTrue(readerCert.validityNotBefore <= readerKeyTestData.currentTime)
+        assertTrue(readerCert.validityNotBefore >= readerKeyTestData.currentTime - 12.hours)
+        assertTrue(readerCert.validityNotAfter >= readerKeyTestData.currentTime + 30.days)
+        assertTrue(readerCert.validityNotAfter <= readerKeyTestData.currentTime + 30.days + 12.hours)
+    }
+
+    @Test
+    fun testReaderKeysNoInternetConnectivity() = runTest {
+        val readerKeyTestData = ReaderKeyTestData()
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea, readerKeyTestData = readerKeyTestData)
+
+        // First call should cause the usual 4 RPCs
+        val (_, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Now simulate not having Internet connectivity and use up all keys. This should work.
+        readerKeyTestData.disableCertifyKeys = true
+        val seenAliases = mutableSetOf<String>()
+        repeat(10) {
+            val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            client.markReaderKeyAsUsed(keyInfo)
+            seenAliases.add(keyInfo.alias)
+        }
+        assertEquals(10, seenAliases.size)
+        assertEquals(1, readerKeyTestData.certifyKeysNumCalled)
+
+        // Because we want verifications to keep working even if there is no connectivity
+        // to the reader backend, we leave a single key around for reuse.
+        //
+        // This means that if we get another key it'll be the one we just used. Consequently,
+        // `seenAliases` set will not grow. Check this.
+        repeat(10) {
+            val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            client.markReaderKeyAsUsed(keyInfo)
+            seenAliases.add(keyInfo.alias)
+        }
+        assertEquals(10, seenAliases.size)
+
+        // If we advance the clock so even this single key isn't valid anymore, getKey()
+        // will stop working, though.
+        readerKeyTestData.currentTime += 31.days
+        try {
+            client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            fail("Expected getKey() to fail")
+        } catch (_: IllegalStateException) {
+            // expected path
+        }
+
+        // If we turn Internet connectivity back on, we'll get fresh never-used keys.
+        readerKeyTestData.disableCertifyKeys = false
+        repeat(10) {
+            val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+            client.markReaderKeyAsUsed(keyInfo)
+            seenAliases.add(keyInfo.alias)
+        }
+        assertEquals(20, seenAliases.size)
     }
 }
 

@@ -179,7 +179,7 @@ fun WalletScreen(
                         exit = fadeOut()
                     ) {
                         if (BuildConfig.DEVELOPER_MODE_AVAILABLE) {
-                            Text(
+                            Column(
                                 modifier = Modifier.clickable {
                                     if (settingsModel.devMode.value) {
                                         showToast(context.getString(R.string.wallet_screen_dev_mode_already_enabled))
@@ -202,10 +202,23 @@ fun WalletScreen(
                                         }
                                     }
                                 },
-                                text = BuildConfig.APP_NAME,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = BuildConfig.APP_NAME,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                val walletBackendUrl = settingsModel.walletBackendUrl.collectAsState().value
+                                if (walletBackendUrl != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = stringResource(R.string.wallet_screen_backend_url_format, walletBackendUrl),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
                         } else {
                             Text(
                                 text = BuildConfig.APP_NAME,
@@ -362,15 +375,18 @@ fun WalletScreen(
                     coroutineScope.launch {
                         try {
                             walletClient.refreshPublicData()
-                            walletClient.refreshSharedData()
-                            walletClient.sharedData.value?.let {
-                                documentStore.syncWithSharedData(
-                                    sharedData = it,
-                                    mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                                    mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
-                                )
+                            if (walletClient.signedInUser.value != null) {
+                                walletClient.refreshSharedData()
+                                walletClient.sharedData.value?.let {
+                                    documentStore.syncWithSharedData(
+                                        sharedData = it,
+                                        mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                                        mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                                    )
+                                }
                             }
+                            walletClient.refreshReaderKeys()
                         } catch (e: Exception) {
                             Logger.e(TAG, "Error refreshing data", e)
                             showToast(e.toString())

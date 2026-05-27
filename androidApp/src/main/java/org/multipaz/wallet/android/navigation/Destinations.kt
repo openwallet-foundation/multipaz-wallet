@@ -10,7 +10,6 @@ import org.multipaz.util.toBase64Url
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.toCbor
-import kotlin.time.Instant
 
 @Serializable
 sealed class Destination : NavKey
@@ -249,4 +248,28 @@ data class ManageTrustedReadersAddReaderDialogDestination(
 data object AddToWalletDestination: Destination()
 
 @Serializable
-data object VerificationDestination: Destination()
+data object RequestVerificationDestination: Destination()
+
+@Serializable
+data object SelectVerificationTypeDestination: Destination()
+
+@Serializable
+data object SelectCustomAgeDestination: Destination()
+
+@Serializable
+data object VerificationProximityTransferDestination: Destination()
+
+@Serializable
+data object VerificationProximityTransferErrorDestination: Destination()
+
+// TODO: make this into a data class which has the results (using Peter's VerificationSession work)
+@Serializable
+data object VerificationShowResponseDestination: Destination()
+
+@Serializable
+data object VerificationShowResponseDeveloperExtrasDestination: Destination()
+
+@Serializable
+data class RequestVerificationFromMdocUrlDestination(
+    val mdocUrl: String
+): Destination()

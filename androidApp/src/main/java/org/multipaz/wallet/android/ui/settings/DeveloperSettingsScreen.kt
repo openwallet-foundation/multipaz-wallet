@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoorBack
 import androidx.compose.material.icons.outlined.NoEncryption
 import androidx.compose.material.icons.outlined.Remove
@@ -64,6 +65,7 @@ fun DeveloperSettingsScreen(
     onConfigureWalletBackendClicked: () -> Unit,
     onRunFirstTimeSetupClicked: () -> Unit,
     onClearAppDataClicked: () -> Unit,
+    onClearReaderKeys: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -216,6 +218,20 @@ fun DeveloperSettingsScreen(
                     },
                     heading = stringResource(R.string.dev_settings_delete_app_data_title),
                     text = stringResource(R.string.dev_settings_delete_app_data_text)
+                )
+
+                FloatingItemHeadingAndText(
+                    modifier = Modifier.clickable {
+                        onClearReaderKeys()
+                    },
+                    image = {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = null
+                        )
+                    },
+                    heading = stringResource(R.string.dev_settings_refresh_reader_keys),
+                    text = stringResource(R.string.dev_settings_refresh_reader_keys_text)
                 )
 
                 FloatingItemHeadingAndText(

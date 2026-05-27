@@ -109,6 +109,25 @@
         </activity>
 
         <activity
+            android:name=".MdocUrlVerificationActivity"
+            android:theme="@style/NavigationActivityTheme"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".verification"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <!-- Note: these URIs are formatted as mdoc:<base64url> and b/c we don't match on host we match only
+                     those and not mdoc://<base64url> for WalletUriSchemePresentmentActivity.
+                -->
+                <data android:scheme="mdoc"/>
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".WalletCredentialManagerPresentmentActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
@@ -136,6 +155,11 @@
                 <!--  Various OpenID4VP schemes -->
                 <data android:scheme="haip-vp"/>
                 <data android:scheme="openid4vp"/>
+                <!-- ISO/IEC 18013-7:2024 Annex A
+
+                     Note: These URIs are formatted as mdoc://<base64url> and b/c we match on host, we'll catch
+                     those but not mdoc:<base64url> for MdocUrlVerificationActivity above.
+                 -->
                 <data android:scheme="mdoc"/>
                 <!-- Accept all hosts for any of the defined schemes above -->
                 <data android:host="*"/>
@@ -143,9 +167,9 @@
         </activity>
 
         <service
-            android:name=".WalletMdocNdefService"
+            android:name=".WalletCombinedNfcService"
             android:exported="true"
-            android:label="@string/nfc_ndef_service_description"
+            android:label="@string/combined_nfc_service_description"
             android:permission="android.permission.BIND_NFC_SERVICE">
             <intent-filter>
                 <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
@@ -153,21 +177,7 @@
 
             <meta-data
                 android:name="android.nfc.cardemulation.host_apdu_service"
-                android:resource="@xml/nfc_ndef_service" />
-        </service>
-
-        <service
-            android:name=".WalletMdocNfcV2Service"
-            android:exported="true"
-            android:label="@string/mdoc_nfcv2_service_description"
-            android:permission="android.permission.BIND_NFC_SERVICE">
-            <intent-filter>
-                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.nfc.cardemulation.host_apdu_service"
-                android:resource="@xml/mdoc_nfcv2_service" />
+                android:resource="@xml/combined_nfc_service" />
         </service>
 
         <service
@@ -187,20 +197,6 @@
             <meta-data
                 android:name="android.quickaccesswallet.tile"
                 android:resource="@drawable/ic_stat_name"/>
-        </service>
-
-        <service
-            android:name=".WalletMdocNfcDataTransferService"
-            android:exported="true"
-            android:label="@string/nfc_ndef_service_description"
-            android:permission="android.permission.BIND_NFC_SERVICE">
-            <intent-filter>
-                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.nfc.cardemulation.host_apdu_service"
-                android:resource="@xml/mdoc_nfc_data_transfer_service" />
         </service>
 
         <meta-data

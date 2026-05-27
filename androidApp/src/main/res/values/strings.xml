@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="nfc_ndef_service_description">@string/app_name</string>
+    <string name="combined_nfc_service_description">@string/app_name</string>
     <string name="nfc_ndef_service_aid_group_description">ISO/IEC 18013-5:2021 NFC engagement</string>
-    <string name="mdoc_nfcv2_service_description">@string/app_name</string>
     <string name="mdoc_nfcv2_service_aid_group_description">ISO/IEC 18013-5 Second Edition NFCv2 engagement</string>
     <string name="mdoc_nfc_data_transfer_service_aid_group_description">ISO/IEC 18013-5:2021 NFC data transfer</string>
     <string name="quick_access_wallet_empty_state_text">No Cards</string>
@@ -97,23 +96,25 @@
     <string name="dev_settings_screen_title">Developer Settings</string>
     <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk.</string>
     <string name="dev_settings_corrupt_key_title">Corrupt encryption key in Google Drive</string>
-    <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted</string>
+    <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted.</string>
     <string name="dev_settings_not_signed_in">User is not signed in</string>
     <string name="dev_settings_revoke_drive_success">Successfully revoked Drive access</string>
     <string name="dev_settings_revoke_drive_failure">Failed to revoke Drive access: %1$s</string>
     <string name="dev_settings_revoke_drive_title">Revoke Google Drive access</string>
-    <string name="dev_settings_revoke_drive_text">This will force a consent prompt for accessing Google Drive to be shown on the next sign in</string>
+    <string name="dev_settings_revoke_drive_text">This will force a consent prompt for accessing Google Drive to be shown on the next sign in.</string>
     <string name="dev_settings_clear_signed_out_flag_title">Clear explicitly signed out flag</string>
-    <string name="dev_settings_clear_signed_out_flag_text">This will ask to sign in with Google the next time the app is launched</string>
+    <string name="dev_settings_clear_signed_out_flag_text">This will ask to sign in with Google the next time the app is launched.</string>
     <string name="dev_settings_using_backend_default">Using backend at %1$s</string>
     <string name="dev_settings_using_backend_custom">Using custom backend at %1$s</string>
     <string name="dev_settings_set_backend_title">Set wallet backend</string>
     <string name="dev_settings_exit_dev_mode_title">Exit developer mode</string>
-    <string name="dev_settings_exit_dev_mode_text">You can reenter developer mode by tapping the title on the main screen five times</string>
+    <string name="dev_settings_exit_dev_mode_text">You can reenter developer mode by tapping the title on the main screen five times.</string>
     <string name="dev_settings_run_setup_title">Run first-time setup</string>
-    <string name="dev_settings_run_setup_text">Reset the first-time setup flag and restart the setup flow. Data will not be cleared</string>
+    <string name="dev_settings_run_setup_text">Reset the first-time setup flag and restart the setup flow. Data will not be cleared.</string>
+    <string name="dev_settings_refresh_reader_keys">Refresh reader keys</string>
+    <string name="dev_settings_refresh_reader_keys_text">Clears all reader keys and gets new ones from the server.</string>
     <string name="dev_settings_delete_app_data_title">Delete app data</string>
-    <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed</string>
+    <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed.</string>
 
     <string name="doc_info_screen_title">%1$s info</string>
     <string name="doc_info_screen_usage_info">To use your pass, tap your phone to a reader or show a QR code to the verifier. This screen can\'t be used for verification.</string>
@@ -396,5 +397,79 @@
     <string name="wallet_screen_preconsent_request_complexity_no_portrait">Share age without asking</string>
     <string name="wallet_screen_preconsent_reader_identity">Share without asking only with verified, trusted readers</string>
 
+    <string name="request_verification_screen_title">Request verification</string>
+
+    <string name="request_verification_from_mdoc_url_screen_title">Confirm verification type</string>
+
+    <string name="select_verification_type_screen_title">Select verification type</string>
+
+    <string name="select_custom_age_dialog_title">Select the age</string>
+    <string name="select_custom_age_dialog_cancel_button">Cancel</string>
+    <string name="select_custom_age_dialog_affirmative_button">Select</string>
+
     <string name="verification_screen_title">Verification</string>
+
+    <string name="verification_proximity_transfer_error_screen_message">Something went wrong</string>
+
+    <!-- Reader Queries -->
+    <string name="reader_query_age_over">Age over %1$d</string>
+    <string name="reader_query_identification_and_address">Identification and address</string>
+    <string name="reader_query_identification">Identification</string>
+    <string name="reader_query_age_over_description">Requests portrait image and proof that the person verified is at least %1$d years old.</string>
+    <string name="reader_query_identification_and_address_description">Requests name, birth date, street address, and portrait image.</string>
+    <string name="reader_query_identification_description">Requests name, birth date, and portrait image.</string>
+
+    <!-- Document Types -->
+    <string name="document_type_mobile_driving_license">Mobile Driving License</string>
+    <string name="document_type_photo_id">Photo ID</string>
+    <string name="document_type_eu_pid">EU Personal ID</string>
+    <string name="document_type_aadhaar">Aadhaar</string>
+    <string name="document_type_google_wallet_idpass">Google Wallet ID pass</string>
+
+    <!-- Request Verification -->
+    <string name="request_verification_send_link">Send link</string>
+    <string name="request_verification_in_person">In-person</string>
+    <string name="request_verification_what_to_request">What to request</string>
+    <string name="request_verification_generate_link">Generate link</string>
+    <string name="request_verification_hold_to_wallet">Hold to Wallet</string>
+    <string name="request_verification_camera_permission_required">Camera permission is required</string>
+    <string name="request_verification_grant_permission">Grant Permission</string>
+    <string name="request_verification_scan_nfc">Scan NFC</string>
+    <string name="request_verification_scan_qr_code">Scan QR code</string>
+    <string name="request_verification_scan_qr_code_title">Scan QR Code</string>
+
+    <!-- Request Verification from Mdoc URL -->
+    <string name="request_verification_from_mdoc_url_continue">Continue</string>
+
+    <!-- Select Verification Type -->
+    <string name="select_verification_type_note">Select the data to request from the person being verified.</string>
+    <string name="select_verification_type_age_over_title">Age over</string>
+    <string name="select_verification_type_age_over_description">Request portrait image and proof that the person verified is at least a given age.</string>
+    <string name="select_verification_type_custom_age_selected">Custom: %1$s</string>
+    <string name="select_verification_type_custom_age">Custom…</string>
+
+    <!-- Verification Proximity Transfer -->
+    <string name="verification_proximity_transfer_waiting_for_response">Waiting for response</string>
+
+    <!-- Verification Response -->
+    <string name="verification_show_response_title">Verification response</string>
+    <string name="verification_show_response_error_processing">Error processing response</string>
+    <string name="verification_show_response_unknown_issuer">The returned document is from an unknown issuer</string>
+    <string name="verification_show_response_source_title">Source</string>
+    <string name="verification_show_response_issuer_heading">Issuer</string>
+    <string name="verification_show_response_issuer_text">%1$s issued by %2$s in %3$s</string>
+    <string name="verification_show_response_issuer_builtin_trust">Issuer is on the built-in trust list</string>
+    <string name="verification_show_response_issuer_user_trust">Issuer is on the user-defined trust list</string>
+    <string name="verification_show_response_no_trust_anchor">No trust anchor found for this issuer</string>
+    <string name="verification_show_response_trust_anchor_heading">Trust anchor</string>
+    <string name="verification_show_response_test_only_heading">Test only</string>
+    <string name="verification_show_response_test_only_text">This document has been issued only for testing purposes</string>
+    <string name="verification_show_response_age_over_success">This person is older than %1$d</string>
+    <string name="verification_show_response_age_over_failure">This person is NOT older than %1$d</string>
+    <string name="verification_show_response_verified">This person has been verified</string>
+    <string name="verification_show_response_name_heading">Name</string>
+    <string name="verification_show_response_birth_date_heading">Birth date</string>
+    <string name="verification_show_response_street_address_heading">Street address</string>
+
+    <string name="wallet_screen_backend_url_format">@ %1$s</string>
 </resources>

@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -13,9 +12,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.DialogSceneStrategy
@@ -24,7 +21,6 @@ import coil3.ImageLoader
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.compose.cards.rememberVerticalCardListState
@@ -33,9 +29,11 @@ import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.mpzpass.MpzPass
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -43,6 +41,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.signin.SignInWithGoogleDismissedException
 import org.multipaz.wallet.android.signin.rememberSignInWithGoogle
+import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
@@ -59,13 +58,16 @@ private const val TAG = "AppNavHost"
 @Composable
 fun AppNavHost(
     walletClient: WalletClient,
+    secureArea: SecureArea,
     promptModel: PromptModel,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
     documentTypeRepository: DocumentTypeRepository,
+    zkSystemRepository: ZkSystemRepository,
     settingsModel: SettingsModel,
     eventLogger: SimpleEventLogger,
     provisioningModel: ProvisioningModel,
+    proximityReaderModel: ProximityReaderModel,
     imageLoader: ImageLoader,
     userIssuerTrustManagerModel: TrustManagerModel,
     backendIssuerTrustManagerModel: TrustManagerModel,
@@ -191,12 +193,15 @@ fun AppNavHost(
         backStack = backStack,
         verticalCardListState = verticalCardListState,
         walletClient = walletClient,
+        secureArea = secureArea,
         documentStore = documentStore,
         documentModel = documentModel,
         settingsModel = settingsModel,
         eventLogger = eventLogger,
         documentTypeRepository = documentTypeRepository,
+        zkSystemRepository = zkSystemRepository,
         provisioningModel = provisioningModel,
+        proximityReaderModel = proximityReaderModel,
         imageLoader = imageLoader,
         promptModel = promptModel,
         signInWithGoogle = signInWithGoogle,
@@ -209,6 +214,7 @@ fun AppNavHost(
         backendReaderTrustManagerModel = backendReaderTrustManagerModel,
         userReaderTrustManagerModel = userReaderTrustManagerModel,
         readerTrustManager = readerTrustManager,
+        issuerTrustManager = issuerTrustManager,
         isSigningIn = isSigningIn,
         isSigningOut = isSigningOut,
         onSignIn = ::signIn,
@@ -325,19 +331,30 @@ internal suspend fun appJustLaunched(
         } catch (e: WalletBackendNotSignedInException) {
             Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)
         } catch (e: WalletClientBackendUnreachableException) {
-            Logger.i(TAG, "Failed refreshing with wallet backend at start-up, it's unreachable", e)
+            Logger.i(TAG, "Failed refreshing shared data with wallet backend at start-up, it's unreachable", e)
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            Logger.w(TAG, "Unexpected exception at start-up while refreshing", e)
+            Logger.w(TAG, "Unexpected exception refreshing shared data at start-up", e)
         }
     }
+
     try {
         Logger.i(TAG, "Refreshing public data with wallet backend at start-up")
         walletClient.refreshPublicData()
     } catch (e: WalletClientBackendUnreachableException) {
-        Logger.i(TAG, "Failed refreshing with wallet backend at start-up, it's unreachable", e)
+        Logger.i(TAG, "Failed refreshing public data with wallet backend at start-up, it's unreachable", e)
     } catch (e: Exception) {
         if (e is CancellationException) throw e
-        Logger.w(TAG, "Unexpected exception at start-up while refreshing", e)
+        Logger.w(TAG, "Unexpected exception refreshing public data at start-up", e)
+    }
+
+    try {
+        Logger.i(TAG, "Refreshing reader keys at start-up")
+        walletClient.refreshReaderKeys()
+    } catch (e: WalletClientBackendUnreachableException) {
+        Logger.i(TAG, "Failed refreshing reader keys with wallet backend at start-up, it's unreachable", e)
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        Logger.w(TAG, "Unexpected exception refreshing reader keys at start-up", e)
     }
 }

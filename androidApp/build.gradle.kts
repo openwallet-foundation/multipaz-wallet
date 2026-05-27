@@ -76,6 +76,8 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.ui.text)
     ksp(libs.multipaz.cbor.rpc)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

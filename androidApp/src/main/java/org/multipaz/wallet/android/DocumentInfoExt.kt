@@ -7,6 +7,7 @@ import org.multipaz.claim.MdocClaim
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.mdoc.credential.MdocCredential
+import org.multipaz.sdjwt.credential.KeyBoundSdJwtVcCredential
 
 /**
  * Returns whether a document can be presented via proximity.
@@ -14,7 +15,8 @@ import org.multipaz.mdoc.credential.MdocCredential
 val DocumentInfo.isProximityPresentable: Boolean
     get() {
         credentialInfos.forEach { credentialInfo ->
-            if (credentialInfo.credential is MdocCredential) {
+            if (credentialInfo.credential is MdocCredential ||
+                credentialInfo.credential is KeyBoundSdJwtVcCredential) {
                 return true
             }
         }

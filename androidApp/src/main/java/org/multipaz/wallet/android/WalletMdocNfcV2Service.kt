@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android
 
+import android.content.Context
 import org.multipaz.compose.mdoc.MdocNdefService
 import org.multipaz.compose.mdoc.MdocNfcV2Service
 import org.multipaz.compose.prompt.PresentmentActivity
@@ -10,7 +11,10 @@ import kotlin.time.Clock
 
 private const val TAG = "WalletMdocNfcV2Service"
 
-class WalletMdocNfcV2Service: MdocNfcV2Service() {
+class WalletMdocNfcV2Service(
+    applicationContext: Context,
+    sendResponse: (ByteArray) -> Unit
+): MdocNfcV2Service(applicationContext, sendResponse) {
 
     override suspend fun getSettings(): Settings {
         // TODO: optimize initialization of App so we can just get settingsModel and presentmentSource() out

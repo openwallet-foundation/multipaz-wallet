@@ -26,7 +26,7 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         NfcAdapter.getDefaultAdapter(this)?.let { adapter ->
             val cardEmulation = CardEmulation.getInstance(adapter)
-            val componentName = ComponentName(this, WalletMdocNdefService::class.java)
+            val componentName = ComponentName(this, WalletCombinedNfcService::class.java)
             if (!cardEmulation.setPreferredService(this, componentName)) {
                 Logger.w(TAG, "CardEmulation.setPreferredService() returned false")
             }
@@ -133,4 +133,3 @@ class MainActivity : FragmentActivity() {
     }
 
 }
-
