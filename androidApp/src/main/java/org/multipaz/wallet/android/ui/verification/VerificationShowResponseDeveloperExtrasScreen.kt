@@ -137,10 +137,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
         try {
             verficationResult.value = parseResponse(
                 now = now,
-                vpToken = null,
                 deviceResponse = result.deviceResponse!!.toDataItem(),
                 sessionTranscript = result.sessionTranscript,
-                nonce = null,
                 eReaderKey = result.eReaderKey,
                 result = result,
                 documentTypeRepository = documentTypeRepository,
@@ -264,10 +262,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 
 private suspend fun parseResponse(
     now: Instant,
-    vpToken: JsonObject?,
-    deviceResponse: DataItem?,
+    deviceResponse: DataItem,
     sessionTranscript: DataItem,
-    nonce: ByteString?,
     eReaderKey: EcPrivateKey?,
     result: ProximityReaderModelResult?,
     documentTypeRepository: DocumentTypeRepository?,
@@ -277,29 +273,18 @@ private suspend fun parseResponse(
 ): VerificationResult {
     val sections = mutableListOf<Section>()
 
-    val verifiedPresentations = if (deviceResponse != null) {
-        VerificationUtil.verifyMdocDeviceResponse(
-            now = now,
-            deviceResponse = deviceResponse,
-            sessionTranscript = sessionTranscript,
-            eReaderKey = eReaderKey?.let {
-                AsymmetricKey.anonymous(it, it.curve.defaultKeyAgreementAlgorithm)
-            },
-            documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = zkSystemRepository
-        )
-    } else if (vpToken != null) {
-        VerificationUtil.verifyOpenID4VPResponse(
-            now = now,
-            vpToken = vpToken,
-            sessionTranscript = sessionTranscript,
-            nonce = nonce!!,
-            documentTypeRepository = documentTypeRepository,
-            zkSystemRepository = zkSystemRepository
-        )
-    } else {
-        throw IllegalStateException("Either deviceResponse or vpToken must be non-null")
-    }
+    val verifiedPresentations = VerificationUtil.verifyMdocDeviceResponse(
+        now = now,
+        deviceResponse = deviceResponse,
+        sessionTranscript = sessionTranscript,
+        eReaderKey = eReaderKey?.let {
+            AsymmetricKey.anonymous(it, it.curve.defaultKeyAgreementAlgorithm)
+        },
+        documentTypeRepository = documentTypeRepository,
+        zkSystemRepository = zkSystemRepository,
+        request = null,
+        queryData = listOf(),
+    )
 
     if (result != null) {
         val lines = mutableListOf<Line>()
