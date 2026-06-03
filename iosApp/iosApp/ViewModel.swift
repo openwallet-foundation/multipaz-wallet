@@ -8,7 +8,7 @@ import SwiftUI
 @Observable
 class ViewModel {
 
-    var path = NavigationPath()
+    var path: [Destination] = []
     
     let settings = SettingsModel()
 
@@ -25,12 +25,32 @@ class ViewModel {
     //var provisioningSupport: ProvisioningSupport!
 
     var walletClient: WalletClient!
-    var walletObjects: [WalletObject]? = nil
     var signedInUser: WalletClientSignedInUser? = nil
 
     let promptModel = Platform.shared.promptModel
     
     private let presentmentModel = PresentmentModel()
+    let verticalCardListState = VerticalCardListState()
+    
+    func push(_ destination: Destination) {
+        if path.last != destination {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                path.append(destination)
+            }
+        }
+    }
+
+    func popWithoutAnimation() {
+        if !path.isEmpty {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                path.removeLast()
+            }
+        }
+    }
 
     func load() async {
         PromptModel.Companion.shared.setGlobal(promptModel: promptModel)
@@ -50,6 +70,7 @@ class ViewModel {
             secret: BuildConfig.shared.BACKEND_SECRET,
             storage: storage,
             secureArea: secureArea,
+            numReaderKeys: 10,
             httpClientEngineFactory: Darwin(),
         )
         
@@ -57,10 +78,8 @@ class ViewModel {
             .add(secureArea: secureArea)
             .build()
         documentTypeRepository = DocumentTypeRepository()
-        documentTypeRepository.addDocumentType(documentType: DrivingLicense.shared.getDocumentType())
-        documentTypeRepository.addDocumentType(documentType: EUPersonalID.shared.getDocumentType())
-        documentTypeRepository.addDocumentType(documentType: PhotoID.shared.getDocumentType())
-        documentTypeRepository.addDocumentType(documentType: UtopiaBoardingPass.shared.getDocumentType())
+        documentTypeRepository.addKnownTypes(locale: currentLocale)
+        // TODO: Utopia docTypes
         documentStore = DocumentStore.Builder(
             storage: storage,
             secureAreaRepository: secureAreaRepository
@@ -187,17 +206,29 @@ class ViewModel {
             documentProvisioningHandler: DocumentProvisioningHandler(
                 secureArea: secureArea,
                 documentStore: documentStore,
-                mdocCredentialDomain: "mdoc",
-                sdJwtCredentialDomain: "sdJwt",
-                keylessCredentialDomain: "sdJwtKeyless",
-                batchSize: 5,
-                metadataHandler: nil
+                metadataHandler: nil,
+                defaultDocumentProvisioningSettings: DocumentProvisioningSettings(
+                    minValidTime: Duration.days(5).halfNanoseconds,
+                    keyBoundCredentialMaxUses: 1,
+                    keyBoundCredentialNumPerDomain: 5,
+                    keylessCredentialMaxUses: Int32.max,
+                    keylessCredentialNumPerDomain: 1,
+                    userAuthTimeout: Duration.seconds(0).halfNanoseconds,
+                    requestUserAuth: true,
+                    requestNoUserAuth: true,
+                    mdocUserAuthDomain: Domains.shared.DOMAIN_MDOC_USER_AUTH,
+                    mdocNoUserAuthDomain: Domains.shared.DOMAIN_MDOC_NO_USER_AUTH,
+                    sdJwtUserAuthDomain: Domains.shared.DOMAIN_SDJWT_USER_AUTH,
+                    sdJwtNoUserAuthDomain: Domains.shared.DOMAIN_SDJWT_NO_USER_AUTH,
+                    sdJwtKeylessDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
+                )
             ),
             httpClient: HttpClient(engineFactory: Darwin()) { config in
                 config.followRedirects = false
             },
             promptModel: promptModel,
-            authorizationSecureArea: secureArea
+            authorizationSecureArea: secureArea,
+            eventLogger: nil // TODO
         )
         //self.provisioningSupport = ProvisioningSupport(
         //    storage: storage,
@@ -228,11 +259,6 @@ class ViewModel {
             documentTypeRepository: documentTypeRepository
         )
         
-        Task {
-            for await objects in walletClient.walletObjects {
-                self.walletObjects = objects
-            }
-        }
         Task {
             for await signedInUser in walletClient.signedInUser {
                 self.signedInUser = signedInUser
@@ -279,7 +305,7 @@ class ViewModel {
         let document = try! await documentStore.createDocument(
             displayName: displayName,
             typeDisplayName: typeDisplayName,
-            cardArt: UIImage(named: cardArtResourceName)!.pngData()!.toByteString(),
+            cardArt: nil, //UIImage(named: cardArtResourceName)!.pngData()!.toByteString(),
             issuerLogo: nil,
             authorizationData: nil,
             created: now.toKotlinInstant(),
@@ -330,11 +356,11 @@ class ViewModel {
                 }
                 return nil
             },
-            showConsentPromptFn: { requester, trustMetadata, credentialPresentmentData, preselectedDocuments, onDocumentsInFocus in
+            showConsentPromptFn: { requester, trustMetadata, consentData, preselectedDocuments, onDocumentsInFocus in
                 try! await promptModelRequestConsent(
                     requester: requester,
                     trustMetadata: trustMetadata,
-                    credentialPresentmentData: credentialPresentmentData,
+                    consentData: consentData,
                     preselectedDocuments: preselectedDocuments,
                     onDocumentsInFocus: { documents in onDocumentsInFocus(documents) }
                 )

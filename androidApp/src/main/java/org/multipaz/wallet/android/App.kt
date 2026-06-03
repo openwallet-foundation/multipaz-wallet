@@ -1,5 +1,8 @@
 package org.multipaz.wallet.android
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
@@ -43,8 +46,9 @@ import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.mdoc.zkp.longfellow.LongfellowZkSystem
-import org.multipaz.presentment.CredentialPresentmentData
-import org.multipaz.presentment.CredentialPresentmentSelection
+import org.multipaz.presentment.ConsentData
+import org.multipaz.presentment.CredentialQueryResult
+import org.multipaz.presentment.CredentialSelection
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.prompt.promptModelRequestConsent
@@ -65,22 +69,17 @@ import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
 import org.multipaz.wallet.android.settings.SettingsModel
-import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.checkPreconsent
 import org.multipaz.wallet.client.isProximityReader
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
+import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromAndroidLocation
 import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
-import kotlin.String
-import android.content.Intent
-import android.Manifest
-import android.content.pm.PackageManager
-import android.widget.Toast
 
 class App private constructor() {
 
@@ -254,13 +253,13 @@ class App private constructor() {
     private suspend fun showConsentPromptFn(
         requester: Requester,
         trustMetadata: TrustMetadata?,
-        credentialPresentmentData: CredentialPresentmentData,
+        consentData: ConsentData,
         preselectedDocuments: List<Document>,
         onDocumentsInFocus: (documents: List<Document>) -> Unit
-    ): CredentialPresentmentSelection? {
+    ): CredentialSelection? {
         // Process preconsent, but only for proximity readers.
         if (requester.isProximityReader) {
-            credentialPresentmentData.checkPreconsent(
+            consentData.credentialQueryResult.checkPreconsent(
                 requester = requester,
                 domainRewriter = { domain ->
                     when (domain) {
@@ -278,7 +277,7 @@ class App private constructor() {
         return promptModelRequestConsent(
             requester = requester,
             trustMetadata = trustMetadata,
-            credentialPresentmentData = credentialPresentmentData,
+            consentData = consentData,
             preselectedDocuments = preselectedDocuments,
             onDocumentsInFocus = onDocumentsInFocus
         )

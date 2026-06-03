@@ -2,8 +2,8 @@ package org.multipaz.wallet.shared
 
 import org.multipaz.claim.JsonClaim
 import org.multipaz.claim.MdocClaim
-import org.multipaz.presentment.CredentialPresentmentData
-import org.multipaz.presentment.CredentialPresentmentSelection
+import org.multipaz.presentment.CredentialQueryResult
+import org.multipaz.presentment.CredentialSelection
 import org.multipaz.presentment.CredentialPresentmentSet
 import org.multipaz.presentment.CredentialPresentmentSetOption
 import org.multipaz.presentment.CredentialPresentmentSetOptionMember
@@ -112,7 +112,7 @@ internal fun CredentialPresentmentSet.print(pp: PrettyPrinter) {
     pp.popIndent()
 }
 
-internal fun CredentialPresentmentData.prettyPrint(): String {
+internal fun CredentialQueryResult.prettyPrint(): String {
     val pp = PrettyPrinter()
     pp.append("credentialSets:")
     pp.pushIndent()
@@ -127,7 +127,7 @@ internal fun CredentialPresentmentData.prettyPrint(): String {
     return pp.toString()
 }
 
-internal fun CredentialPresentmentSelection.print(pp: PrettyPrinter): String {
+internal fun CredentialSelection.print(pp: PrettyPrinter): String {
     pp.append("matches:")
     pp.pushIndent()
     if (matches.size == 0) {
@@ -140,12 +140,12 @@ internal fun CredentialPresentmentSelection.print(pp: PrettyPrinter): String {
     pp.popIndent()
     return pp.toString()
 }
-internal fun CredentialPresentmentSelection.prettyPrint(): String {
+internal fun CredentialSelection.prettyPrint(): String {
     val pp = PrettyPrinter()
     return print(pp)
 }
 
-internal fun List<CredentialPresentmentSelection>.prettyPrint(): String {
+internal fun List<CredentialSelection>.prettyPrint(): String {
     val pp = PrettyPrinter()
     pp.append("selections:")
     pp.pushIndent()

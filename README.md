@@ -59,6 +59,21 @@ code in the `webApp` or `shared` modules will be automatically reflected in the 
 can also point the mobile apps to that wallet backend by clicking Avatar → Developer Settings →
 Set wallet backend.
 
+## Running the iOS app
+
+To run the iOS app, first you need to build the XCFramework, like this
+```bash
+./gradlew shared:assembleXCFramework
+```
+This framework contains all the Multipaz libraries as well as common code in `shared/` and will
+be available as a Swift package via `Package.swift`. Once this is done, you can open 
+`iosApp/iosApp.xcodeproj` in XCode and build the iOS app. You usually need to clean the build
+folder after doing this (Product -> Clean Build Folder...) before building.
+
+You need to do these steps every time code in `shared/` is changed or when updating to a new
+Multipaz version. Since building the framework is a time-consuming step (~10 minutes) changes
+to `shared/` are normally tested with the Android app, Web App, or unit tests first.
+
 ## Note
 
 This is not an official or supported Google product.

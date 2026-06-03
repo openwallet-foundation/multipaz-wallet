@@ -7,7 +7,7 @@ struct SettingsScreen: View {
     
     var body: some View {
         ScrollView {
-            VStack {
+            VStack(spacing: 20) {
                 FloatingItemList(title: "Account") {
                     if let signedInUser = viewModel.signedInUser {
                         FloatingItemText(
@@ -42,7 +42,8 @@ struct SettingsScreen: View {
                                         signedInUser: WalletClientSignedInUser(
                                             id: result.signInData.id,
                                             displayName: result.signInData.displayName,
-                                            profilePicture: result.signInData.profilePicture?.toByteString()
+                                            profilePicture: result.signInData.profilePicture?.toByteString(),
+                                            profilePictureUrl: nil
                                         ),
                                         walletBackendEncryptionKey: result.walletServerEncryptionKey.toByteString(),
                                         resetSharedData: false
@@ -55,11 +56,9 @@ struct SettingsScreen: View {
                     }
                 }
                 let markdown = if viewModel.signedInUser != nil {
-                    "Passes that sync are available from any device signed in to this Google " +
-                            "account."
+                    "Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app."
                 } else {
-                    "Sign in to your Google account to make passes that sync available to any " +
-                            "device signed into the account."
+                    "Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app."
                 }
                 VStack(alignment: .leading, spacing: 5) {
                     Image(systemName: "info.circle")
@@ -67,28 +66,35 @@ struct SettingsScreen: View {
                         .font(.footnote)
                 }
                 
-                FloatingItemList(title: "Issuers and readers") {
+                FloatingItemList {
                     FloatingItemText(
                         text: "Trusted issuing authorities",
-                        image: { Image(systemName: "building.columns") }
+                        image: { Image(systemName: "building.columns") },
+                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
                     ).onTapGesture {
                     }
                     FloatingItemText(
-                        text: "Trusted credential readers",
-                        image: { Image(systemName: "building.2") }
+                        text: "Trusted verifiers",
+                        image: { Image(systemName: "building.2") },
+                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
                     ).onTapGesture {
                     }
-                }
-
-                FloatingItemList(title: "Other") {
+                    FloatingItemText(
+                        text: "Activity logging",
+                        image: { Image(systemName: "timer") },
+                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                    ).onTapGesture {
+                    }
                     FloatingItemText(
                         text: "Developer settings",
-                        image: { Image(systemName: "flask") }
+                        image: { Image(systemName: "flask") },
+                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
                     ).onTapGesture {
                     }
                     FloatingItemText(
                         text: "About \(BuildConfig.shared.APP_NAME)",
-                        image: { Image(systemName: "info.circle") }
+                        image: { Image(systemName: "info.circle") },
+                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
                     ).onTapGesture {
                     }
                 }
