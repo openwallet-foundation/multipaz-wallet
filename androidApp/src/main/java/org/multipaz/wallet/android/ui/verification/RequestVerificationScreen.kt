@@ -106,6 +106,7 @@ fun RequestVerificationScreen(
     onSelectVerificationTypeClicked: () -> Unit,
     onNfcHandover: (result: ScanMdocReaderResult) -> Unit,
     onQrCodeScanned: (qrCode: String?) -> Unit,
+    onGenerateVerificationLinkClicked: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -251,9 +252,7 @@ fun RequestVerificationScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        showToast("Not yet implemented, stay tuned")  // Temp string, do not translate.
-                    }
+                    onClick = onGenerateVerificationLinkClicked,
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),

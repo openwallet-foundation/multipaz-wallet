@@ -212,6 +212,7 @@ internal suspend fun handleQrCodeScanned(
         proximityReaderModel.setDeviceRequest(
             query = query,
             deviceRequest = query.generateDeviceRequest(
+                deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
                 sessionTranscript = proximityReaderModel.sessionTranscript,
                 readerAuthKey = keyInfoAndCertification?.let {
                     AsymmetricKey.X509CertifiedSecureAreaBased(

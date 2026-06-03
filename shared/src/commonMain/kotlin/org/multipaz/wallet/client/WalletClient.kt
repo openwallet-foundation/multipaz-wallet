@@ -38,6 +38,7 @@ import org.multipaz.util.deflate
 import org.multipaz.util.inflate
 import org.multipaz.wallet.client.WalletClient.Companion.create
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.CreateVerificationLinkResult
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.GoogleTokens
 import org.multipaz.wallet.shared.WalletBackend
@@ -1187,6 +1188,42 @@ class WalletClient private constructor(
         }
         lock.withLock {
             ensureReplenished()
+        }
+    }
+
+    suspend fun createVerificationLink(encryptedVerificationPayload: ByteString): CreateVerificationLinkResult {
+        lock.withLock {
+            val walletBackend = getWalletBackend()
+            return withContext(session) {
+                walletBackend.createVerificationLink(encryptedVerificationPayload = encryptedVerificationPayload)
+            }
+        }
+    }
+
+    suspend fun getVerificationPayload(requestId: String): ByteString {
+        lock.withLock {
+            val walletBackend = getWalletBackend()
+            return withContext(session) {
+                walletBackend.getVerificationPayload(requestId = requestId)
+            }
+        }
+    }
+
+    suspend fun submitVerificationResponse(requestId: String, encryptedResponse: ByteString) {
+        lock.withLock {
+            val walletBackend = getWalletBackend()
+            withContext(session) {
+                walletBackend.submitVerificationResponse(requestId = requestId, encryptedResponse = encryptedResponse)
+            }
+        }
+    }
+
+    suspend fun getVerificationResponse(requestId: String): ByteString? {
+        lock.withLock {
+            val walletBackend = getWalletBackend()
+            return withContext(session) {
+                walletBackend.getVerificationResponse(requestId = requestId)
+            }
         }
     }
 

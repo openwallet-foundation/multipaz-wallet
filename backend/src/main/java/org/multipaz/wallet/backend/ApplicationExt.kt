@@ -3,6 +3,7 @@ package org.multipaz.wallet.backend
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
 import io.ktor.server.http.content.staticResources
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -55,6 +56,30 @@ fun Application.configureRouting(serverEnvironment: Deferred<ServerEnvironment>)
             call.respondRedirect("/web/")
         }
         staticResources("/web", "static/web", index = "index.html")
+        get("/webApp.js") {
+            val content = this::class.java.classLoader.getResource("static/web/webApp.js")?.readBytes()
+            if (content != null) {
+                call.respondBytes(content, ContentType.Application.JavaScript)
+            } else {
+                call.respondText("Not found", status = io.ktor.http.HttpStatusCode.NotFound)
+            }
+        }
+        get("/verify") {
+            val content = this::class.java.classLoader.getResource("static/web/verify.html")?.readText()
+            if (content != null) {
+                call.respondText(content, ContentType.Text.Html)
+            } else {
+                call.respondText("Verification page not found", status = io.ktor.http.HttpStatusCode.NotFound)
+            }
+        }
+        get("/web/verify") {
+            val content = this::class.java.classLoader.getResource("static/web/verify.html")?.readText()
+            if (content != null) {
+                call.respondText(content, ContentType.Text.Html)
+            } else {
+                call.respondText("Verification page not found", status = io.ktor.http.HttpStatusCode.NotFound)
+            }
+        }
         get ("/") {
             val configuration = BackendEnvironment.getInterface(Configuration::class)!!
             val googleSiteVerificationToken = configuration.getValue("googleSiteVerificationToken") ?: ""

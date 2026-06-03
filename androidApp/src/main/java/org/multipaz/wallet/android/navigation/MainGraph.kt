@@ -3,10 +3,12 @@ package org.multipaz.wallet.android.navigation
 import android.Manifest
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -16,6 +18,7 @@ import coil3.ImageLoader
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import io.ktor.client.engine.HttpClientEngineFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -37,10 +40,12 @@ import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
+import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.generateVerificationLink
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
@@ -105,6 +110,8 @@ fun mainGraph(
     backStack: MutableList<NavKey>,
     verticalCardListState: VerticalCardListState,
     walletClient: WalletClient,
+    httpClientEngineFactory: HttpClientEngineFactory<*>,
+    storage: Storage,
     secureArea: SecureArea,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
@@ -1114,6 +1121,7 @@ fun mainGraph(
                 }
             }
             is RequestVerificationDestination -> NavEntry(key) {
+                val context = LocalContext.current
                 RequestVerificationScreen(
                     walletClient = walletClient,
                     settingsModel = settingsModel,
@@ -1149,6 +1157,7 @@ fun mainGraph(
                                 proximityReaderModel.setDeviceRequest(
                                     query = query,
                                     deviceRequest = query.generateDeviceRequest(
+                                        deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
                                         sessionTranscript = proximityReaderModel.sessionTranscript,
                                         readerAuthKey = keyInfoAndCertification?.let {
                                             AsymmetricKey.X509CertifiedSecureAreaBased(
@@ -1193,6 +1202,29 @@ fun mainGraph(
                                     settingsModel = settingsModel,
                                     proximityReaderModel = proximityReaderModel
                                 )
+                            }
+                        }
+                    },
+                    onGenerateVerificationLinkClicked = {
+                        coroutineScope.launch {
+                            try {
+                                val verificationLink = generateVerificationLink(
+                                    walletClient = walletClient,
+                                    settingsModel = settingsModel,
+                                    storage = storage,
+                                    secureArea = secureArea,
+                                    httpClientEngineFactory = httpClientEngineFactory
+                                )
+                                val shareIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, verificationLink)
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, null))
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                showToast("Error generating verification link: $e")
+                                Logger.e(TAG, "Error generating verification link", e)
                             }
                         }
                     },

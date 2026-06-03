@@ -1,9 +1,23 @@
 package org.multipaz.wallet.client.verification
 
+import kotlinx.io.bytestring.ByteString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
+import org.multipaz.cbor.Simple
+import org.multipaz.cbor.addCborArray
+import org.multipaz.cbor.addCborMap
 import org.multipaz.cbor.annotation.CborSerializable
+import org.multipaz.cbor.buildCborArray
+import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
+import org.multipaz.crypto.Crypto
+import org.multipaz.crypto.EcPublicKey
 import org.multipaz.mdoc.engagement.Capability
 import org.multipaz.mdoc.engagement.DeviceEngagement
 import org.multipaz.mdoc.request.DeviceRequest
@@ -16,6 +30,7 @@ import org.multipaz.sdjwt.SdJwtKb
 import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.util.Logger
 import org.multipaz.util.generateAllPaths
+import org.multipaz.util.toBase64Url
 import org.multipaz.util.zlibInflate
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -26,7 +41,55 @@ private const val TAG = "Query"
 sealed class Query(
     open val documentQueries: List<DocumentQuery>
 ) {
+    suspend fun generateDcRequest(
+        nonce: ByteString,
+        origin: String,
+        responseEncryptionKey: EcPublicKey,
+        readerAuthKey: AsymmetricKey.X509Compatible?,
+        intentToRetain: Boolean
+    ): JsonObject = buildJsonObject {
+        val encryptionInfo = buildCborArray {
+            add("dcapi")
+            addCborMap {
+                put("nonce", nonce.toByteArray())
+                put("recipientPublicKey", responseEncryptionKey.toCoseKey().toDataItem())
+            }
+        }
+        val base64EncryptionInfo = Cbor.encode(encryptionInfo).toBase64Url()
+        val dcapiInfo = buildCborArray {
+            add(base64EncryptionInfo)
+            add(origin)
+        }
+        val dcapiInfoDigest = Crypto.digest(Algorithm.SHA256, Cbor.encode(dcapiInfo))
+        val sessionTranscript = buildCborArray {
+            add(Simple.NULL) // DeviceEngagementBytes
+            add(Simple.NULL) // EReaderKeyBytes
+            addCborArray {
+                add("dcapi")
+                add(dcapiInfoDigest)
+            }
+        }
+        val deviceRequest = generateDeviceRequest(
+            deviceEngagement = null,
+            sessionTranscript = sessionTranscript,
+            readerAuthKey = readerAuthKey,
+            intentToRetain = intentToRetain
+        )
+        val base64DeviceRequest = Cbor.encode(deviceRequest.toDataItem()).toBase64Url()
+        val orgIsoMdocData = buildJsonObject {
+            put("deviceRequest", base64DeviceRequest)
+            put("encryptionInfo", base64EncryptionInfo)
+        }
+        putJsonArray("requests") {
+            addJsonObject {
+                put("protocol", "org-iso-mdoc")
+                put("data", orgIsoMdocData)
+            }
+        }
+    }
+
     suspend fun generateDeviceRequest(
+        deviceEngagement: DataItem?,
         sessionTranscript: DataItem,
         readerAuthKey: AsymmetricKey.X509Compatible?,
         intentToRetain: Boolean
@@ -37,8 +100,11 @@ sealed class Query(
             "Only one document query is supported at this time"
         }
 
-        val deviceEngagement = DeviceEngagement.fromDataItem(sessionTranscript.asArray[0].asTaggedEncodedCbor)
-        val hasReaderAuthAll = deviceEngagement.capabilities[Capability.READER_AUTH_ALL_SUPPORT]?.asBoolean ?: false
+        var hasReaderAuthAll = false
+        deviceEngagement?.let {
+            val de = DeviceEngagement.fromDataItem(it)
+            hasReaderAuthAll = de.capabilities[Capability.READER_AUTH_ALL_SUPPORT]?.asBoolean ?: false
+        }
         var numDocRequests = 0
         val allDocRequestIds = mutableListOf<MutableList<Int>>()
 

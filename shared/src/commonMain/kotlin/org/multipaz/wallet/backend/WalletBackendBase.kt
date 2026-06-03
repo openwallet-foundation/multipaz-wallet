@@ -27,6 +27,8 @@ import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import org.multipaz.util.truncateToWholeSeconds
+import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.CreateVerificationLinkResult
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.GetSharedDataResult
@@ -434,6 +436,45 @@ abstract class WalletBackendBase: WalletBackend {
             ?: throw IllegalStateException("EULA not configured")
     }
 
+    override suspend fun createVerificationLink(encryptedVerificationPayload: ByteString): CreateVerificationLinkResult {
+        // TODO: add rate limiting
+        if (encryptedVerificationPayload.size > 10*1024) {
+            throw IllegalStateException("Encrypted verification payload is too large")
+        }
+        // TODO: maybe make it configurable how long we retain this for
+        val table = BackendEnvironment.getTable(verificationPayloadsTableSpec)
+        val key = table.insert(
+            key = null,
+            data = encryptedVerificationPayload,
+            expiration = Clock.System.now() + 10.minutes
+        )
+        // key is guaranteed to be base64url-safe (TODO: assert this)
+        return CreateVerificationLinkResult(
+            requestId = key,
+            link = BuildConfig.BACKEND_URL + "/web/verify?request=$key"
+        )
+    }
+
+    override suspend fun getVerificationPayload(requestId: String): ByteString {
+        val table = BackendEnvironment.getTable(verificationPayloadsTableSpec)
+        return table.get(requestId)
+            ?: throw IllegalStateException("Verification request not found or expired")
+    }
+
+    override suspend fun submitVerificationResponse(requestId: String, encryptedResponse: ByteString) {
+        val table = BackendEnvironment.getTable(verificationResponsesTableSpec)
+        table.insert(
+            key = requestId,
+            data = encryptedResponse,
+            expiration = Clock.System.now() + 10.minutes
+        )
+    }
+
+    override suspend fun getVerificationResponse(requestId: String): ByteString? {
+        val table = BackendEnvironment.getTable(verificationResponsesTableSpec)
+        return table.get(requestId)
+    }
+
     companion object {
         private val NONCE_EXPIRATION_TIME = 5.minutes
 
@@ -452,6 +493,18 @@ abstract class WalletBackendBase: WalletBackend {
         private val sharedDataTableSpec = StorageTableSpec(
             name = "SharedData",
             supportExpiration = false,
+            supportPartitions = false
+        )
+
+        private val verificationPayloadsTableSpec = StorageTableSpec(
+            name = "VerificationPayloads",
+            supportExpiration = true,
+            supportPartitions = false
+        )
+
+        private val verificationResponsesTableSpec = StorageTableSpec(
+            name = "VerificationResponses",
+            supportExpiration = true,
             supportPartitions = false
         )
     }

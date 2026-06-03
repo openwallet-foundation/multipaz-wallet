@@ -18,6 +18,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import coil3.ImageLoader
+import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -34,6 +35,7 @@ import org.multipaz.mpzpass.MpzPass
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
+import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -41,11 +43,11 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.signin.SignInWithGoogleDismissedException
 import org.multipaz.wallet.android.signin.rememberSignInWithGoogle
-import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.syncWithSharedData
+import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
@@ -58,6 +60,8 @@ private const val TAG = "AppNavHost"
 @Composable
 fun AppNavHost(
     walletClient: WalletClient,
+    httpClientEngineFactory: HttpClientEngineFactory<*>,
+    storage: Storage,
     secureArea: SecureArea,
     promptModel: PromptModel,
     documentStore: DocumentStore,
@@ -193,6 +197,8 @@ fun AppNavHost(
         backStack = backStack,
         verticalCardListState = verticalCardListState,
         walletClient = walletClient,
+        httpClientEngineFactory = httpClientEngineFactory,
+        storage = storage,
         secureArea = secureArea,
         documentStore = documentStore,
         documentModel = documentModel,
