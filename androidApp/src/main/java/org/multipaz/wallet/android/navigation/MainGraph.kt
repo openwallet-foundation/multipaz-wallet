@@ -1,12 +1,15 @@
 package org.multipaz.wallet.android.navigation
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -16,6 +19,7 @@ import coil3.ImageLoader
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import io.ktor.client.engine.HttpClientEngineFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -37,10 +41,13 @@ import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
+import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.deleteVerification
+import org.multipaz.wallet.android.generateVerificationLink
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
@@ -91,6 +98,7 @@ import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.setProvisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
@@ -101,10 +109,13 @@ import kotlin.time.Instant
 
 private const val TAG = "MainGraph"
 
+@SuppressLint("LocalContextGetResourceValueCall")
 fun mainGraph(
     backStack: MutableList<NavKey>,
     verticalCardListState: VerticalCardListState,
     walletClient: WalletClient,
+    httpClientEngineFactory: HttpClientEngineFactory<*>,
+    storage: Storage,
     secureArea: SecureArea,
     documentStore: DocumentStore,
     documentModel: DocumentModel,
@@ -1114,11 +1125,16 @@ fun mainGraph(
                 }
             }
             is RequestVerificationDestination -> NavEntry(key) {
+                val context = LocalContext.current
                 RequestVerificationScreen(
                     walletClient = walletClient,
+                    storage = storage,
                     settingsModel = settingsModel,
                     documentModel = documentModel,
                     promptModel = promptModel,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
+                    issuerTrustManager = issuerTrustManager,
                     onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
                     onNfcHandover = { scanResult ->
                         coroutineScope.launch {
@@ -1149,6 +1165,7 @@ fun mainGraph(
                                 proximityReaderModel.setDeviceRequest(
                                     query = query,
                                     deviceRequest = query.generateDeviceRequest(
+                                        deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
                                         sessionTranscript = proximityReaderModel.sessionTranscript,
                                         readerAuthKey = keyInfoAndCertification?.let {
                                             AsymmetricKey.X509CertifiedSecureAreaBased(
@@ -1196,8 +1213,96 @@ fun mainGraph(
                             }
                         }
                     },
+                    onGenerateVerificationLinkClicked = {
+                        coroutineScope.launch {
+                            try {
+                                val verificationLink = generateVerificationLink(
+                                    walletClient = walletClient,
+                                    settingsModel = settingsModel,
+                                    storage = storage,
+                                    secureArea = secureArea,
+                                )
+                                val shareIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, verificationLink)
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, null))
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                showToast("Error generating verification link: $e")
+                                Logger.e(TAG, "Error generating verification link", e)
+                            }
+                        }
+                    },
+                    onViewVerificationClicked = { query, presentmentRecord, showNotTrusted ->
+                        backStack.add(VerificationShowResponseDestination(
+                            query = query,
+                            presentmentRecord = presentmentRecord,
+                            showNotTrusted = showNotTrusted
+                        ))
+                    },
+                    onDeletePendingVerificationClicked = { requestId ->
+                        backStack.add(DeletePendingVerificationConfirmationDialogDestination(requestId))
+                    },
+                    onDeleteCompletedVerificationClicked = { requestId ->
+                        backStack.add(DeleteVerificationConfirmationDialogDestination(requestId))
+                    },
+                    refreshTrigger = backStack.size,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
+                )
+            }
+            is DeletePendingVerificationConfirmationDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                val context = LocalContext.current
+                ConfirmationDialog(
+                    title = stringResource(R.string.request_verification_delete_pending_title),
+                    textMarkdown = stringResource(R.string.request_verification_delete_pending_text),
+                    confirmButtonText = stringResource(R.string.request_verification_delete_confirm),
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmClicked = {
+                        val requestId = key.requestId
+                        coroutineScope.launch {
+                            try {
+                                walletClient.deleteVerificationRequest(requestId)
+                                deleteVerification(storage, requestId)
+                            } catch (e: Exception) {
+                                Logger.e(TAG, "Failed to delete pending request", e)
+                                showToast(context.getString(R.string.request_verification_failed_delete_request, e.message))
+                            } finally {
+                                backStack.removeAt(backStack.size - 1)
+                            }
+                        }
+                    }
+                )
+            }
+            is DeleteVerificationConfirmationDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                val context = LocalContext.current
+                ConfirmationDialog(
+                    title = stringResource(R.string.request_verification_delete_completed_title),
+                    textMarkdown = stringResource(R.string.request_verification_delete_completed_text),
+                    confirmButtonText = stringResource(R.string.request_verification_delete_confirm),
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmClicked = {
+                        val requestId = key.requestId
+                        coroutineScope.launch {
+                            try {
+                                walletClient.deleteVerificationResponse(requestId)
+                                deleteVerification(storage, requestId)
+                            } catch (e: Exception) {
+                                Logger.e(TAG, "Failed to delete received verification", e)
+                                showToast(context.getString(R.string.request_verification_failed_delete_verification, e.message))
+                            } finally {
+                                backStack.removeAt(backStack.size - 1)
+                            }
+                        }
+                    }
                 )
             }
             is RequestVerificationFromMdocUrlDestination -> NavEntry(key) {
@@ -1263,15 +1368,18 @@ fun mainGraph(
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },
-                    onTransferComplete = {
-                        if (proximityReaderModel.error == null) {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(VerificationShowResponseDestination)
-                        } else {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(VerificationProximityTransferErrorDestination)
-                        }
-                    }
+                    onTransferComplete = { presentmentRecord ->
+                        backStack.removeAt(backStack.size - 1)
+                        backStack.add(VerificationShowResponseDestination(
+                            query = settingsModel.readerQuery.value,
+                            presentmentRecord = presentmentRecord,
+                            showNotTrusted = false
+                        ))
+                    },
+                    onTransferError = {
+                        backStack.removeAt(backStack.size - 1)
+                        backStack.add(VerificationProximityTransferErrorDestination)
+                    },
                 )
             }
             is VerificationProximityTransferErrorDestination -> NavEntry(key) {
@@ -1283,14 +1391,21 @@ fun mainGraph(
             }
             is VerificationShowResponseDestination -> NavEntry(key) {
                 VerificationShowResponseScreen(
-                    proximityReaderModel = proximityReaderModel,
+                    query = key.query,
+                    presentmentRecord = key.presentmentRecord,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
                     builtInIssuerTrustManager = backendIssuerTrustManagerModel.trustManager,
                     userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
+                    showNotTrusted = key.showNotTrusted,
                     onDeveloperExtrasClicked = {
-                        backStack.add(VerificationShowResponseDeveloperExtrasDestination)
+                        backStack.add(VerificationShowResponseDeveloperExtrasDestination(
+                            query = key.query,
+                            presentmentRecord = key.presentmentRecord
+                        ))
                     },
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
@@ -1299,7 +1414,8 @@ fun mainGraph(
             }
             is VerificationShowResponseDeveloperExtrasDestination -> NavEntry(key) {
                 VerificationShowResponseDeveloperExtrasScreen(
-                    proximityReaderModel = proximityReaderModel,
+                    query = key.query,
+                    presentmentRecord = key.presentmentRecord,
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,

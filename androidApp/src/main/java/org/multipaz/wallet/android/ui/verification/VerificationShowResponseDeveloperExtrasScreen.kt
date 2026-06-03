@@ -57,11 +57,15 @@ import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.verification.JsonVerifiedPresentation
 import org.multipaz.verification.MdocVerifiedPresentation
+import org.multipaz.verification.PresentmentRecord
 import org.multipaz.verification.VerificationUtil
+import org.multipaz.verification.VerifiedPresentation
+import org.multipaz.wallet.android.LinkVerification
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.verification.ProximityReaderModelResult
+import org.multipaz.wallet.client.verification.Query
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -114,7 +118,8 @@ private data class VerificationResult(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerificationShowResponseDeveloperExtrasScreen(
-    proximityReaderModel: ProximityReaderModel,
+    query: Query,
+    presentmentRecord: PresentmentRecord,
     issuerTrustManager: TrustManagerInterface,
     settingsModel: SettingsModel,
     documentTypeRepository: DocumentTypeRepository,
@@ -124,7 +129,6 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-    val result = proximityReaderModel.result!!
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
     val showNotTrusted = remember { mutableStateOf(false) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
@@ -135,6 +139,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
     LaunchedEffect(Unit) {
         val now = Clock.System.now()
         try {
+            /*
+            val result = proximityReaderModel.result!!
             verficationResult.value = parseResponse(
                 now = now,
                 deviceResponse = result.deviceResponse!!.toDataItem(),
@@ -143,6 +149,18 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                 result = result,
                 documentTypeRepository = documentTypeRepository,
                 zkSystemRepository = zkSystemRepository,
+                issuerTrustManager = issuerTrustManager,
+                onViewCertChain = onViewCertChain
+            )
+
+             */
+            val verifiedPresentations = presentmentRecord.verify(
+                atTime = Clock.System.now(),
+                documentTypeRepository = documentTypeRepository,
+                zkSystemRepository = zkSystemRepository
+            )
+            verficationResult.value = parseResponse(
+                verifiedPresentations = verifiedPresentations,
                 issuerTrustManager = issuerTrustManager,
                 onViewCertChain = onViewCertChain
             )
@@ -261,74 +279,12 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 
 
 private suspend fun parseResponse(
-    now: Instant,
-    deviceResponse: DataItem,
-    sessionTranscript: DataItem,
-    eReaderKey: EcPrivateKey?,
-    result: ProximityReaderModelResult?,
-    documentTypeRepository: DocumentTypeRepository?,
-    zkSystemRepository: ZkSystemRepository?,
+    verifiedPresentations: List<VerifiedPresentation>,
     issuerTrustManager: TrustManagerInterface,
-    onViewCertChain: ((certChain: X509CertChain) -> Unit)?
+    onViewCertChain: ((certChain: X509CertChain) -> Unit)?,
+    now: Instant = Clock.System.now(),
 ): VerificationResult {
     val sections = mutableListOf<Section>()
-
-    val verifiedPresentations = VerificationUtil.verifyMdocDeviceResponse(
-        now = now,
-        deviceResponse = deviceResponse,
-        sessionTranscript = sessionTranscript,
-        eReaderKey = eReaderKey?.let {
-            AsymmetricKey.anonymous(it, it.curve.defaultKeyAgreementAlgorithm)
-        },
-        documentTypeRepository = documentTypeRepository,
-        zkSystemRepository = zkSystemRepository,
-        request = null,
-    )
-
-    if (result != null) {
-        val lines = mutableListOf<Line>()
-        lines.add(Line("Engagement Type", ValueText(
-            when (result.nfcHandoverType) {
-                MdocHandoverType.STATIC_HANDOVER -> "NFC Static Handover"
-                MdocHandoverType.NEGOTIATED_HANDOVER -> "NFC Negotiated Handover"
-                MdocHandoverType.V2_HANDOVER -> "NFC Handover V2"
-                null -> "QR Engagement"
-            }
-        )))
-        val requestSize = result.deviceRequest?.let { Cbor.encode(it.toDataItem()).size } ?: 0
-        val responseSize = result.deviceResponse?.let { Cbor.encode(it.toDataItem()).size } ?: 0
-        lines.add(Line("Request size", ValueSize(requestSize.toLong())))
-        lines.add(Line("Response size", ValueSize(responseSize.toLong())))
-        result.nfcHybridTransportStats?.let { stats ->
-            lines.add(Line("Number of messages sent",
-                ValueText("${stats.numSent} (${stats.numSentViaNfc} on NFC, ${stats.numSentViaTransport} on Transport)")
-            ))
-            lines.add(Line("Number of messages received",
-                ValueText("${stats.numReceived} (${stats.numReceivedFirstOnNfc} first on NFC, " +
-                        "${stats.numReceivedFirstOnTransport} first on Transport)")
-            ))
-            lines.add(Line("NFC disconnected during transaction",
-                ValueText("${stats.nfcDisconnectedDuringTransaction}")
-            ))
-        }
-        result.durationNfcTapToEngagement?.let {
-            lines.add(Line("Tap to engagement received", ValueDuration(it)))
-        }
-        lines.add(Line("Engagement received to request sent", ValueDuration(result.durationEngagementReceivedToRequestSent)))
-        lines.add(Line("Request sent to response received", ValueDuration(result.durationRequestSentToResponseReceived)))
-        var totalDuration =
-            (result.durationNfcTapToEngagement ?: 0.seconds) +
-            result.durationEngagementReceivedToRequestSent +
-            result.durationRequestSentToResponseReceived
-        lines.add(Line("Total duration", ValueDuration(totalDuration)))
-        sections.add(
-            Section(
-                header = "Transfer info",
-                lines = lines
-            )
-        )
-    }
-
     verifiedPresentations.forEachIndexed { vpNum, vp ->
         when (vp) {
             is MdocVerifiedPresentation -> {

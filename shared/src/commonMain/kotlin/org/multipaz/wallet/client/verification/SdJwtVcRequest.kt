@@ -4,6 +4,8 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import org.multipaz.sdjwt.SdJwtKb
 import org.multipaz.trustmanagement.TrustResult
+import org.multipaz.verification.JsonVerifiedPresentation
+import org.multipaz.verification.VerifiedPresentation
 import kotlin.time.Instant
 
 data class SdJwtVcClaimRequest(
@@ -15,8 +17,7 @@ class SdJwtVcRequest(
     val vct: String,
     val claims: List<SdJwtVcClaimRequest>,
     val getResult: (
-        sdJwtKb: SdJwtKb,
-        processedClaims: JsonObject,
+        verifiedPresentation: JsonVerifiedPresentation,
         atTime: Instant,
         trustResult: TrustResult
     ) -> DocumentQueryResult

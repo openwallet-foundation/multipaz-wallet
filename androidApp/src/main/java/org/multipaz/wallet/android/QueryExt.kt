@@ -5,6 +5,7 @@ import androidx.compose.ui.res.stringResource
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.SimpleMdocQuery
 
 @Composable
 fun Query.getDisplayName(): String = when (this) {
@@ -18,6 +19,7 @@ fun Query.getDisplayName(): String = when (this) {
             stringResource(R.string.reader_query_identification)
         }
     }
+    is SimpleMdocQuery -> name
 }
 
 @Composable
@@ -32,4 +34,5 @@ fun Query.getDescription(): String = when (this) {
             stringResource(R.string.reader_query_identification_description)
         }
     }
+    is SimpleMdocQuery -> description
 }

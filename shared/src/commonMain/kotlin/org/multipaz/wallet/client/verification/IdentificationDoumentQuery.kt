@@ -14,6 +14,7 @@ import org.multipaz.documenttype.knowntypes.EUPersonalID
 import org.multipaz.documenttype.knowntypes.IDPass
 import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.util.fromBase64Url
+import org.multipaz.verification.MdocVerifiedPresentation
 
 data class IdentificationDocumentQuery(
     val requestStreetAddress: Boolean
@@ -41,19 +42,20 @@ data class IdentificationDocumentQuery(
                     emptyList()
                 })
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[DrivingLicense.MDL_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                verifiedPresentation as MdocVerifiedPresentation
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(DrivingLicense.MDL_NAMESPACE)
                 IdentificationDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.MOBILE_DRIVING_LICENSE,
-                    issuingAuthority = ns["issuing_authority"]!!.dataElementValue.asTstr,
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
-                    name = ns["given_name"]!!.dataElementValue.asTstr + " " +
-                            ns["family_name"]!!.dataElementValue.asTstr,
-                    birthDate = ns["birth_date"]!!.dataElementValue.asDateString,
-                    streetAddress = ns["resident_address"]?.dataElementValue?.asTstr,
+                    issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
+                    name = ns["given_name"]!!.value.asTstr + " " +
+                            ns["family_name"]!!.value.asTstr,
+                    birthDate = ns["birth_date"]!!.value.asDateString,
+                    streetAddress = ns["resident_address"]?.value?.asTstr,
                 )
             }
         ),
@@ -95,29 +97,30 @@ data class IdentificationDocumentQuery(
                     emptyList()
                 })
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[PhotoID.ISO_23220_2_NAMESPACE]!!
-                val familyName = ns["family_name"]?.dataElementValue?.asTstr
-                    ?: ns["family_name_unicode"]?.dataElementValue?.asTstr
-                    ?: ns["family_name_latin1"]?.dataElementValue?.asTstr
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                verifiedPresentation as MdocVerifiedPresentation
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(PhotoID.ISO_23220_2_NAMESPACE)
+                val familyName = ns["family_name"]?.value?.asTstr
+                    ?: ns["family_name_unicode"]?.value?.asTstr
+                    ?: ns["family_name_latin1"]?.value?.asTstr
                     ?: throw IllegalStateException("No family_name found")
-                val givenName = ns["given_name"]?.dataElementValue?.asTstr
-                    ?: ns["given_name_unicode"]?.dataElementValue?.asTstr
-                    ?: ns["given_name_latin1"]?.dataElementValue?.asTstr
+                val givenName = ns["given_name"]?.value?.asTstr
+                    ?: ns["given_name_unicode"]?.value?.asTstr
+                    ?: ns["given_name_latin1"]?.value?.asTstr
                     ?: throw IllegalStateException("No given_name found")
                 IdentificationDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.PHOTO_ID,
-                    issuingAuthority = ns["issuing_authority"]?.dataElementValue?.asTstr
-                        ?: ns["issuing_authority_unicode"]?.dataElementValue?.asTstr
-                        ?: ns["issuing_authority_latin1"]?.dataElementValue?.asTstr
+                    issuingAuthority = ns["issuing_authority"]?.value?.asTstr
+                        ?: ns["issuing_authority_unicode"]?.value?.asTstr
+                        ?: ns["issuing_authority_latin1"]?.value?.asTstr
                         ?: throw IllegalStateException("No issuing_authority found"),
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     name = "$givenName $familyName",
-                    birthDate = ns["birth_date"]!!.dataElementValue.asMap[Tstr("birth_date")]!!.asDateString,
-                    streetAddress = ns["resident_address"]?.dataElementValue?.asTstr,
+                    birthDate = ns["birth_date"]!!.value.asMap[Tstr("birth_date")]!!.asDateString,
+                    streetAddress = ns["resident_address"]?.value?.asTstr,
                 )
             }
         ),
@@ -144,23 +147,24 @@ data class IdentificationDocumentQuery(
                     emptyList()
                 })
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[EUPersonalID.EUPID_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                verifiedPresentation as MdocVerifiedPresentation
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(EUPersonalID.EUPID_NAMESPACE)
                 IdentificationDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.EU_PID,
-                    issuingAuthority = ns["issuing_authority"]!!.dataElementValue.asTstr,
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
-                    name = ns["given_name"]!!.dataElementValue.asTstr + " " +
-                            ns["family_name"]!!.dataElementValue.asTstr,
-                    birthDate = ns["birth_date"]!!.dataElementValue.asDateString,
-                    streetAddress = ns["resident_address"]?.dataElementValue?.asTstr,
+                    issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
+                    name = ns["given_name"]!!.value.asTstr + " " +
+                            ns["family_name"]!!.value.asTstr,
+                    birthDate = ns["birth_date"]!!.value.asDateString,
+                    streetAddress = ns["resident_address"]?.value?.asTstr,
                 )
             }
         ),
-
+        
         // EU PID (SD-JWT VC format)
         SdJwtVcRequest(
             vct = EUPersonalID.EUPID_VCT,
@@ -178,18 +182,21 @@ data class IdentificationDocumentQuery(
             } else {
                 emptyList()
             },
-            getResult = { sdJwtKb, processedClaims, atTime, trustResult ->
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val claims = verifiedPresentation.issuerSignedClaims.associate {
+                    it.claimPath.first().jsonPrimitive.content to it
+                }
                 IdentificationDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.EU_PID,
-                    issuingAuthority = processedClaims["issuing_authority"]!!.jsonPrimitive.content,
-                    issuingCountryCode = processedClaims["issuing_country"]!!.jsonPrimitive.content,
-                    revocationStatus = sdJwtKb.sdJwt.revocationStatus,
-                    portrait = ByteString(processedClaims["picture"]!!.jsonPrimitive.content.fromBase64Url()),
-                    name = processedClaims["given_name"]!!.jsonPrimitive.content + " " +
-                            processedClaims["family_name"]!!.jsonPrimitive.content,
-                    birthDate = LocalDate.parse(processedClaims["birthdate"]!!.jsonPrimitive.content),
-                    streetAddress = processedClaims["address"]?.jsonObject?.get("formatted")?.jsonPrimitive?.contentOrNull,
+                    issuingAuthority = claims["issuing_authority"]!!.value.jsonPrimitive.content,
+                    issuingCountryCode = claims["issuing_country"]!!.value.jsonPrimitive.content,
+                    revocationStatus = null, // TODO sdJwtKb.sdJwt.revocationStatus,
+                    portrait = ByteString(claims["picture"]!!.value.jsonPrimitive.content.fromBase64Url()),
+                    name = claims["given_name"]!!.value.jsonPrimitive.content + " " +
+                            claims["family_name"]!!.value.jsonPrimitive.content,
+                    birthDate = LocalDate.parse(claims["birthdate"]!!.value.jsonPrimitive.content),
+                    streetAddress = claims["address"]?.value?.jsonObject?.get("formatted")?.jsonPrimitive?.contentOrNull,
                 )
             }
         ),
@@ -212,18 +219,19 @@ data class IdentificationDocumentQuery(
                     emptyList()
                 })
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[Aadhaar.AADHAAR_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                verifiedPresentation as MdocVerifiedPresentation
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(Aadhaar.AADHAAR_NAMESPACE)
                 IdentificationDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.AADHAAR,
                     issuingAuthority = "UIDAI",
                     issuingCountryCode = "IN",
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["ResidentImage"]!!.dataElementValue.asBstr),
-                    name = ns["ResidentName"]!!.dataElementValue.asTstr,
-                    birthDate = ns["Dob"]!!.dataElementValue.asDateString,
-                    streetAddress = ns["Address"]?.dataElementValue?.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["ResidentImage"]!!.value.asBstr),
+                    name = ns["ResidentName"]!!.value.asTstr,
+                    birthDate = ns["Dob"]!!.value.asDateString,
+                    streetAddress = ns["Address"]?.value?.asTstr,
                 )
             }
         ),
@@ -249,19 +257,20 @@ data class IdentificationDocumentQuery(
                     emptyList()
                 })
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[DrivingLicense.MDL_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                verifiedPresentation as MdocVerifiedPresentation
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(DrivingLicense.MDL_NAMESPACE)
                 IdentificationDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.GOOGLE_WALLET_IDPASS,
-                    issuingAuthority = ns["issuing_authority"]!!.dataElementValue.asTstr,
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
-                    name = ns["given_name"]!!.dataElementValue.asTstr + " " +
-                            ns["family_name"]!!.dataElementValue.asTstr,
-                    birthDate = ns["birth_date"]!!.dataElementValue.asDateString,
-                    streetAddress = ns["resident_address"]?.dataElementValue?.asTstr,
+                    issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
+                    name = ns["given_name"]!!.value.asTstr + " " +
+                            ns["family_name"]!!.value.asTstr,
+                    birthDate = ns["birth_date"]!!.value.asDateString,
+                    streetAddress = ns["resident_address"]?.value?.asTstr,
                 )
             }
         ),

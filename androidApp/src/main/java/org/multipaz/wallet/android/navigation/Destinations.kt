@@ -7,6 +7,15 @@ import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
+import org.multipaz.verification.PresentmentRecord
+import org.multipaz.verification.fromCbor
+import org.multipaz.verification.toCbor
+import org.multipaz.wallet.android.LinkVerification
+import org.multipaz.wallet.android.fromCbor
+import org.multipaz.wallet.android.toCbor
+import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.fromCbor
+import org.multipaz.wallet.client.verification.toCbor
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.toCbor
@@ -262,14 +271,63 @@ data object VerificationProximityTransferDestination: Destination()
 @Serializable
 data object VerificationProximityTransferErrorDestination: Destination()
 
-// TODO: make this into a data class which has the results (using Peter's VerificationSession work)
 @Serializable
-data object VerificationShowResponseDestination: Destination()
+data class VerificationShowResponseDestination(
+    val queryEncoded: String,
+    val presentmentRecordEncoded: String,
+    val showNotTrusted: Boolean
+): Destination() {
+    constructor(
+        query: Query,
+        presentmentRecord: PresentmentRecord,
+        showNotTrusted: Boolean
+    ): this(
+        queryEncoded = query.toCbor().toBase64Url(),
+        presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
+        showNotTrusted = showNotTrusted
+    )
+
+    val query: Query
+        get() = queryEncoded.fromBase64Url().let { Query.fromCbor(it) }
+
+    val presentmentRecord: PresentmentRecord
+        get() = presentmentRecordEncoded.fromBase64Url().let { PresentmentRecord.fromCbor(it) }
+
+}
 
 @Serializable
-data object VerificationShowResponseDeveloperExtrasDestination: Destination()
+data class VerificationShowResponseDeveloperExtrasDestination(
+    val queryEncoded: String,
+    val presentmentRecordEncoded: String
+): Destination() {
+    constructor(
+        query: Query,
+        presentmentRecord: PresentmentRecord
+    ): this(
+        queryEncoded = query.toCbor().toBase64Url(),
+        presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url()
+    )
+
+    val query: Query
+        get() = queryEncoded.fromBase64Url().let { Query.fromCbor(it) }
+
+    val presentmentRecord: PresentmentRecord
+        get() = presentmentRecordEncoded.fromBase64Url().let { PresentmentRecord.fromCbor(it) }
+
+}
 
 @Serializable
 data class RequestVerificationFromMdocUrlDestination(
     val mdocUrl: String
 ): Destination()
+
+@Serializable
+data class DeleteVerificationConfirmationDialogDestination(
+    val requestId: String
+): Destination()
+
+@Serializable
+data class DeletePendingVerificationConfirmationDialogDestination(
+    val requestId: String
+): Destination()
+

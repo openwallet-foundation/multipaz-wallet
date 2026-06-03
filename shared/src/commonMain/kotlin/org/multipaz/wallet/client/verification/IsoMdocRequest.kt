@@ -1,7 +1,8 @@
 package org.multipaz.wallet.client.verification
 
-import org.multipaz.mdoc.response.MdocDocument
 import org.multipaz.trustmanagement.TrustResult
+import org.multipaz.verification.MdocVerifiedPresentation
+import org.multipaz.verification.VerifiedPresentation
 import kotlin.time.Instant
 
 data class IsoMdocDataElementRequest(
@@ -13,7 +14,7 @@ data class IsoMdocRequest(
     val docType: String,
     val namespaces: Map<String, List<IsoMdocDataElementRequest>>,
     val getResult: (
-        document: MdocDocument,
+        verifiedPresentation: MdocVerifiedPresentation,
         atTime: Instant,
         trustResult: TrustResult
     ) -> DocumentQueryResult

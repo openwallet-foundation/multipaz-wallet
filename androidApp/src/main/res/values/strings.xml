@@ -437,6 +437,25 @@
     <string name="request_verification_scan_nfc">Scan NFC</string>
     <string name="request_verification_scan_qr_code">Scan QR code</string>
     <string name="request_verification_scan_qr_code_title">Scan QR Code</string>
+    <string name="request_verification_delete_pending_title">Delete pending verification</string>
+    <string name="request_verification_delete_pending_text">Are you sure you want to delete this pending link? Anyone you shared it with will no longer be able to use it.</string>
+    <string name="request_verification_delete_confirm">Delete</string>
+    <string name="request_verification_delete_completed_title">Delete verification</string>
+    <string name="request_verification_delete_completed_text">Are you sure you want to delete this received verification? This action cannot be undone.</string>
+    <string name="request_verification_pending_heading">Pending verifications</string>
+    <string name="request_verification_completed_heading">Received verifications</string>
+    <string name="request_verification_link_expires">Link expires %1$s</string>
+    <string name="request_verification_received">Received %1$s</string>
+    <string name="request_verification_received_unknown_issuer">Received %1$s. Document is from an unknown issuer</string>
+    <string name="request_verification_identified">This person has been identified</string>
+    <string name="request_verification_no_requests">No verification requests sent yet.</string>
+    <string name="request_verification_devmode_queries">Devmode Queries</string>
+    <string name="content_description_error">Error</string>
+    <string name="content_description_portrait">Portrait</string>
+    <string name="content_description_link">Link</string>
+    <string name="content_description_delete">Delete</string>
+    <string name="request_verification_failed_delete_request">Failed to delete request: %1$s</string>
+    <string name="request_verification_failed_delete_verification">Failed to delete verification: %1$s</string>
 
     <!-- Request Verification from Mdoc URL -->
     <string name="request_verification_from_mdoc_url_continue">Continue</string>

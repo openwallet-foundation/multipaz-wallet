@@ -104,7 +104,48 @@ interface WalletBackend {
     suspend fun certifyReaderKeys(
         readerKeys: List<KeyAttestation>
     ): List<X509CertChain>
+
+    @RpcMethod
+    suspend fun createVerificationLink(
+        encryptedVerificationPayload: ByteString,
+        expirationDurationAfterCreatedSeconds: Long? = null
+    ): CreateVerificationLinkResult
+
+    @RpcMethod
+    suspend fun getVerificationLinkOrigin(): String
+
+    @RpcMethod
+    suspend fun getVerificationPayload(
+        requestId: String
+    ): ByteString
+
+    @RpcMethod
+    suspend fun submitVerificationResponse(
+        requestId: String,
+        encryptedResponse: ByteString
+    )
+
+    @RpcMethod
+    suspend fun deleteVerificationRequest(
+        requestId: String
+    )
+
+    @RpcMethod
+    suspend fun deleteVerificationResponse(
+        requestId: String
+    )
+
+    @RpcMethod
+    suspend fun getVerificationResponse(
+        requestId: String
+    ): ByteString?
 }
+
+@CborSerializable
+data class CreateVerificationLinkResult(
+    val requestId: String,
+    val link: String
+)
 
 @CborSerializable
 data class GoogleTokens(

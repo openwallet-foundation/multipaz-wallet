@@ -27,6 +27,8 @@ import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import org.multipaz.util.truncateToWholeSeconds
+import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.CreateVerificationLinkResult
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.GetSharedDataResult
@@ -36,6 +38,7 @@ import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
+import org.multipaz.wallet.shared.WalletBackendVerificationLinkExpiredException
 import org.multipaz.wallet.shared.GoogleTokens
 import kotlin.random.Random
 import kotlin.time.Clock
@@ -434,6 +437,99 @@ abstract class WalletBackendBase: WalletBackend {
             ?: throw IllegalStateException("EULA not configured")
     }
 
+    override suspend fun createVerificationLink(
+        encryptedVerificationPayload: ByteString,
+        expirationDurationAfterCreatedSeconds: Long?
+    ): CreateVerificationLinkResult {
+        // TODO: add rate limiting
+        if (encryptedVerificationPayload.size > 100*1024) {
+            throw IllegalStateException("Encrypted verification payload is too large")
+        }
+        val clientId = getClientId()
+        val entry = VerificationPayloadEntry(clientId, encryptedVerificationPayload)
+
+        // TODO: maybe make it configurable how long we retain this for
+        val duration = expirationDurationAfterCreatedSeconds?.seconds ?: 1.hours
+        val table = BackendEnvironment.getTable(verificationPayloadsTableSpec)
+        val key = table.insert(
+            key = null,
+            data = ByteString(entry.toCbor()),
+            expiration = Clock.System.now() + duration
+        )
+        // key is guaranteed to be base64url-safe (TODO: assert this)
+        return CreateVerificationLinkResult(
+            requestId = key,
+            link = BuildConfig.BACKEND_URL + "/web/verify?request=$key"
+        )
+    }
+
+    override suspend fun getVerificationLinkOrigin(): String {
+        return BuildConfig.BACKEND_URL
+    }
+
+    override suspend fun getVerificationPayload(requestId: String): ByteString {
+        val table = BackendEnvironment.getTable(verificationPayloadsTableSpec)
+        val data = table.get(requestId)
+            ?: throw WalletBackendVerificationLinkExpiredException("This link has expired")
+        val entry = VerificationPayloadEntry.fromCbor(data.toByteArray())
+        return entry.encryptedVerificationPayload
+    }
+
+    override suspend fun submitVerificationResponse(requestId: String, encryptedResponse: ByteString) {
+        val payloadTable = BackendEnvironment.getTable(verificationPayloadsTableSpec)
+        val payloadData = payloadTable.get(requestId)
+            ?: throw WalletBackendVerificationLinkExpiredException("This link has expired")
+        val payloadEntry = VerificationPayloadEntry.fromCbor(payloadData.toByteArray())
+
+        val entry = VerificationResponseEntry(payloadEntry.clientId, encryptedResponse)
+        val table = BackendEnvironment.getTable(verificationResponsesTableSpec)
+        table.insert(
+            key = requestId,
+            data = ByteString(entry.toCbor()),
+            expiration = Clock.System.now() + 5.days
+        )
+        payloadTable.delete(requestId)
+    }
+
+    override suspend fun getVerificationResponse(requestId: String): ByteString? {
+        val table = BackendEnvironment.getTable(verificationResponsesTableSpec)
+        val data = table.get(requestId) ?: return null
+        val entry = VerificationResponseEntry.fromCbor(data.toByteArray())
+        val callerClientId = getClientId()
+        if (entry.clientId != callerClientId) {
+            throw IllegalStateException("Not authorized to access this verification response")
+        }
+        return entry.encryptedResponse
+    }
+
+    override suspend fun deleteVerificationRequest(requestId: String) {
+        val callerClientId = getClientId()
+        val payloadTable = BackendEnvironment.getTable(verificationPayloadsTableSpec)
+
+        val payloadData = payloadTable.get(requestId)
+        if (payloadData != null) {
+            val payloadEntry = VerificationPayloadEntry.fromCbor(payloadData.toByteArray())
+            if (payloadEntry.clientId != callerClientId) {
+                throw IllegalStateException("Not authorized to delete this verification request")
+            }
+            payloadTable.delete(requestId)
+        }
+    }
+
+    override suspend fun deleteVerificationResponse(requestId: String) {
+        val callerClientId = getClientId()
+        val responseTable = BackendEnvironment.getTable(verificationResponsesTableSpec)
+
+        val responseData = responseTable.get(requestId)
+        if (responseData != null) {
+            val responseEntry = VerificationResponseEntry.fromCbor(responseData.toByteArray())
+            if (responseEntry.clientId != callerClientId) {
+                throw IllegalStateException("Not authorized to delete this verification response")
+            }
+            responseTable.delete(requestId)
+        }
+    }
+
     companion object {
         private val NONCE_EXPIRATION_TIME = 5.minutes
 
@@ -452,6 +548,18 @@ abstract class WalletBackendBase: WalletBackend {
         private val sharedDataTableSpec = StorageTableSpec(
             name = "SharedData",
             supportExpiration = false,
+            supportPartitions = false
+        )
+
+        private val verificationPayloadsTableSpec = StorageTableSpec(
+            name = "VerificationPayloads",
+            supportExpiration = true,
+            supportPartitions = false
+        )
+
+        private val verificationResponsesTableSpec = StorageTableSpec(
+            name = "VerificationResponses",
+            supportExpiration = true,
             supportPartitions = false
         )
     }
@@ -590,4 +698,20 @@ abstract class WalletBackendBase: WalletBackend {
             }
         }
     }
+}
+
+@CborSerializable
+data class VerificationPayloadEntry(
+    val clientId: String,
+    val encryptedVerificationPayload: ByteString
+) {
+    companion object
+}
+
+@CborSerializable
+data class VerificationResponseEntry(
+    val clientId: String,
+    val encryptedResponse: ByteString
+) {
+    companion object
 }
