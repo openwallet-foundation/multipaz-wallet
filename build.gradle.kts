@@ -13,6 +13,14 @@ plugins {
     alias(libs.plugins.skie) apply false
 }
 
+// Because we may use Multipaz as a SNAPSHOT, ensure we always check if
+// there's a new version every time the Gradle project is synced.
+//
+subprojects {
+    configurations.all {
+        resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+    }
+}
 
 val appName: String by extra {
     System.getenv("MULTIPAZ_WALLET_APP_NAME")

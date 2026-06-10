@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.settings
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -103,6 +104,7 @@ import kotlin.time.Clock
 
 private const val TAG = "EventViewerScreen"
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class, FormatStringsInDatetimeFormats::class)
 @Composable
 fun EventViewerScreen(
