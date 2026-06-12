@@ -283,7 +283,6 @@ private suspend fun parseResponse(
         documentTypeRepository = documentTypeRepository,
         zkSystemRepository = zkSystemRepository,
         request = null,
-        queryData = listOf(),
     )
 
     if (result != null) {
