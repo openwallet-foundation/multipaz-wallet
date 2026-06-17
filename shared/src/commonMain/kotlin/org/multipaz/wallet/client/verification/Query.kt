@@ -68,7 +68,7 @@ sealed class Query(
         }
 
         setDeviceRequestInfo(
-            DeviceRequestInfo(
+            DeviceRequestInfo.fromValues(
                 useCases = listOf(
                     UseCase(
                         mandatory = true,
