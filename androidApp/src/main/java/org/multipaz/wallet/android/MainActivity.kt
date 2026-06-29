@@ -36,16 +36,6 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        NfcAdapter.getDefaultAdapter(this)?.let {
-            val cardEmulation = CardEmulation.getInstance(it)
-            if (!cardEmulation.unsetPreferredService(this)) {
-                Logger.w(TAG, "CardEmulation.unsetPreferredService() returned false")
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
