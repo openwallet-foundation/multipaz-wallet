@@ -28,8 +28,12 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.multipaz.util.Logger
+import org.multipaz.verification.Iso18013PresentmentRecord
+import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.Query
 
 private const val TAG = "VerificationProximityTransferScreen"
 
@@ -38,7 +42,8 @@ private const val TAG = "VerificationProximityTransferScreen"
 fun VerificationProximityTransferScreen(
     proximityReaderModel: ProximityReaderModel,
     onBackClicked: () -> Unit,
-    onTransferComplete: () -> Unit,
+    onTransferComplete: (presentmentRecord: PresentmentRecord) -> Unit,
+    onTransferError: (error: Throwable) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -52,7 +57,26 @@ fun VerificationProximityTransferScreen(
         }
         ProximityReaderModel.State.CONNECTING -> {}
         ProximityReaderModel.State.COMPLETED -> {
-            onTransferComplete()
+            if (proximityReaderModel.error != null) {
+                onTransferError(proximityReaderModel.error!!)
+            } else {
+                val result = proximityReaderModel.result!!
+                if (result.deviceResponse == null) {
+                    onTransferError(IllegalStateException("No DeviceResponse message"))
+                } else if (result.deviceResponse!!.status != 0) {
+                    onTransferError(IllegalStateException("DeviceResponse has non-zero status ${result.deviceResponse!!.status}"))
+                } else {
+                    val presentmentRecord = Iso18013PresentmentRecord(
+                        response = result.deviceResponse!!.toDataItem(),
+                        sessionTranscript = result.sessionTranscript,
+                        request = result.deviceRequest!!.toDataItem(),
+                        eDeviceKey = result.eReaderKey,
+                        encryptionInfo = null,
+                        origin = null
+                    )
+                    onTransferComplete(presentmentRecord)
+                }
+            }
         }
     }
 

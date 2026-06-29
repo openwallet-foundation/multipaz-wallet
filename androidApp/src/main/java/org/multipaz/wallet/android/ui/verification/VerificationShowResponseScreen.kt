@@ -66,12 +66,15 @@ import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
+import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.Options
+import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.trustmanagement.TrustPoint
 import org.multipaz.trustmanagement.TrustResult
 import org.multipaz.util.Logger
+import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
@@ -79,15 +82,19 @@ import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
-import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
+import kotlin.time.Clock
 
 private const val TAG = "VerificationShowResponseScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerificationShowResponseScreen(
-    proximityReaderModel: ProximityReaderModel,
+    query: Query,
+    presentmentRecord: PresentmentRecord,
+    documentTypeRepository: DocumentTypeRepository,
+    zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
     builtInIssuerTrustManager: TrustManagerInterface,
     userIssuerTrustManagerManager: TrustManagerInterface,
@@ -95,13 +102,13 @@ fun VerificationShowResponseScreen(
     imageLoader: ImageLoader,
     onDeveloperExtrasClicked: () -> Unit,
     onBackClicked: () -> Unit,
+    showNotTrusted: Boolean,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-    val result = proximityReaderModel.result!!
     val queryResult = remember { mutableStateOf<Result?>(null) }
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
-    val showNotTrusted = remember { mutableStateOf(false) }
+    val showNotTrustedState = remember { mutableStateOf(showNotTrusted) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -148,10 +155,13 @@ fun VerificationShowResponseScreen(
                 LaunchedEffect(Unit) {
                     coroutineScope.launch {
                         try {
-                            queryResult.value = result.query!!.processDeviceResponse(
-                                deviceResponse = result.deviceResponse!!,
-                                sessionTranscript = result.sessionTranscript,
-                                eReaderKey = AsymmetricKey.AnonymousExplicit(result.eReaderKey),
+                            val verifiedPresentations = presentmentRecord.verify(
+                                atTime = Clock.System.now(),
+                                documentTypeRepository = documentTypeRepository,
+                                zkSystemRepository = zkSystemRepository
+                            )
+                            queryResult.value = query.processVerifiedPresentations(
+                                verifiedPresentation = verifiedPresentations,
                                 issuerTrustManager = issuerTrustManager
                             )
                         } catch (e: Exception) {
@@ -165,7 +175,7 @@ fun VerificationShowResponseScreen(
                 when (queryResult.value?.query) {
                     is AgeOverQuery -> {
                         val result = queryResult.value!!.documents.first()
-                        if (result.trustResult.isTrusted || showNotTrusted.value) {
+                        if (result.trustResult.isTrusted || showNotTrustedState.value) {
                             ShowAgeOverResult(
                                 query = queryResult.value!!.query as AgeOverQuery,
                                 result = result as AgeOverDocumentQueryResult,
@@ -177,14 +187,14 @@ fun VerificationShowResponseScreen(
                             ShowNotTrusted(
                                 trustResult = result.trustResult,
                                 devModeEnabled = devModeEnabled,
-                                showNotTrusted = showNotTrusted
+                                showNotTrusted = showNotTrustedState
                             )
                         }
                     }
 
                     is IdentificationQuery -> {
                         val result = queryResult.value!!.documents.first()
-                        if (result.trustResult.isTrusted || showNotTrusted.value) {
+                        if (result.trustResult.isTrusted || showNotTrustedState.value) {
                             ShowIdentificationResult(
                                 query = queryResult.value!!.query as IdentificationQuery,
                                 result = result as IdentificationDocumentQueryResult,
@@ -196,7 +206,7 @@ fun VerificationShowResponseScreen(
                             ShowNotTrusted(
                                 trustResult = result.trustResult,
                                 devModeEnabled = devModeEnabled,
-                                showNotTrusted = showNotTrusted
+                                showNotTrusted = showNotTrustedState
                             )
                         }
                     }
@@ -381,32 +391,34 @@ private fun ShowSource(
     val iconSize = 32.dp
 
     FloatingItemList(title = stringResource(R.string.verification_show_response_source_title)) {
-        val issuingCountry = Options.COUNTRY_ISO_3166_1_ALPHA_2.find {
-            it.value == result.issuingCountryCode
-        }?.displayName ?: result.issuingCountryCode
-        FloatingItemHeadingAndText(
-            image = {
-                if (trustPoint != null) {
-                    trustPoint.RenderImage(
-                        size = iconSize,
-                        imageLoader = imageLoader,
-                    )
-                } else {
-                    Image(
-                        modifier = Modifier.size(iconSize),
-                        imageVector = Icons.Outlined.AccountBalance,
-                        contentDescription = null
-                    )
-                }
-            },
-            heading = stringResource(R.string.verification_show_response_issuer_heading),
-            text = stringResource(
-                R.string.verification_show_response_issuer_text,
-                result.documentType.getDisplayName(),
-                result.issuingAuthority,
-                issuingCountry
+        if (result.documentType != null && result.issuingAuthority != null && result.issuingCountryCode != null) {
+            val issuingCountry = Options.COUNTRY_ISO_3166_1_ALPHA_2.find {
+                it.value == result.issuingCountryCode
+            }?.displayName ?: result.issuingCountryCode
+            FloatingItemHeadingAndText(
+                image = {
+                    if (trustPoint != null) {
+                        trustPoint.RenderImage(
+                            size = iconSize,
+                            imageLoader = imageLoader,
+                        )
+                    } else {
+                        Image(
+                            modifier = Modifier.size(iconSize),
+                            imageVector = Icons.Outlined.AccountBalance,
+                            contentDescription = null
+                        )
+                    }
+                },
+                heading = stringResource(R.string.verification_show_response_issuer_heading),
+                text = stringResource(
+                    R.string.verification_show_response_issuer_text,
+                    result.documentType!!.getDisplayName(),
+                    result.issuingAuthority!!,
+                    issuingCountry!!
+                )
             )
-        )
+        }
 
         val (message, isTrusted) = if (trustPoint?.trustManager == builtInIssuerTrustManager) {
             Pair(

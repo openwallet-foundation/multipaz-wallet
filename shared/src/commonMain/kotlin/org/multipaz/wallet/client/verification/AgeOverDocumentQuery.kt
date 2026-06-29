@@ -15,14 +15,26 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.multipaz.cbor.CborMap
+import org.multipaz.claim.JsonClaim
+import org.multipaz.claim.MdocClaim
 import org.multipaz.documenttype.knowntypes.Aadhaar
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.EUPersonalID
 import org.multipaz.documenttype.knowntypes.IDPass
 import org.multipaz.documenttype.knowntypes.PhotoID
-import org.multipaz.mdoc.issuersigned.IssuerSignedItem
 import org.multipaz.util.fromBase64Url
+import org.multipaz.verification.MdocVerifiedPresentation
 import kotlin.time.Instant
+
+internal fun List<MdocClaim>.claimsInNamespace(namespace: String): Map<String, MdocClaim> {
+    val claimsInNamespace = mutableMapOf<String, MdocClaim>()
+    for (claim in this) {
+        if (claim.namespaceName == namespace) {
+            claimsInNamespace[claim.dataElementName] = claim
+        }
+    }
+    return claimsInNamespace
+}
 
 data class AgeOverDocumentQuery(
     val ageOver: Int
@@ -43,15 +55,15 @@ data class AgeOverDocumentQuery(
                     IsoMdocDataElementRequest(dataElementName = "issuing_country"),
                 ))
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[DrivingLicense.MDL_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(DrivingLicense.MDL_NAMESPACE)
                 AgeOverDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.MOBILE_DRIVING_LICENSE,
-                    issuingAuthority = ns["issuing_authority"]!!.dataElementValue.asTstr,
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
+                    issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null, // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
             }
@@ -77,18 +89,18 @@ data class AgeOverDocumentQuery(
                     ),
                 ))
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[PhotoID.ISO_23220_2_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(PhotoID.ISO_23220_2_NAMESPACE)
                 AgeOverDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.PHOTO_ID,
-                    issuingAuthority = ns["issuing_authority"]?.dataElementValue?.asTstr
-                        ?: ns["issuing_authority_unicode"]?.dataElementValue?.asTstr
-                        ?: ns["issuing_authority_latin1"]?.dataElementValue?.asTstr
+                    issuingAuthority = ns["issuing_authority"]?.value?.asTstr
+                        ?: ns["issuing_authority_unicode"]?.value?.asTstr
+                        ?: ns["issuing_authority_latin1"]?.value?.asTstr
                         ?: throw IllegalStateException("No issuing_authority found"),
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
             }
@@ -108,15 +120,15 @@ data class AgeOverDocumentQuery(
                     IsoMdocDataElementRequest(dataElementName = "issuing_country"),
                 ))
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[EUPersonalID.EUPID_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(EUPersonalID.EUPID_NAMESPACE)
                 AgeOverDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.EU_PID,
-                    issuingAuthority = ns["issuing_authority"]!!.dataElementValue.asTstr,
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
+                    issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
             }
@@ -137,16 +149,19 @@ data class AgeOverDocumentQuery(
                 SdJwtVcClaimRequest(buildJsonArray { add("issuing_authority") }),
                 SdJwtVcClaimRequest(buildJsonArray { add("issuing_country") }),
             ),
-            getResult = { sdJwtKb, processedClaims, atTime, trustResult ->
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val claims = verifiedPresentation.issuerSignedClaims.associate {
+                    it.claimPath.first().jsonPrimitive.content to it
+                }
                 AgeOverDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.EU_PID,
-                    issuingAuthority = processedClaims["issuing_authority"]!!.jsonPrimitive.content,
-                    issuingCountryCode = processedClaims["issuing_country"]!!.jsonPrimitive.content,
-                    revocationStatus = sdJwtKb.sdJwt.revocationStatus,
-                    portrait = ByteString(processedClaims["picture"]!!.jsonPrimitive.content.fromBase64Url()),
+                    issuingAuthority = claims["issuing_authority"]!!.value.jsonPrimitive.content,
+                    issuingCountryCode = claims["issuing_country"]!!.value.jsonPrimitive.content,
+                    revocationStatus = null, // TODO sdJwtKb.sdJwt.revocationStatus,
+                    portrait = ByteString(claims["picture"]!!.value.jsonPrimitive.content.fromBase64Url()),
                     isAgeOver = processAgeOverSdJwtVc(
-                        claims = processedClaims,
+                        claims = claims,
                         atTime = atTime,
                         targetAge = ageOver,
                     ),
@@ -166,15 +181,15 @@ data class AgeOverDocumentQuery(
                     ),
                 ))
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[Aadhaar.AADHAAR_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(Aadhaar.AADHAAR_NAMESPACE)
                 AgeOverDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.AADHAAR,
                     issuingAuthority = "UIDAI",
                     issuingCountryCode = "IN",
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["ResidentImage"]!!.dataElementValue.asBstr),
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["ResidentImage"]!!.value.asBstr),
                     isAgeOver = processAgeOver(
                         dataElements = ns,
                         atTime = atTime,
@@ -201,15 +216,15 @@ data class AgeOverDocumentQuery(
                     IsoMdocDataElementRequest(dataElementName = "issuing_country"),
                 ))
             },
-            getResult = { document, atTime, trustResult ->
-                val ns = document.issuerNamespaces.data[DrivingLicense.MDL_NAMESPACE]!!
+            getResult = { verifiedPresentation, atTime, trustResult ->
+                val ns = verifiedPresentation.issuerSignedClaims.claimsInNamespace(DrivingLicense.MDL_NAMESPACE)
                 AgeOverDocumentQueryResult(
                     trustResult = trustResult,
                     documentType = DocumentType.GOOGLE_WALLET_IDPASS,
-                    issuingAuthority = ns["issuing_authority"]!!.dataElementValue.asTstr,
-                    issuingCountryCode = ns["issuing_country"]!!.dataElementValue.asTstr,
-                    revocationStatus = document.mso.revocationStatus,
-                    portrait = ByteString(ns["portrait"]!!.dataElementValue.asBstr),
+                    issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
+                    issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
+                    revocationStatus = null,  // TODO
+                    portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
             }
@@ -227,19 +242,19 @@ private fun Int.toDoubleDigits(): String {
 }
 
 private fun processAgeOver(
-    dataElements: Map<String, IssuerSignedItem>,
+    dataElements: Map<String, MdocClaim>,
     atTime: Instant,
     targetAge: Int,
     ageOverDataElementName: String = "age_over_${targetAge.toDoubleDigits()}",
     ageInYearsDataElementName: String? = "age_in_years",
     birthDateDataElementName: String? = "birth_date",
 ): Boolean {
-    val isAgeOver = dataElements[ageOverDataElementName]?.dataElementValue?.asBoolean
+    val isAgeOver = dataElements[ageOverDataElementName]?.value?.asBoolean
         ?: ageInYearsDataElementName?.let {
-            dataElements[ageInYearsDataElementName]?.dataElementValue?.asNumber?.let { ageInYears -> ageInYears >= targetAge }
+            dataElements[ageInYearsDataElementName]?.value?.asNumber?.let { ageInYears -> ageInYears >= targetAge }
         }
         ?: birthDateDataElementName?.let {
-            dataElements[birthDateDataElementName]?.dataElementValue?.let { birthDateDataElement ->
+            dataElements[birthDateDataElementName]?.value?.let { birthDateDataElement ->
                 // Handle PhotoID using a map here
                 val birthDate = if (birthDateDataElement is CborMap) {
                     birthDateDataElement["birth_date"].asDateString
@@ -258,7 +273,7 @@ private fun processAgeOver(
 }
 
 private fun processAgeOverSdJwtVc(
-    claims: JsonObject,
+    claims: Map<String, JsonClaim>,
     atTime: Instant,
     targetAge: Int,
     ageOverClaimName: JsonArray = buildJsonArray { add("age_equal_or_over"); add(targetAge.toDoubleDigits()) },
@@ -266,16 +281,16 @@ private fun processAgeOverSdJwtVc(
     birthDateClaimName: JsonArray? = buildJsonArray { add("birthdate") },
 ): Boolean {
 
-    val isAgeOver = claims[ageOverClaimName[0].jsonPrimitive.content]?.jsonObject
+    val isAgeOver = claims[ageOverClaimName[0].jsonPrimitive.content]?.value?.jsonObject
         ?.get(ageOverClaimName[1].jsonPrimitive.content)
         ?.jsonPrimitive?.booleanOrNull
         ?: ageInYearsClaimName?.let {
-            claims[ageInYearsClaimName[0].jsonPrimitive.content]?.jsonPrimitive?.intOrNull?.let { ageInYears ->
+            claims[ageInYearsClaimName[0].jsonPrimitive.content]?.value?.jsonPrimitive?.intOrNull?.let { ageInYears ->
                 ageInYears >= targetAge
             }
         }
         ?: birthDateClaimName?.let {
-            claims[birthDateClaimName[0].jsonPrimitive.content]?.jsonPrimitive?.contentOrNull?.let { birthDateString ->
+            claims[birthDateClaimName[0].jsonPrimitive.content]?.value?.jsonPrimitive?.contentOrNull?.let { birthDateString ->
                 val birthDate = LocalDate.parse(birthDateString)
                 val today = atTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
                 birthDate.yearsUntil(today) >= targetAge

@@ -59,16 +59,25 @@ fun main() {
 
                 val settingsModel = SettingsModel.create()
 
+                val isVerifyPage = window.location.pathname.startsWith("/web/verify") || 
+                        window.location.pathname.startsWith("/verify")
+
                 val rootElement = document.getElementById("root") ?: error("No root element found")
                 val root = createRoot(rootElement.unsafeCast<Element>())
-                root.render(App.create {
-                    this.walletClient = walletClient
-                    this.googleSignIn = googleSignIn
-                    this.documentTypeRepository = documentTypeRepository
-                    this.documentStore = documentStore
-                    this.documentModel = documentModel
-                    this.settingsModel = settingsModel
-                })
+                if (isVerifyPage) {
+                    root.render(VerifyApp.create {
+                        this.walletClient = walletClient
+                    })
+                } else {
+                    root.render(App.create {
+                        this.walletClient = walletClient
+                        this.googleSignIn = googleSignIn
+                        this.documentTypeRepository = documentTypeRepository
+                        this.documentStore = documentStore
+                        this.documentModel = documentModel
+                        this.settingsModel = settingsModel
+                    })
+                }
                 
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to initialize application", e)

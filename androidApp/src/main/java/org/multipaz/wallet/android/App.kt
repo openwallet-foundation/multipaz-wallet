@@ -414,6 +414,8 @@ class App private constructor() {
             )
             AppNavHost(
                 walletClient = walletClient,
+                httpClientEngineFactory = Android,
+                storage = storage,
                 secureArea = secureArea,
                 promptModel = promptModel,
                 documentStore = documentStore,

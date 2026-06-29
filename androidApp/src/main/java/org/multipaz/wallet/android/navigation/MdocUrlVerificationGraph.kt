@@ -110,15 +110,18 @@ fun mdocUrlVerificationGraph(
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },
-                    onTransferComplete = {
-                        if (proximityReaderModel.error == null) {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(VerificationShowResponseDestination)
-                        } else {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(VerificationProximityTransferErrorDestination)
-                        }
-                    }
+                    onTransferComplete = { presentmentRecord ->
+                        backStack.removeAt(backStack.size - 1)
+                        backStack.add(VerificationShowResponseDestination(
+                            query = settingsModel.readerQuery.value,
+                            presentmentRecord = presentmentRecord,
+                            showNotTrusted = false
+                        ))
+                    },
+                    onTransferError = {
+                        backStack.removeAt(backStack.size - 1)
+                        backStack.add(VerificationProximityTransferErrorDestination)
+                    },
                 )
             }
             is VerificationProximityTransferErrorDestination -> NavEntry(key) {
@@ -130,14 +133,21 @@ fun mdocUrlVerificationGraph(
             }
             is VerificationShowResponseDestination -> NavEntry(key) {
                 VerificationShowResponseScreen(
-                    proximityReaderModel = proximityReaderModel,
+                    query = key.query,
+                    presentmentRecord = key.presentmentRecord,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
                     builtInIssuerTrustManager = backendIssuerTrustManagerModel.trustManager,
                     userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
+                    showNotTrusted = key.showNotTrusted,
                     onDeveloperExtrasClicked = {
-                        backStack.add(VerificationShowResponseDeveloperExtrasDestination)
+                        backStack.add(VerificationShowResponseDeveloperExtrasDestination(
+                            query = key.query,
+                            presentmentRecord = key.presentmentRecord
+                        ))
                     },
                     onBackClicked = {
                         onFinish()
@@ -146,7 +156,8 @@ fun mdocUrlVerificationGraph(
             }
             is VerificationShowResponseDeveloperExtrasDestination -> NavEntry(key) {
                 VerificationShowResponseDeveloperExtrasScreen(
-                    proximityReaderModel = proximityReaderModel,
+                    query = key.query,
+                    presentmentRecord = key.presentmentRecord,
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,
@@ -212,6 +223,7 @@ internal suspend fun handleQrCodeScanned(
         proximityReaderModel.setDeviceRequest(
             query = query,
             deviceRequest = query.generateDeviceRequest(
+                deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
                 sessionTranscript = proximityReaderModel.sessionTranscript,
                 readerAuthKey = keyInfoAndCertification?.let {
                     AsymmetricKey.X509CertifiedSecureAreaBased(

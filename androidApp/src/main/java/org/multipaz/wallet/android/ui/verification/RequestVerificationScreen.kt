@@ -3,6 +3,7 @@ package org.multipaz.wallet.android.ui.verification
 import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -19,11 +20,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Contactless
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material3.Button
@@ -93,6 +97,51 @@ import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import org.multipaz.storage.Storage
+import org.multipaz.verification.PresentmentRecord
+import org.multipaz.wallet.android.LinkVerification
+import org.multipaz.wallet.android.getPendingVerifications
+import org.multipaz.wallet.android.getCompletedVerifications
+import org.multipaz.wallet.android.checkVerificationResults
+import org.multipaz.wallet.android.decryptResponse
+import org.multipaz.wallet.android.deleteVerification
+import org.multipaz.wallet.client.verification.Query
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import org.multipaz.util.toBase64Url
+import org.multipaz.compose.datetime.durationFromNowText
+import kotlin.time.Instant
+import kotlin.time.Duration.Companion.hours
+import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.trustmanagement.CompositeTrustManager
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
+import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.IdentificationQuery
+import org.multipaz.wallet.client.verification.Result
+import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
+import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.mutableStateMapOf
+import kotlin.time.Clock
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+
+private data class CompletedVerificationData(
+    val portrait: ImageBitmap?,
+    val queryResult: Result,
+    val presentmentRecord: PresentmentRecord
+)
 
 private const val TAG = "RequestVerificationScreen"
 
@@ -100,19 +149,87 @@ private const val TAG = "RequestVerificationScreen"
 @Composable
 fun RequestVerificationScreen(
     walletClient: WalletClient,
+    storage: Storage,
     settingsModel: SettingsModel,
     documentModel: DocumentModel,
     promptModel: PromptModel,
+    documentTypeRepository: DocumentTypeRepository,
+    zkSystemRepository: ZkSystemRepository,
+    issuerTrustManager: CompositeTrustManager,
     onSelectVerificationTypeClicked: () -> Unit,
     onNfcHandover: (result: ScanMdocReaderResult) -> Unit,
     onQrCodeScanned: (qrCode: String?) -> Unit,
+    onGenerateVerificationLinkClicked: () -> Unit,
+    onViewVerificationClicked: (query: Query, presentmentRecord: PresentmentRecord, showNotTrusted: Boolean) -> Unit,
+    onDeletePendingVerificationClicked: (requestId: String) -> Unit,
+    onDeleteCompletedVerificationClicked: (requestId: String) -> Unit,
+    refreshTrigger: Int,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope { promptModel }
+    val context = LocalContext.current
+    val completedItemsData = remember { mutableStateMapOf<String, CompletedVerificationData>() }
+
     val signedInData = walletClient.signedInUser.collectAsState().value
     val isDarkTheme = isSystemInDarkTheme()
-    val isInPerson = remember { mutableStateOf(true) } // TODO: from settings
+    val isInPerson = settingsModel.verificationIsInPerson.collectAsState().value
+
+    val pendingList = remember { mutableStateOf<List<LinkVerification>>(emptyList()) }
+    val completedList = remember { mutableStateOf<List<LinkVerification>>(emptyList()) }
+
+    LaunchedEffect(isInPerson, refreshTrigger) {
+        pendingList.value = getPendingVerifications(storage)
+        completedList.value = getCompletedVerifications(storage)
+        if (!isInPerson) {
+            while (isActive) {
+                checkVerificationResults(walletClient, storage)
+                pendingList.value = getPendingVerifications(storage)
+                completedList.value = getCompletedVerifications(storage)
+                delay(3000)
+            }
+        }
+    }
+
+    LaunchedEffect(completedList.value) {
+        for (item in completedList.value) {
+            if (completedItemsData.containsKey(item.requestId)) continue
+            coroutineScope.launch {
+                try {
+                    val decryptedResponse = item.decryptResponse()
+                    val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
+                    val presentmentRecord = item.session.processDcResponse(dcResponse = dcResponse)
+                    val verifiedPresentations = presentmentRecord.verify(
+                        atTime = Clock.System.now(),
+                        documentTypeRepository = documentTypeRepository,
+                        zkSystemRepository = zkSystemRepository
+                    )
+                    val queryResult = item.query.processVerifiedPresentations(
+                        verifiedPresentation = verifiedPresentations,
+                        issuerTrustManager = issuerTrustManager
+                    )
+                    val docResult = queryResult.documents.firstOrNull()
+                    val portraitBytes = when (docResult) {
+                        is AgeOverDocumentQueryResult -> docResult.portrait
+                        is IdentificationDocumentQueryResult -> docResult.portrait
+                        else -> null
+                    }
+                    val portraitBitmap = portraitBytes?.let {
+                        val array = it.toByteArray()
+                        BitmapFactory.decodeByteArray(array, 0, array.size)?.asImageBitmap()
+                    }
+
+                    completedItemsData[item.requestId] = CompletedVerificationData(
+                        portrait = portraitBitmap,
+                        queryResult = queryResult,
+                        presentmentRecord = presentmentRecord
+                    )
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to process completed response for ${item.requestId}", e)
+                }
+            }
+        }
+    }
 
     val nfcTagReader = NfcTagReader.getReaders().firstOrNull()
     val nfcScanOptions = if (nfcPollingFramesInsertionSupported) {
@@ -204,8 +321,8 @@ fun RequestVerificationScreen(
                     modifier = Modifier
                         .fillMaxHeight(),
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    selected = !isInPerson.value,
-                    onClick = { isInPerson.value = false },
+                    selected = !isInPerson,
+                    onClick = { settingsModel.verificationIsInPerson.value = false },
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     label = {
                         Text(text = stringResource(R.string.request_verification_send_link))
@@ -215,8 +332,8 @@ fun RequestVerificationScreen(
                     modifier = Modifier
                         .fillMaxHeight(),
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    selected = isInPerson.value,
-                    onClick = { isInPerson.value = true },
+                    selected = isInPerson,
+                    onClick = { settingsModel.verificationIsInPerson.value = true },
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     label = {
                         Text(text = stringResource(R.string.request_verification_in_person))
@@ -247,13 +364,11 @@ fun RequestVerificationScreen(
                 )
             }
 
-            if (!isInPerson.value) {
+            if (!isInPerson) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        showToast("Not yet implemented, stay tuned")  // Temp string, do not translate.
-                    }
+                    onClick = onGenerateVerificationLinkClicked,
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -268,6 +383,199 @@ fun RequestVerificationScreen(
                             text = stringResource(R.string.request_verification_generate_link),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (pendingList.value.isNotEmpty()) {
+                        FloatingItemList(title = stringResource(R.string.request_verification_pending_heading)) {
+                            for (item in pendingList.value) {
+                                FloatingItemHeadingAndContent(
+                                    modifier = Modifier.clickable {
+                                        coroutineScope.launch {
+                                            try {
+                                                val origin = walletClient.getVerificationLinkOrigin()
+                                                val link = "$origin/web/verify?request=${item.requestId}#${item.requestEncryptionKey.toByteArray().toBase64Url()}"
+                                                val shareIntent = Intent().apply {
+                                                    action = Intent.ACTION_SEND
+                                                    putExtra(Intent.EXTRA_TEXT, link)
+                                                    type = "text/plain"
+                                                }
+                                                context.startActivity(Intent.createChooser(shareIntent, null))
+                                            } catch (e: Exception) {
+                                                Logger.e(TAG, "Failed to share pending link", e)
+                                                showToast("Failed to share link: ${e.message}")
+                                            }
+                                        }
+                                    },
+                                    image = {
+                                        Icon(
+                                            modifier = Modifier.size(48.dp),
+                                            imageVector = Icons.Outlined.Link,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            contentDescription = stringResource(R.string.content_description_link)
+                                        )
+                                    },
+                                    heading = item.query.getDisplayName(),
+                                    content = {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.request_verification_link_expires,
+                                                durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis + 1.hours.inWholeMilliseconds))
+                                            ),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                onDeletePendingVerificationClicked(item.requestId)
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Delete,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                contentDescription = stringResource(R.string.content_description_delete)
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (completedList.value.isNotEmpty()) {
+                        FloatingItemList(title = stringResource(R.string.request_verification_completed_heading)) {
+                            for (item in completedList.value) {
+                                val data = completedItemsData[item.requestId]
+                                val isTrusted = data?.queryResult?.documents?.firstOrNull()?.trustResult?.isTrusted ?: true
+                                val isAgeOver = (data?.queryResult?.documents?.firstOrNull() as? AgeOverDocumentQueryResult)?.isAgeOver
+                                FloatingItemHeadingAndContent(
+                                    modifier = Modifier.clickable {
+                                        if (data != null) {
+                                            onViewVerificationClicked(
+                                                item.query,
+                                                data.presentmentRecord,
+                                                !isTrusted
+                                            )
+                                        } else {
+                                            coroutineScope.launch {
+                                                try {
+                                                    val decryptedResponse = item.decryptResponse()
+                                                    val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
+                                                    val presentmentRecord = item.session.processDcResponse(
+                                                        dcResponse = dcResponse
+                                                    )
+                                                    onViewVerificationClicked(
+                                                        item.query,
+                                                        presentmentRecord,
+                                                        false
+                                                    )
+                                                } catch (e: Exception) {
+                                                    Logger.e(TAG, "Failed to load response details", e)
+                                                }
+                                            }
+                                        }
+                                    },
+                                    image = {
+                                        if (!isTrusted) {
+                                            Icon(
+                                                modifier = Modifier.size(48.dp),
+                                                imageVector = Icons.Outlined.ErrorOutline,
+                                                tint = MaterialTheme.colorScheme.error,
+                                                contentDescription = stringResource(R.string.content_description_error)
+                                            )
+                                        } else if (data?.portrait != null) {
+                                            Image(
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .clip(RoundedCornerShape(8.dp)),
+                                                bitmap = data.portrait,
+                                                contentDescription = stringResource(R.string.content_description_portrait),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Icon(
+                                                modifier = Modifier.size(48.dp),
+                                                imageVector = Icons.Outlined.Link,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                contentDescription = stringResource(R.string.content_description_link)
+                                            )
+                                        }
+                                    },
+                                    heading = if (isTrusted) {
+                                        when (val q = item.query) {
+                                            is AgeOverQuery -> {
+                                                if (isAgeOver == false) {
+                                                    stringResource(R.string.verification_show_response_age_over_failure, q.ageOver)
+                                                } else {
+                                                    stringResource(R.string.verification_show_response_age_over_success, q.ageOver)
+                                                }
+                                            }
+                                            is IdentificationQuery -> stringResource(R.string.request_verification_identified)
+                                            else -> q.getDisplayName()
+                                        }
+                                    } else {
+                                        item.query.getDisplayName()
+                                    },
+                                    content = {
+                                        val durationText = durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis))
+                                        val text = if (!isTrusted) {
+                                            stringResource(R.string.request_verification_received_unknown_issuer, durationText)
+                                        } else {
+                                            stringResource(R.string.request_verification_received, durationText)
+                                        }
+                                        Text(
+                                            text = text,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    trailingContent = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    onDeleteCompletedVerificationClicked(item.requestId)
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Delete,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    contentDescription = stringResource(R.string.content_description_delete)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(
+                                                modifier = Modifier.size(24.dp),
+                                                imageVector = Icons.Outlined.ChevronRight,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+ 
+                    if (pendingList.value.isEmpty() && completedList.value.isEmpty()) {
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Text(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            text = stringResource(R.string.request_verification_no_requests),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -437,7 +745,7 @@ private fun ScanNfcButton(
             ButtonDefaults.outlinedButtonColors(contentColor = color)
         } ?: ButtonDefaults.outlinedButtonColors(),
         border = color?.let {
-            androidx.compose.foundation.BorderStroke(1.dp, color)
+            BorderStroke(1.dp, color)
         } ?: ButtonDefaults.outlinedButtonBorder()
     ) {
         Icon(

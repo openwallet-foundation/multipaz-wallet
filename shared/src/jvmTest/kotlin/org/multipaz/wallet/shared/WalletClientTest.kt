@@ -371,6 +371,46 @@ class WalletClientTest {
     }
 
     @Test
+    fun getVerificationLinkOrigin() = runTest {
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
+        assertEquals(BuildConfig.BACKEND_URL, client.getVerificationLinkOrigin())
+    }
+
+    @Test
+    fun verificationResponseIsolation() = runTest {
+        val clientStorageA = EphemeralStorage()
+        val clientSecureAreaA = SoftwareSecureArea.create(clientStorageA)
+        val clientA = createWalletClientBase(clientStorageA, clientSecureAreaA)
+
+        val clientStorageB = EphemeralStorage()
+        val clientSecureAreaB = SoftwareSecureArea.create(clientStorageB)
+        val clientB = createWalletClientBase(clientStorageB, clientSecureAreaB)
+
+        val webClientStorage = EphemeralStorage()
+        val webClientSecureArea = SoftwareSecureArea.create(webClientStorage)
+        val webClient = createWalletClientBase(webClientStorage, webClientSecureArea)
+
+        val payloadA = ByteString(1, 2, 3)
+        val result = clientA.createVerificationLink(payloadA)
+        val requestId = result.requestId
+
+        val fetchedPayload = webClient.getVerificationPayload(requestId)
+        assertEquals(payloadA, fetchedPayload)
+
+        val responsePayload = ByteString(9, 9, 9)
+        webClient.submitVerificationResponse(requestId, responsePayload)
+
+        assertFailsWith(IllegalStateException::class) {
+            clientB.getVerificationResponse(requestId)
+        }
+
+        val fetchedResponse = clientA.getVerificationResponse(requestId)
+        assertEquals(responsePayload, fetchedResponse)
+    }
+
+    @Test
     fun signedInDataPersists() = runTest {
         val fooUser = WalletClientSignedInUser(
             id = "foo@gmail.com",

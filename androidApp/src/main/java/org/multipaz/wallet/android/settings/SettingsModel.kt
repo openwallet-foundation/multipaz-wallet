@@ -144,6 +144,7 @@ class SettingsModel private constructor(
         bind(eventLoggingLocationEnabled, "eventLoggingLocationEnabled", true)
         bind(provisioningServerUrl, "provisioningServerUrl", DEFAULT_PROVISIONING_SERVER_URL)
         bind(readerQuery, "readerQuery", IdentificationQuery(false))
+        bind(verificationIsInPerson, "verificationIsInPerson", true)
     }
 
     val explicitlySignedOut = MutableStateFlow<Boolean>(false)
@@ -154,4 +155,5 @@ class SettingsModel private constructor(
     val eventLoggingLocationEnabled = MutableStateFlow<Boolean>(false)
     val provisioningServerUrl = MutableStateFlow<String>(DEFAULT_PROVISIONING_SERVER_URL)
     val readerQuery = MutableStateFlow<Query>(IdentificationQuery(false))
+    val verificationIsInPerson = MutableStateFlow<Boolean>(true)
 }
