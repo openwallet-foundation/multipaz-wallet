@@ -340,8 +340,13 @@ class ViewModel {
         })
     }
     
+    private var presentmentSource: PresentmentSource? = nil
+
     func getSource() -> PresentmentSource {
-        return SimplePresentmentSource.companion.create(
+        if let presentmentSource = self.presentmentSource {
+            return presentmentSource
+        }
+        let source = SimplePresentmentSource.companion.create(
             documentStore: documentStore,
             documentTypeRepository: documentTypeRepository,
             zkSystemRepository: nil,
@@ -375,6 +380,8 @@ class ViewModel {
             preferSignatureToKeyAgreement: false,
             domainsMdocSignature: ["mdoc"],
         )
+        self.presentmentSource = source
+        return source
     }
 }
 
