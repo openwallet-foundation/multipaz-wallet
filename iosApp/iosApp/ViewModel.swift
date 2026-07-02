@@ -332,7 +332,8 @@ class ViewModel {
             validUntil: validUntil.toKotlinInstant().truncateToWholeSeconds(),
             expectedUpdate: nil,
             domain: "mdoc",
-            randomProvider: KotlinRandom.companion
+            randomProvider: KotlinRandom.companion,
+            includeElement: { _, _ in KotlinBoolean(value: true) }
         )
         try! await document.edit(editActionFn: { editor in
             editor.provisioned = true
@@ -345,21 +346,27 @@ class ViewModel {
             documentTypeRepository: documentTypeRepository,
             zkSystemRepository: nil,
             resolveTrustFn: { requester in
-                if let certChain = requester.certChain {
+                for identity in requester.requesterIdentities {
+                    let certChain = identity.certChain
                     let result = try! await self.readerTrustManager.verify(
                         chain: certChain.certificates,
                         atTime: KotlinClockCompanion().getSystem().now()
                     )
                     if result.isTrusted {
-                        return result.trustPoints.first?.metadata
+                        if let trustPoint = result.trustPoints.first {
+                            return TrustedRequesterIdentity(
+                                identity: identity,
+                                trustMetadata: trustPoint.metadata
+                            )
+                        }
                     }
                 }
                 return nil
             },
-            showConsentPromptFn: { requester, trustMetadata, consentData, preselectedDocuments, onDocumentsInFocus in
+            showConsentPromptFn: { requester, trustedRequesterIdentity, consentData, preselectedDocuments, onDocumentsInFocus in
                 try! await promptModelRequestConsent(
                     requester: requester,
-                    trustMetadata: trustMetadata,
+                    trustedRequesterIdentity: trustedRequesterIdentity,
                     consentData: consentData,
                     preselectedDocuments: preselectedDocuments,
                     onDocumentsInFocus: { documents in onDocumentsInFocus(documents) }
