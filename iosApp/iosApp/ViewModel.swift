@@ -55,13 +55,12 @@ class ViewModel {
     func load() async {
         PromptModel.Companion.shared.setGlobal(promptModel: promptModel)
         
-        //storage = IosStorage(
-        //    storageFileUrl: FileManager.default.containerURL(
-        //        forSecurityApplicationGroupIdentifier: "group.org.multipaz.SwiftTestApp")!
-        //        .appendingPathComponent("storage.db"),
-        //    excludeFromBackup: true
-        //)
-        storage = Platform.shared.nonBackedUpStorage
+        storage = IosStorage(
+            storageFileUrl: FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: "group.org.multipaz.wallet.ios")!
+                .appendingPathComponent("storage.db"),
+            excludeFromBackup: true
+        )
         secureArea = try! await Platform.shared.getSecureArea(storage: storage)
         
         walletClient =  try! await WalletClient.companion.create(
@@ -269,87 +268,20 @@ class ViewModel {
         isLoading = false
     }
     
-    func addSelfsignedMdoc(
-        documentType: DocumentType,
-        displayName: String,
-        typeDisplayName: String,
-        cardArtResourceName: String,
-    ) async {
-        let now = Date.now
-        let signedAt = now
-        let validFrom = now
-        let validUntil = Calendar.current.date(byAdding: .year, value: 1, to: validFrom)!
-        let iacaKey = try! await Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-        let iacaCert = try! await MdocUtil.shared.generateIacaCertificate(
-            iacaKey: AsymmetricKey.AnonymousExplicit(privateKey: iacaKey, algorithm: Algorithm.esp256),
-            subject: X500Name.companion.fromName(name: "CN=Test IACA Key"),
-            serial: ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
-            validFrom: validFrom.toKotlinInstant().truncateToWholeSeconds(),
-            validUntil: validUntil.toKotlinInstant().truncateToWholeSeconds(),
-            issuerAltNameUrl: "https://issuer.example.com",
-            crlUrl: "https://issuer.example.com/crl"
-        )
-        let dsKey = try! await Crypto.shared.createEcPrivateKey(curve: EcCurve.p256)
-        let dsCert = try! await MdocUtil.shared.generateDsCertificate(
-            iacaKey: AsymmetricKey.X509CertifiedExplicit(
-                certChain: X509CertChain(certificates: [iacaCert]),
-                privateKey: dsKey,
-                algorithm: Algorithm.esp256
-            ),
-            dsKey: dsKey.publicKey,
-            subject: X500Name.companion.fromName(name: "CN=Test DS Key"),
-            serial:  ASN1Integer.companion.fromRandom(numBits: 128, random: KotlinRandom.companion),
-            validFrom: validFrom.toKotlinInstant().truncateToWholeSeconds(),
-            validUntil: validUntil.toKotlinInstant().truncateToWholeSeconds(),
-        )
-        let document = try! await documentStore.createDocument(
-            displayName: displayName,
-            typeDisplayName: typeDisplayName,
-            cardArt: nil, //UIImage(named: cardArtResourceName)!.pngData()!.toByteString(),
-            issuerLogo: nil,
-            authorizationData: nil,
-            created: now.toKotlinInstant(),
-            metadata: nil
-        )
-        let _ = try! await documentType.createMdocCredentialWithSampleData(
-            document: document,
-            secureArea: secureArea,
-            createKeySettings: CreateKeySettings(
-                algorithm: Algorithm.esp256,
-                nonce: ByteStringBuilder(initialCapacity: 3).appendString(string: "123").toByteString(),
-                userAuthenticationRequired: true,
-                userAuthenticationTimeout: 0,
-                validFrom: nil,
-                validUntil: nil
-            ),
-            dsKey: AsymmetricKey.X509CertifiedExplicit(
-                certChain: X509CertChain(certificates: [dsCert]),
-                privateKey: dsKey,
-                algorithm: Algorithm.esp256
-            ),
-            signedAt: signedAt.toKotlinInstant().truncateToWholeSeconds(),
-            validFrom: validFrom.toKotlinInstant().truncateToWholeSeconds(),
-            validUntil: validUntil.toKotlinInstant().truncateToWholeSeconds(),
-            expectedUpdate: nil,
-            domain: "mdoc",
-            randomProvider: KotlinRandom.companion,
-            includeElement: { _, _ in KotlinBoolean(value: true) }
-        )
-        try! await document.edit(editActionFn: { editor in
-            editor.provisioned = true
-        })
-    }
-    
     private var presentmentSource: PresentmentSource? = nil
 
     func getSource() -> PresentmentSource {
         if let presentmentSource = self.presentmentSource {
             return presentmentSource
         }
+        let zkSystemRepository = ZkSystemRepository()
+        let longfellow = LongfellowZkSystem()
+        longfellow.addDefaultCircuits()
+        zkSystemRepository.add(zkSystem: longfellow)
         let source = SimplePresentmentSource.companion.create(
             documentStore: documentStore,
             documentTypeRepository: documentTypeRepository,
-            zkSystemRepository: nil,
+            zkSystemRepository: zkSystemRepository,
             resolveTrustFn: { requester in
                 for identity in requester.requesterIdentities {
                     let certChain = identity.certChain
@@ -377,8 +309,11 @@ class ViewModel {
                     onDocumentsInFocus: { documents in onDocumentsInFocus(documents) }
                 )
             },
-            preferSignatureToKeyAgreement: false,
-            domainsMdocSignature: ["mdoc"],
+            preferSignatureToKeyAgreement: true,
+            domainsMdocSignature: [ Domains.shared.DOMAIN_MDOC_USER_AUTH, Domains.shared.DOMAIN_MDOC_SOFTWARE ],
+            domainsMdocKeyAgreement: [],
+            domainsKeylessSdJwt: [ Domains.shared.DOMAIN_SDJWT_KEYLESS, Domains.shared.DOMAIN_SDJWT_SOFTWARE ],
+            domainsKeyBoundSdJwt: [ Domains.shared.DOMAIN_SDJWT_USER_AUTH, Domains.shared.DOMAIN_SDJWT_SOFTWARE ]
         )
         self.presentmentSource = source
         return source

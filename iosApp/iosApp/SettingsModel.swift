@@ -19,12 +19,19 @@ class SettingsModel {
         }
     }
     
+    var provisioningServerUrl: String {
+        didSet {
+            defaults.set(provisioningServerUrl, forKey: "provisioningServerUrl")
+        }
+    }
+    
     // MARK: - Initialization
     
     init() {
         // UserDefaults synchronously loads data, so no async factory method is needed.
         self.explicitlySignedOut = defaults.bool(forKey: "explicitlySignedOut")
         self.devMode = defaults.bool(forKey: "devMode")
+        self.provisioningServerUrl = defaults.string(forKey: "provisioningServerUrl") ?? "https://issuer.multipaz.org/issuer"
     }
     
     // MARK: - Methods
@@ -32,6 +39,7 @@ class SettingsModel {
     func resetSettings() {
         explicitlySignedOut = false
         devMode = false
+        provisioningServerUrl = "https://issuer.multipaz.org/issuer"
     }
     
 }

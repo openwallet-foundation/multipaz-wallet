@@ -12,10 +12,64 @@
 				<string>com.googleusercontent.apps.1016113070986-9545skqs0pibjivf8u39ibepa3739h2u</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.credential-offer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>openid-credential-offer</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.haip-vci</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>haip-vci</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.haip-vp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>haip-vp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.openid.vp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>openid4vp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.multipaz.iso.mdoc</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mdoc</string>
+			</array>
+		</dict>
 	</array>
 	<key>GIDClientID</key>
 	<string>1016113070986-9545skqs0pibjivf8u39ibepa3739h2u.apps.googleusercontent.com</string>
 	<key>GIDServerClientID</key>
 	<string>1016113070986-54k257ap3h8hc40qm9kbl5lmhppjfel1.apps.googleusercontent.com</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING)</string>
+	<key>CFBundleName</key>
+	<string>$(MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING)</string>
 </dict>
 </plist>

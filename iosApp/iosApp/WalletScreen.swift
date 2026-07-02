@@ -13,7 +13,8 @@ struct WalletScreen: View {
         let focusedDocument = viewModel.documentModel.documentInfos.first {
             $0.document.identifier == documentId
         }
-        VStack {
+        ZStack(alignment: .bottom) {
+            VStack {
             VerticalCardList(
                 cardInfos: viewModel.documentModel.documentInfos,
                 focusedCard: focusedDocument,
@@ -107,6 +108,12 @@ struct WalletScreen: View {
                     }
                 }
             )
+            }
+            
+            if viewModel.verticalCardListState.internalFocusedCardIdentifier == nil {
+                floatingMenuBar
+                    .padding(.bottom, 16)
+            }
         }
         .id(documentId ?? "root")
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -152,26 +159,21 @@ struct WalletScreen: View {
                             .font(.body.bold())
                     }
                     .transition(.opacity)
+                } else {
+                    Image("AppLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 32, height: 32)
                 }
             }
+            .sharedBackgroundVisibility(
+                viewModel.verticalCardListState.internalFocusedCardIdentifier == nil ? .hidden : .automatic
+            )
             if viewModel.verticalCardListState.internalFocusedCardIdentifier == nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: {
-                        Task {
-                            await viewModel.addSelfsignedMdoc(
-                                documentType: DrivingLicense.shared.getDocumentType(locale: currentLocale),
-                                displayName: "Test Driving License",
-                                typeDisplayName: "Driving License",
-                                cardArtResourceName: ""
-                            )
-                        }
-                    }) {
-                        Image(systemName: "plus")
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     avatarButton
                 }
+                .sharedBackgroundVisibility(.hidden)
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
@@ -182,6 +184,7 @@ struct WalletScreen: View {
                         Image(systemName: "qrcode")
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
     }
@@ -205,5 +208,39 @@ struct WalletScreen: View {
                     .frame(width: 32.0, height: 32.0)
             }
         }
+    }
+    
+    private var floatingMenuBar: some View {
+        HStack(spacing: 0) {
+            Button(action: {
+                viewModel.push(.requestVerification)
+            }) {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 56, height: 48)
+            }
+            
+            Divider()
+                .frame(height: 24)
+                .background(Color.primary.opacity(0.15))
+            
+            Button(action: {
+                viewModel.push(.addToWallet)
+            }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 56, height: 48)
+            }
+        }
+        .padding(.horizontal, 8)
+        .background(.ultraThinMaterial)
+        .cornerRadius(24)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
+        )
+        .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
     }
 }

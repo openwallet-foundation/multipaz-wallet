@@ -33,6 +33,14 @@ struct ContentView: View {
                                 CredentialInfoScreen(documentId: documentId, credentialId: credentialId)
                             case .proximityPresentment(let documentId):
                                 ProximityPresentmentScreen(documentId: documentId)
+                            case .addToWallet:
+                                AddToWalletScreen()
+                            case .provisioning(let issuerUrl, let credentialId):
+                                ProvisioningScreen(issuerUrl: issuerUrl, credentialId: credentialId)
+                            case .provisioningFromOffer(let credentialOfferUri):
+                                ProvisioningScreen(credentialOfferUri: credentialOfferUri)
+                            case .requestVerification:
+                                RequestVerificationScreen()
                             }
                         }
                 }
@@ -59,6 +67,18 @@ struct ContentView: View {
                     print("refreshReaderKeys() on start-up failed: \(error)")
                 }
                  */
+            }
+        }
+        .onOpenURL { url in
+            let urlString = url.absoluteString
+            if urlString.hasPrefix("openid-credential-offer://") || urlString.hasPrefix("haip-vci://") {
+                viewModel.push(.provisioningFromOffer(credentialOfferUri: urlString))
+            } else if urlString.hasPrefix(viewModel.walletClient.appLinkBaseUrl) {
+                Task {
+                    try? await viewModel.walletClient.processAppLinkInvocation(url: urlString)
+                }
+            } else {
+                print("Unhandled URL: \(urlString)")
             }
         }
     }

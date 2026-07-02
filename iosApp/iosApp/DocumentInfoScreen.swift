@@ -65,6 +65,7 @@ struct DocumentInfoScreen: View {
                     Image(systemName: "flask")
                 }
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
     

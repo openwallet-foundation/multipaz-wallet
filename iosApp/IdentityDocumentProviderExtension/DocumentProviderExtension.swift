@@ -1,0 +1,93 @@
+import ExtensionKit
+import IdentityDocumentServices
+import IdentityDocumentServicesUI
+import SwiftUI
+@preconcurrency import Multipaz
+import Multipaz
+
+func getPresentmentSource() async -> PresentmentSource {
+    let storage = IosStorage(
+        storageFileUrl: FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.org.multipaz.wallet.ios")!
+            .appendingPathComponent("storage.db"),
+        excludeFromBackup: true
+    )
+    let secureArea = try! await Platform.shared.getSecureArea(storage: storage)
+    let softwareSecureArea = try! await SoftwareSecureArea.companion.create(storage: storage)
+    let secureAreaRepository = SecureAreaRepository.Builder()
+        .add(secureArea: secureArea)
+        .add(secureArea: softwareSecureArea)
+        .build()
+    let documentTypeRepository = DocumentTypeRepository()
+    documentTypeRepository.addKnownTypes(locale: LocalizedStrings.shared.getCurrentLocale())
+    let documentStore = DocumentStore.Builder(
+        storage: storage,
+        secureAreaRepository: secureAreaRepository
+    ).build()
+    
+    let readerTrustManager = TrustManager(storage: storage, identifier: "default", partitionId: "default_default")
+    
+    let zkSystemRepository = ZkSystemRepository()
+    // Note: the RAM limit for IdentityDocumentProvider is 120 MB as of iOS 26 and
+    //   Longfellow v0.9 uses around ~200MB. So until Apple increases the RAM limit
+    //   for this extension ZKP will likely not work.
+    //
+    let longfellow = LongfellowZkSystem()
+    longfellow.addDefaultCircuits()
+    zkSystemRepository.add(zkSystem: longfellow)
+    return SimplePresentmentSource.companion.create(
+        documentStore: documentStore,
+        documentTypeRepository: documentTypeRepository,
+        zkSystemRepository: zkSystemRepository,
+        resolveTrustFn: { requester in
+            for requesterIdentity in requester.requesterIdentities {
+                let certChain = requesterIdentity.certChain
+                let result = try! await readerTrustManager.verify(
+                    chain: certChain.certificates,
+                    atTime: KotlinClockCompanion().getSystem().now()
+                )
+                if result.isTrusted && result.trustPoints.first != nil {
+                    return TrustedRequesterIdentity(
+                        identity: requesterIdentity,
+                        trustMetadata: result.trustPoints.first!.metadata
+                    )
+                }
+            }
+            return nil
+        },
+        showConsentPromptFn: { requester, trustedRequesterIdentity, consentData, preselectedDocuments, onDocumentsInFocus in
+            try! await promptModelSilentConsent(
+                requester: requester,
+                trustedRequesterIdentity: trustedRequesterIdentity,
+                consentData: consentData,
+                preselectedDocuments: preselectedDocuments,
+                onDocumentsInFocus: { documents in onDocumentsInFocus(documents) }
+            )
+        },
+        preferSignatureToKeyAgreement: true,
+        domainsMdocSignature: [ Domains.shared.DOMAIN_MDOC_USER_AUTH, Domains.shared.DOMAIN_MDOC_SOFTWARE ],
+        domainsMdocKeyAgreement: [],
+        domainsKeylessSdJwt: [ Domains.shared.DOMAIN_SDJWT_KEYLESS, Domains.shared.DOMAIN_SDJWT_SOFTWARE ],
+        domainsKeyBoundSdJwt: [ Domains.shared.DOMAIN_SDJWT_USER_AUTH, Domains.shared.DOMAIN_SDJWT_SOFTWARE ]
+    )
+}
+
+@main
+struct DocumentProviderExtension: IdentityDocumentProvider {
+
+    var body: some IdentityDocumentRequestScene {
+        ISO18013MobileDocumentRequestScene { context in
+            RequestAuthorizationView(
+                requestContext: context,
+                getPresentmentSource: {
+                    return await getPresentmentSource()
+                }
+            )
+        }
+    }
+
+    func performRegistrationUpdates() async {
+        
+    }
+}
+

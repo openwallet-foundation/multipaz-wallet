@@ -10,6 +10,7 @@
 		51A18EBE2F70FD9D0050476D /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 51A18EBD2F70FD9D0050476D /* GoogleSignIn */; };
 		51A18EC02F70FD9D0050476D /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 51A18EBF2F70FD9D0050476D /* GoogleSignInSwift */; };
 		7B2468A82F7193D30018E778 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 7B2468A72F7193D30018E778 /* Multipaz */; };
+		7B28110B2FF6EE7200BAAD14 /* IdentityDocumentProviderExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,13 +28,35 @@
 			remoteGlobalIDString = 512890EF2F7041B90001CB22;
 			remoteInfo = iosApp;
 		};
+		7B2811092FF6EE7200BAAD14 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 512890E82F7041B90001CB22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7B2811032FF6EE7100BAAD14;
+			remoteInfo = IdentityDocumentProviderExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7B28110C2FF6EE7200BAAD14 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				7B28110B2FF6EE7200BAAD14 /* IdentityDocumentProviderExtension.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		512890F02F7041B90001CB22 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		512890FD2F7041BB0001CB22 /* iosAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		512891072F7041BB0001CB22 /* iosAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B2468A22F71933E0018E778 /* shared.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = shared.xcframework; path = ../shared/build/XCFrameworks/release/shared.xcframework; sourceTree = "<group>"; };
+		7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = IdentityDocumentProviderExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -43,6 +66,13 @@
 				Info.plist,
 			);
 			target = 512890EF2F7041B90001CB22 /* iosApp */;
+		};
+		7B2811102FF6EE7200BAAD14 /* Exceptions for "IdentityDocumentProviderExtension" folder in "IdentityDocumentProviderExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7B2811032FF6EE7100BAAD14 /* IdentityDocumentProviderExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -63,6 +93,14 @@
 		5128910A2F7041BB0001CB22 /* iosAppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = iosAppUITests;
+			sourceTree = "<group>";
+		};
+		7B2811052FF6EE7200BAAD14 /* IdentityDocumentProviderExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7B2811102FF6EE7200BAAD14 /* Exceptions for "IdentityDocumentProviderExtension" folder in "IdentityDocumentProviderExtension" target */,
+			);
+			path = IdentityDocumentProviderExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -92,6 +130,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7B2811012FF6EE7100BAAD14 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -101,6 +146,7 @@
 				512890F22F7041B90001CB22 /* iosApp */,
 				512891002F7041BB0001CB22 /* iosAppTests */,
 				5128910A2F7041BB0001CB22 /* iosAppUITests */,
+				7B2811052FF6EE7200BAAD14 /* IdentityDocumentProviderExtension */,
 				513CB7752F705CC2004CF8F7 /* Frameworks */,
 				512890F12F7041B90001CB22 /* Products */,
 			);
@@ -112,6 +158,7 @@
 				512890F02F7041B90001CB22 /* iosApp.app */,
 				512890FD2F7041BB0001CB22 /* iosAppTests.xctest */,
 				512891072F7041BB0001CB22 /* iosAppUITests.xctest */,
+				7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,10 +181,12 @@
 				512890EC2F7041B90001CB22 /* Sources */,
 				512890ED2F7041B90001CB22 /* Frameworks */,
 				512890EE2F7041B90001CB22 /* Resources */,
+				7B28110C2FF6EE7200BAAD14 /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7B28110A2FF6EE7200BAAD14 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				512890F22F7041B90001CB22 /* iosApp */,
@@ -198,6 +247,28 @@
 			productReference = 512891072F7041BB0001CB22 /* iosAppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		7B2811032FF6EE7100BAAD14 /* IdentityDocumentProviderExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B28110F2FF6EE7200BAAD14 /* Build configuration list for PBXNativeTarget "IdentityDocumentProviderExtension" */;
+			buildPhases = (
+				7B2811002FF6EE7100BAAD14 /* Sources */,
+				7B2811012FF6EE7100BAAD14 /* Frameworks */,
+				7B2811022FF6EE7100BAAD14 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				7B2811052FF6EE7200BAAD14 /* IdentityDocumentProviderExtension */,
+			);
+			name = IdentityDocumentProviderExtension;
+			packageProductDependencies = (
+			);
+			productName = IdentityDocumentProviderExtension;
+			productReference = 7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -205,7 +276,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					512890EF2F7041B90001CB22 = {
@@ -218,6 +289,9 @@
 					512891062F7041BB0001CB22 = {
 						CreatedOnToolsVersion = 26.0.1;
 						TestTargetID = 512890EF2F7041B90001CB22;
+					};
+					7B2811032FF6EE7100BAAD14 = {
+						CreatedOnToolsVersion = 26.1.1;
 					};
 				};
 			};
@@ -242,6 +316,7 @@
 				512890EF2F7041B90001CB22 /* iosApp */,
 				512890FC2F7041BB0001CB22 /* iosAppTests */,
 				512891062F7041BB0001CB22 /* iosAppUITests */,
+				7B2811032FF6EE7100BAAD14 /* IdentityDocumentProviderExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -262,6 +337,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		512891052F7041BB0001CB22 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7B2811022FF6EE7100BAAD14 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -292,6 +374,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7B2811002FF6EE7100BAAD14 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -304,6 +393,11 @@
 			isa = PBXTargetDependency;
 			target = 512890EF2F7041B90001CB22 /* iosApp */;
 			targetProxy = 512891082F7041BB0001CB22 /* PBXContainerItemProxy */;
+		};
+		7B28110A2FF6EE7200BAAD14 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7B2811032FF6EE7100BAAD14 /* IdentityDocumentProviderExtension */;
+			targetProxy = 7B2811092FF6EE7200BAAD14 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -434,6 +528,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = VKE2G3K56V;
@@ -452,6 +547,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING = "$(MULTIPAZ_WALLET_APP_NAME:default=Multipaz Wallet Dev)";
 				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -469,6 +565,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = VKE2G3K56V;
@@ -487,6 +584,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING = "$(MULTIPAZ_WALLET_APP_NAME:default=Multipaz Wallet Dev)";
 				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -583,6 +681,66 @@
 			};
 			name = Release;
 		};
+		7B28110D2FF6EE7200BAAD14 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VKE2G3K56V;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IdentityDocumentProviderExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = IdentityDocumentProviderExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp.IdentityDocumentProviderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7B28110E2FF6EE7200BAAD14 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VKE2G3K56V;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IdentityDocumentProviderExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = IdentityDocumentProviderExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp.IdentityDocumentProviderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -618,6 +776,15 @@
 			buildConfigurations = (
 				512891182F7041BB0001CB22 /* Debug */,
 				512891192F7041BB0001CB22 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7B28110F2FF6EE7200BAAD14 /* Build configuration list for PBXNativeTarget "IdentityDocumentProviderExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7B28110D2FF6EE7200BAAD14 /* Debug */,
+				7B28110E2FF6EE7200BAAD14 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
