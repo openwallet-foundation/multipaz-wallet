@@ -21,6 +21,7 @@ import org.multipaz.verification.VerificationSession
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.verification.VerifierIdentity
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.hours
@@ -98,16 +99,21 @@ suspend fun generateVerificationLink(
         return "x509_san_dns:$ret"
     }
 
+    val verifierIdentities = if (readerAuthKey != null) {
+        listOf(VerifierIdentity(readerAuthKey, getClientIdFromOrigin(origin)))
+    } else {
+        emptyList()
+    }
+
     val openIdRequest = VerificationSession.DcOpenID4VPRequest(
         requestorId = origin,
         responseEncryptionKey = responseEncryptionKey,
         openID4VPRequest = OpenID4VP.generateRequest(
             version = OpenID4VP.Version.DRAFT_29,
             origin = origin,
-            clientId = getClientIdFromOrigin(origin),
             nonce = nonce.toByteArray().toBase64Url(),
             responseEncryptionKey = responseEncryptionKey.publicKey,
-            requestSigningKey = readerAuthKey,
+            verifierIdentities = verifierIdentities,
             responseMode = OpenID4VP.ResponseMode.DC_API,
             responseUri = null,
             dcqlQuery = DeviceRequest.fromDataItem(deviceRequest).toDcql(),

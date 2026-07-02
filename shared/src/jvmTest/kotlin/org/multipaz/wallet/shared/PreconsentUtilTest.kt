@@ -9,6 +9,7 @@ import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.openid.dcql.DcqlQuery
 import org.multipaz.request.Requester
+import org.multipaz.request.Iso18013RequesterIdentity
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.wallet.client.DocumentPreconsentApprovedReader
 import org.multipaz.wallet.client.DocumentPreconsentSetting
@@ -99,7 +100,7 @@ class PreconsentUtilTest {
         
         assertEquals(
             null,
-            cpd.checkPreconsent(requester = Requester())
+            cpd.checkPreconsent(requester = Requester(emptyList()))
         )
     }
 
@@ -115,7 +116,7 @@ class PreconsentUtilTest {
         
         assertEquals(
             harness.docMdl.identifier,
-            cpd.checkPreconsent(requester = Requester())?.matches?.firstOrNull()?.credential?.document?.identifier
+            cpd.checkPreconsent(requester = Requester(emptyList()))?.matches?.firstOrNull()?.credential?.document?.identifier
         )
     }
 
@@ -132,14 +133,14 @@ class PreconsentUtilTest {
         ))
         assertEquals(
             harness.docMdl.identifier,
-            cpd1.checkPreconsent(requester = Requester())?.matches?.firstOrNull()?.credential?.document?.identifier
+            cpd1.checkPreconsent(requester = Requester(emptyList()))?.matches?.firstOrNull()?.credential?.document?.identifier
         )
 
         // 2. Complexity doesn't match (age + name)
         val cpd2 = ageAndNameQuery().execute(presentmentSource = harness.presentmentSource)
         assertEquals(
             null,
-            cpd2.checkPreconsent(requester = Requester())
+            cpd2.checkPreconsent(requester = Requester(emptyList()))
         )
     }
 
@@ -166,7 +167,7 @@ class PreconsentUtilTest {
         assertEquals(
             harness.docMdl.identifier,
             cpd.checkPreconsent(requester = Requester(
-                certChain = harness.readerRootKey.certChain
+                requesterIdentities = listOf(Iso18013RequesterIdentity(harness.readerRootKey.certChain))
             ))?.matches?.firstOrNull()?.credential?.document?.identifier
         )
 
@@ -184,7 +185,7 @@ class PreconsentUtilTest {
         assertEquals(
             null,
             cpd.checkPreconsent(requester = Requester(
-                certChain = X509CertChain(listOf(otherReaderRootCert))
+                requesterIdentities = listOf(Iso18013RequesterIdentity(X509CertChain(listOf(otherReaderRootCert))))
             ))
         )
     }
@@ -232,7 +233,7 @@ class PreconsentUtilTest {
         harness.docMdl.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
         harness.docPhotoId.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
         
-        val selection = cpd.checkPreconsent(requester = Requester())
+        val selection = cpd.checkPreconsent(requester = Requester(emptyList()))
         assertEquals(1, selection?.matches?.size)
         assertEquals(harness.docMdl.identifier, selection?.matches?.firstOrNull()?.credential?.document?.identifier)
     }
@@ -270,7 +271,7 @@ class PreconsentUtilTest {
         assertEquals(
             null,
             cpd.checkPreconsent(
-                requester = Requester(),
+                requester = Requester(emptyList()),
                 domainRewriter = { "mdoc_noauth" }
             )
         )
@@ -281,7 +282,7 @@ class PreconsentUtilTest {
         harness.docPhotoId2.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
 
         val selection = cpd.checkPreconsent(
-            requester = Requester(),
+            requester = Requester(emptyList()),
             domainRewriter = { "mdoc_noauth" }
         )
         
@@ -348,7 +349,7 @@ class PreconsentUtilTest {
 
         // 1. Chain contains root -> should match (direct match or root match)
         val result1 = cpd.checkPreconsent(requester = Requester(
-            certChain = X509CertChain(listOf(leafCert, rootCert))
+            requesterIdentities = listOf(Iso18013RequesterIdentity(X509CertChain(listOf(leafCert, rootCert))))
         ))
         assertNotNull(result1, "Result 1 should not be null")
         assertEquals(
@@ -358,7 +359,7 @@ class PreconsentUtilTest {
 
         // 2. Chain only contains leaf -> should match via AKI
         val result2 = cpd.checkPreconsent(requester = Requester(
-            certChain = X509CertChain(listOf(leafCert))
+            requesterIdentities = listOf(Iso18013RequesterIdentity(X509CertChain(listOf(leafCert))))
         ))
         assertNotNull(result2, "Result 2 should not be null")
         assertEquals(
@@ -381,6 +382,8 @@ class PreconsentUtilTest {
         }
         throw NoSuchFieldException("usageCount")
     }
+
+
 
     @Test
     fun testDomainRewriter_UsageCount() = runTest {
@@ -414,7 +417,7 @@ class PreconsentUtilTest {
         val query = ageQuery()
         val cpd = query.execute(presentmentSource = harness.presentmentSource)
         
-        val selection = cpd.checkPreconsent(requester = Requester())
+        val selection = cpd.checkPreconsent(requester = Requester(emptyList()))
         assertNotNull(selection)
         assertEquals(cred2.identifier, selection.matches.first().credential.identifier)
         assertEquals(5, selection.matches.first().credential.usageCount)
@@ -422,7 +425,7 @@ class PreconsentUtilTest {
         // Swap usage counts and check again
         setUsageCount(cred1, 3)
         
-        val selection2 = cpd.checkPreconsent(requester = Requester())
+        val selection2 = cpd.checkPreconsent(requester = Requester(emptyList()))
         assertNotNull(selection2)
         assertEquals(cred1.identifier, selection2.matches.first().credential.identifier)
         assertEquals(3, selection2.matches.first().credential.usageCount)

@@ -56,6 +56,7 @@ import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.DocumentProvisioningSettings
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.request.Requester
+import org.multipaz.request.TrustedRequesterIdentity
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.securearea.software.SoftwareSecureArea
@@ -142,10 +143,14 @@ class App private constructor() {
             zkSystemRepository = zkSystemRepository,
             eventLogger = eventLogger,
             resolveTrustFn = { requester ->
-                requester.certChain?.let { certChain ->
+                for (identity in requester.requesterIdentities) {
+                    val certChain = identity.certChain
                     val trustResult = readerTrustManager.verify(certChain.certificates)
                     if (trustResult.isTrusted) {
-                        return@SimplePresentmentSource trustResult.trustPoints.first().metadata
+                        return@SimplePresentmentSource TrustedRequesterIdentity(
+                            identity = identity,
+                            trustMetadata = trustResult.trustPoints.first().metadata
+                        )
                     }
                 }
                 return@SimplePresentmentSource null
@@ -252,7 +257,7 @@ class App private constructor() {
     // the cases where pre-consent is used.
     private suspend fun showConsentPromptFn(
         requester: Requester,
-        trustMetadata: TrustMetadata?,
+        trustedRequesterIdentity: TrustedRequesterIdentity?,
         consentData: ConsentData,
         preselectedDocuments: List<Document>,
         onDocumentsInFocus: (documents: List<Document>) -> Unit
@@ -276,7 +281,7 @@ class App private constructor() {
         // Otherwise fall back to consent prompt...
         return promptModelRequestConsent(
             requester = requester,
-            trustMetadata = trustMetadata,
+            trustedRequesterIdentity = trustedRequesterIdentity,
             consentData = consentData,
             preselectedDocuments = preselectedDocuments,
             onDocumentsInFocus = onDocumentsInFocus
