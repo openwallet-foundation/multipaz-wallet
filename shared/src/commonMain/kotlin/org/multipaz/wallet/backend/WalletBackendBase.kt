@@ -358,6 +358,14 @@ abstract class WalletBackendBase: WalletBackend {
         return newVersion
     }
 
+    private fun getBackendDnsName(): String {
+        // Remove the http:// or https:// from the baseUrl.
+        val origin = BuildConfig.BACKEND_URL
+        val startIndex = origin.findAnyOf(listOf("://"))?.first
+        val ret = if (startIndex == null) origin else origin.removeRange(0, startIndex+3)
+        return ret
+    }
+
     // Helper for certifyReaderKeys used in both WalletBackendImpl and TestWalletBackendImpl
     suspend fun certifyReaderKeys(
         readerKeys: List<KeyAttestation>,
@@ -376,8 +384,8 @@ abstract class WalletBackendBase: WalletBackend {
             val readerCert = MdocUtil.generateReaderCertificate(
                 readerRootKey = readerRootKey,
                 readerKey = readerKey.publicKey,
-                subject = X500Name.fromName("CN=Multipaz Wallet Reader Key"),
-                dnsName = null,
+                subject = X500Name.fromName("CN=${BuildConfig.APP_NAME} Reader Key"),
+                dnsName = getBackendDnsName(),  // Needed for OpenID4VP
                 serial = ASN1Integer.fromRandom(numBits = 128, random = random),
                 validFrom = validFrom.truncateToWholeSeconds(),
                 validUntil = validUntil.truncateToWholeSeconds(),
