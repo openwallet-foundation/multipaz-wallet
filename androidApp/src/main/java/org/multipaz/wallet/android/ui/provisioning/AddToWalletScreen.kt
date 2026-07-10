@@ -143,9 +143,13 @@ fun AddToWalletScreen(
 
 
     val importMpzPassFilePicker = rememberFilePicker(
-        types = listOf(
-            "application/vnd.multipaz.mpzpass",
-        ),
+        // Android derives a file's MIME type from its extension, and `.mpzpass` is not in the OS
+        // MIME map — so a pass file from Downloads / Drive / email is tagged
+        // `application/octet-stream`, and a strict `application/vnd.multipaz.mpzpass` filter hides
+        // it (greyed out / unselectable in the picker). Accept any file; the bytes are validated
+        // on import (AppNavHost: `MpzPass.fromDataItem` + the "error importing pass" dialog), which
+        // is stricter than a MIME/extension check anyway.
+        types = listOf("*/*"),
         allowMultiple = false,
         onResult = { files ->
             if (files.isNotEmpty()) {
