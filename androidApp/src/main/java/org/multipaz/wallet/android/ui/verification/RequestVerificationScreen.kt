@@ -106,6 +106,7 @@ import kotlinx.serialization.json.jsonObject
 import org.multipaz.storage.Storage
 import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.LinkVerification
+import org.multipaz.wallet.android.shareVerificationLink
 import org.multipaz.wallet.android.getPendingVerifications
 import org.multipaz.wallet.android.getCompletedVerifications
 import org.multipaz.wallet.android.checkVerificationResults
@@ -404,12 +405,7 @@ fun RequestVerificationScreen(
                                             try {
                                                 val origin = walletClient.getVerificationLinkOrigin()
                                                 val link = "$origin/web/verify?request=${item.requestId}#${item.requestEncryptionKey.toByteArray().toBase64Url()}"
-                                                val shareIntent = Intent().apply {
-                                                    action = Intent.ACTION_SEND
-                                                    putExtra(Intent.EXTRA_TEXT, link)
-                                                    type = "text/plain"
-                                                }
-                                                context.startActivity(Intent.createChooser(shareIntent, null))
+                                                shareVerificationLink(context, link)
                                             } catch (e: Exception) {
                                                 Logger.e(TAG, "Failed to share pending link", e)
                                                 showToast("Failed to share link: ${e.message}")

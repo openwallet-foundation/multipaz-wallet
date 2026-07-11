@@ -131,6 +131,13 @@
         </activity>
 
         <activity
+            android:name=".VerificationLinkQrCodeDisplayActivity"
+            android:theme="@style/Theme.Transparent"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:excludeFromRecents="true" />
+
+        <activity
             android:name=".WalletCredentialManagerPresentmentActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"

@@ -48,6 +48,7 @@ import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.deleteVerification
 import org.multipaz.wallet.android.generateVerificationLink
+import org.multipaz.wallet.android.shareVerificationLink
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
@@ -1222,12 +1223,7 @@ fun mainGraph(
                                     storage = storage,
                                     secureArea = secureArea,
                                 )
-                                val shareIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, verificationLink)
-                                    type = "text/plain"
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, null))
+                                shareVerificationLink(context, verificationLink)
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
                                 showToast("Error generating verification link: $e")
