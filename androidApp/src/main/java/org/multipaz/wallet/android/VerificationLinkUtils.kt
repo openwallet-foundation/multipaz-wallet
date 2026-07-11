@@ -1,6 +1,5 @@
 package org.multipaz.wallet.android
 
-import io.ktor.client.engine.HttpClientEngineFactory
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -9,7 +8,6 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
-import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.mdoc.request.DeviceRequest
 import org.multipaz.openid.OpenID4VP
 import org.multipaz.securearea.SecureArea
@@ -20,6 +18,12 @@ import org.multipaz.util.toBase64Url
 import org.multipaz.verification.VerificationSession
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.graphics.drawable.Icon
+import android.os.Build
+import android.service.chooser.ChooserAction
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.verification.VerifierIdentity
 import kotlin.coroutines.cancellation.CancellationException
@@ -237,4 +241,36 @@ suspend fun LinkVerification.decryptResponse(): String {
         aad = byteArrayOf()
     )
     return plaintextBytes.decodeToString()
+}
+
+fun shareVerificationLink(context: Context, urlToShare: String) {
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, urlToShare)
+    }
+
+    val chooserIntent = Intent.createChooser(sendIntent, "Share link")
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val qrIntent = Intent(context, VerificationLinkQrCodeDisplayActivity::class.java).apply {
+            putExtra("URL", urlToShare)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            qrIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val qrAction = ChooserAction.Builder(
+            Icon.createWithResource(context, R.drawable.ic_qr_code),
+            context.getString(R.string.request_verification_share_qr_button),
+            pendingIntent
+        ).build()
+
+        chooserIntent.putExtra(Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(qrAction))
+    }
+
+    context.startActivity(chooserIntent)
 }

@@ -2,4 +2,12 @@
 <resources>
 
     <style name="Theme.MultipazWallet" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Transparent" parent="Theme.MultipazWallet">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
 </resources>

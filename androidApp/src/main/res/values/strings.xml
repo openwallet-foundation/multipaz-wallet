@@ -431,6 +431,10 @@
     <string name="request_verification_in_person">In-person</string>
     <string name="request_verification_what_to_request">What to request</string>
     <string name="request_verification_generate_link">Generate link</string>
+    <string name="request_verification_share_qr_button">Show QR code for link</string>
+    <string name="request_verification_share_qr_title">Verification QR Code</string>
+    <string name="request_verification_share_qr_explainer">This QR code can be scanned by the individual being verified.</string>
+    <string name="request_verification_share_close">Close</string>
     <string name="request_verification_hold_to_wallet">Hold to Wallet</string>
     <string name="request_verification_camera_permission_required">Camera permission is required</string>
     <string name="request_verification_grant_permission">Grant Permission</string>
