@@ -367,6 +367,10 @@ fun mainGraph(
                             }
                         }
                         backStack.removeAt(backStack.size - 1)
+                        val lastKey = backStack.lastOrNull()
+                        if (lastKey is WalletDestination && lastKey.documentId == key.documentId) {
+                            backStack.removeAt(backStack.size - 1)
+                        }
                     }
                 )
             }

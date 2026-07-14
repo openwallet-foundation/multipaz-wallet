@@ -164,7 +164,7 @@ fun WalletScreen(
     val maxCardHeight = screenHeightDp / 3
 
     // Local state to drive animations since navigation swap is instant
-    var titleAndFabVisible by remember { mutableStateOf(focusedDocumentId != null) }
+    var titleAndFabVisible by remember { mutableStateOf(focusedDocumentId == null) }
     LaunchedEffect(focusedDocumentId) {
         titleAndFabVisible = focusedDocumentId == null
     }
