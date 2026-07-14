@@ -69,6 +69,7 @@ import org.multipaz.util.Platform
 import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
+import org.multipaz.wallet.android.ui.CommunicatingWithBackendDialog
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.checkPreconsent
@@ -370,6 +371,9 @@ class App private constructor() {
                 promptModel = promptModel,
                 imageLoader = imageLoader
             )
+            if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
+                CommunicatingWithBackendDialog()
+            }
             MdocUrlVerificationNavHost(
                 mdocUrl = mdocUrl,
                 walletClient = walletClient,
@@ -417,6 +421,9 @@ class App private constructor() {
                 promptModel = promptModel,
                 imageLoader = imageLoader
             )
+            if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
+                CommunicatingWithBackendDialog()
+            }
             AppNavHost(
                 walletClient = walletClient,
                 httpClientEngineFactory = Android,

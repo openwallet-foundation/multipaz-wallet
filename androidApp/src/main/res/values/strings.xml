@@ -135,6 +135,7 @@
 
     <string name="confirmation_dialog_cancel">Cancel</string>
     <string name="error_dialog_ok">OK</string>
+    <string name="communicating_with_backend">Communicating with backend</string>
 
     <string name="sign_out_dialog_cancel">Cancel</string>
     <string name="sign_out_dialog_confirm">Sign out</string>

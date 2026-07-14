@@ -170,17 +170,9 @@ fun mainGraph(
                         backStack.removeAt(backStack.size - 1)
                     },
                     onComplete = { document, provisionedDocument ->
-                        backStack.clear()
-                        backStack.add(WalletDestination())
-                        backStack.add(
-                            WalletDestination(
-                                documentId = document.identifier,
-                                justAddedAtMillis = Clock.System.now().toEpochMilliseconds(),
-                            )
-                        )
-                        // If the user is signed in, deal with updating the Wallet Backend
-                        if (walletClient.signedInUser.value != null) {
-                            coroutineScope.launch {
+                        coroutineScope.launch {
+                            var errorDialogToAdd: ErrorDialogDestination? = null
+                            if (walletClient.signedInUser.value != null) {
                                 try {
                                     if (key.provisionedDocumentIdentifier != null) {
                                         // OK, we're done provisioning a document for that identifier. Delete
@@ -202,21 +194,31 @@ fun mainGraph(
                                         walletClient.setSharedData(
                                             sharedData = walletClient.sharedData.value!!.addProvisionedDocument(
                                                 provisionedDocument
-                                            )
+                                            ),
+                                            suppressSpinner = true
                                         )
                                     }
                                 } catch (e: Exception) {
                                     if (e is CancellationException) throw e
-                                    backStack.add(
-                                        ErrorDialogDestination(
-                                            title = context.getString(R.string.provisioning_add_pass_to_shared_data_error_title),
-                                            textMarkdown = context.getString(
-                                                R.string.provisioning_add_pass_to_shared_data_error_message_md,
-                                                e.toString()
-                                            )
+                                    errorDialogToAdd = ErrorDialogDestination(
+                                        title = context.getString(R.string.provisioning_add_pass_to_shared_data_error_title),
+                                        textMarkdown = context.getString(
+                                            R.string.provisioning_add_pass_to_shared_data_error_message_md,
+                                            e.toString()
                                         )
                                     )
                                 }
+                            }
+                            backStack.clear()
+                            backStack.add(WalletDestination())
+                            backStack.add(
+                                WalletDestination(
+                                    documentId = document.identifier,
+                                    justAddedAtMillis = Clock.System.now().toEpochMilliseconds(),
+                                )
+                            )
+                            if (errorDialogToAdd != null) {
+                                backStack.add(errorDialogToAdd)
                             }
                         }
                     },

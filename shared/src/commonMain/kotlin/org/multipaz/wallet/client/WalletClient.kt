@@ -3,6 +3,9 @@ package org.multipaz.wallet.client
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.http.Url
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1261,6 +1264,18 @@ class WalletClient private constructor(
     }
 
     companion object {
+        /**
+         * The minimum duration (in milliseconds) that a `setSharedData()` call must take
+         * before [showSetSharedDataSpinner] is set to `true`.
+         */
+        const val SET_SHARED_DATA_SPINNER_DELAY_MS = 400L
+
+        /**
+         * The minimum duration (in milliseconds) that [showSetSharedDataSpinner] will remain `true`
+         * once it is shown, to prevent the spinner from flashing too briefly.
+         */
+        const val SET_SHARED_DATA_SPINNER_MIN_SHOWTIME_MS = 1000L
+
         private const val LOCAL_PUBLIC_DATA_KEY = "LocalPublicData"
         private val localPublicDataTableSpec = StorageTableSpec(
             name = "LocalPublicData",
@@ -1406,6 +1421,17 @@ class WalletClient private constructor(
 
     val _sharedData = MutableStateFlow<WalletClientSharedData?>(null)
 
+    private val _showSetSharedDataSpinner = MutableStateFlow(false)
+
+    /**
+     * State flow that indicates whether a spinner should be shown for the `setSharedData` operation.
+     *
+     * It is set to `true` only if the [setSharedData] call takes at least [SET_SHARED_DATA_SPINNER_DELAY_MS]
+     * milliseconds. If it is shown, it will remain `true` for at least [SET_SHARED_DATA_SPINNER_MIN_SHOWTIME_MS]
+     * milliseconds to avoid flashing the spinner.
+     */
+    val showSetSharedDataSpinner: StateFlow<Boolean> = _showSetSharedDataSpinner.asStateFlow()
+
     /**
      * Data shared between all logged-in clients or `null` if the user is not signed in.
      */
@@ -1446,10 +1472,38 @@ class WalletClient private constructor(
         WalletBackendNotSignedInException::class,
         CancellationException::class
     )
-    suspend fun setSharedData(sharedData: WalletClientSharedData) {
-        lock.withLock {
-            putSharedDataInternal(ByteString(sharedData.toCbor()))
-            _sharedData.value = getWalletClientSharedData()
+    suspend fun setSharedData(
+        sharedData: WalletClientSharedData,
+        suppressSpinner: Boolean = false
+    ) {
+        coroutineScope {
+            var spinnerShownTime: Instant? = null
+            val timerJob = if (suppressSpinner) {
+                null
+            } else {
+                launch {
+                    delay(SET_SHARED_DATA_SPINNER_DELAY_MS)
+                    _showSetSharedDataSpinner.value = true
+                    spinnerShownTime = Clock.System.now()
+                }
+            }
+            try {
+                lock.withLock {
+                    putSharedDataInternal(ByteString(sharedData.toCbor()))
+                    _sharedData.value = getWalletClientSharedData()
+                }
+            } finally {
+                timerJob?.cancel()
+                val shownTime = spinnerShownTime
+                if (shownTime != null) {
+                    val elapsed = Clock.System.now().toEpochMilliseconds() - shownTime.toEpochMilliseconds()
+                    val remaining = SET_SHARED_DATA_SPINNER_MIN_SHOWTIME_MS - elapsed
+                    if (remaining > 0) {
+                        delay(remaining)
+                    }
+                }
+                _showSetSharedDataSpinner.value = false
+            }
         }
     }
 }
