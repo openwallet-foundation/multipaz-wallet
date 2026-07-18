@@ -85,6 +85,7 @@ import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 private const val TAG = "VerificationShowResponseScreen"
 
@@ -93,6 +94,7 @@ private const val TAG = "VerificationShowResponseScreen"
 fun VerificationShowResponseScreen(
     query: Query,
     presentmentRecord: PresentmentRecord,
+    atTime: Instant,
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
@@ -156,7 +158,7 @@ fun VerificationShowResponseScreen(
                     coroutineScope.launch {
                         try {
                             val verifiedPresentations = presentmentRecord.verify(
-                                atTime = Clock.System.now(),
+                                atTime = atTime,
                                 documentTypeRepository = documentTypeRepository,
                                 zkSystemRepository = zkSystemRepository
                             )

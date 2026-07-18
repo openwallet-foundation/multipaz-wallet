@@ -19,6 +19,7 @@ import org.multipaz.wallet.client.verification.toCbor
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.toCbor
+import kotlin.time.Instant
 
 @Serializable
 sealed class Destination : NavKey
@@ -275,15 +276,18 @@ data object VerificationProximityTransferErrorDestination: Destination()
 data class VerificationShowResponseDestination(
     val queryEncoded: String,
     val presentmentRecordEncoded: String,
+    val atTimeMillis: Long,
     val showNotTrusted: Boolean
 ): Destination() {
     constructor(
         query: Query,
         presentmentRecord: PresentmentRecord,
+        atTime: Instant,
         showNotTrusted: Boolean
     ): this(
         queryEncoded = query.toCbor().toBase64Url(),
         presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
+        atTimeMillis = atTime.toEpochMilliseconds(),
         showNotTrusted = showNotTrusted
     )
 
@@ -298,14 +302,17 @@ data class VerificationShowResponseDestination(
 @Serializable
 data class VerificationShowResponseDeveloperExtrasDestination(
     val queryEncoded: String,
-    val presentmentRecordEncoded: String
+    val presentmentRecordEncoded: String,
+    val atTimeMillis: Long
 ): Destination() {
     constructor(
         query: Query,
-        presentmentRecord: PresentmentRecord
+        presentmentRecord: PresentmentRecord,
+        atTime: Instant
     ): this(
         queryEncoded = query.toCbor().toBase64Url(),
-        presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url()
+        presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
+        atTimeMillis = atTime.toEpochMilliseconds()
     )
 
     val query: Query

@@ -120,6 +120,7 @@ private data class VerificationResult(
 fun VerificationShowResponseDeveloperExtrasScreen(
     query: Query,
     presentmentRecord: PresentmentRecord,
+    atTime: Instant,
     issuerTrustManager: TrustManagerInterface,
     settingsModel: SettingsModel,
     documentTypeRepository: DocumentTypeRepository,
@@ -155,7 +156,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 
              */
             val verifiedPresentations = presentmentRecord.verify(
-                atTime = Clock.System.now(),
+                atTime = atTime,
                 documentTypeRepository = documentTypeRepository,
                 zkSystemRepository = zkSystemRepository
             )

@@ -28,6 +28,7 @@ import org.multipaz.wallet.client.verification.Query
 import org.multipaz.verification.VerifierIdentity
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
 private const val TAG = "VerificationLinkUtils"
@@ -48,7 +49,8 @@ data class LinkVerification(
     val requestEncryptionKey: ByteString,
     val creationTimeMillis: Long,
     val isPending: Boolean,
-    val encryptedResponse: ByteString? = null
+    val encryptedResponse: ByteString? = null,
+    val responseReceivedAtMillis: Long? = null
 ) {
     companion object
 }
@@ -212,7 +214,8 @@ suspend fun checkVerificationResults(walletClient: WalletClient, storage: Storag
             val response = walletClient.getVerificationResponse(verification.requestId) ?: continue
             val updated = verification.copy(
                 isPending = false,
-                encryptedResponse = response
+                encryptedResponse = response,
+                responseReceivedAtMillis = Clock.System.now().toEpochMilliseconds()
             )
             table.update(verification.requestId, ByteString(updated.toCbor()))
             try {

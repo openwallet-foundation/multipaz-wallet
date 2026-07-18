@@ -1237,10 +1237,11 @@ fun mainGraph(
                             }
                         }
                     },
-                    onViewVerificationClicked = { query, presentmentRecord, showNotTrusted ->
+                    onViewVerificationClicked = { query, presentmentRecord, atTime, showNotTrusted ->
                         backStack.add(VerificationShowResponseDestination(
                             query = query,
                             presentmentRecord = presentmentRecord,
+                            atTime = atTime,
                             showNotTrusted = showNotTrusted
                         ))
                     },
@@ -1375,6 +1376,7 @@ fun mainGraph(
                         backStack.add(VerificationShowResponseDestination(
                             query = settingsModel.readerQuery.value,
                             presentmentRecord = presentmentRecord,
+                            atTime = Clock.System.now(),
                             showNotTrusted = false
                         ))
                     },
@@ -1395,6 +1397,7 @@ fun mainGraph(
                 VerificationShowResponseScreen(
                     query = key.query,
                     presentmentRecord = key.presentmentRecord,
+                    atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
@@ -1406,7 +1409,8 @@ fun mainGraph(
                     onDeveloperExtrasClicked = {
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
-                            presentmentRecord = key.presentmentRecord
+                            presentmentRecord = key.presentmentRecord,
+                            atTime = Instant.fromEpochMilliseconds(key.atTimeMillis)
                         ))
                     },
                     onBackClicked = {
@@ -1418,6 +1422,7 @@ fun mainGraph(
                 VerificationShowResponseDeveloperExtrasScreen(
                     query = key.query,
                     presentmentRecord = key.presentmentRecord,
+                    atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,

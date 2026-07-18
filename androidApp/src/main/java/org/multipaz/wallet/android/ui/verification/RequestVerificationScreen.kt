@@ -161,7 +161,7 @@ fun RequestVerificationScreen(
     onNfcHandover: (result: ScanMdocReaderResult) -> Unit,
     onQrCodeScanned: (qrCode: String?) -> Unit,
     onGenerateVerificationLinkClicked: () -> Unit,
-    onViewVerificationClicked: (query: Query, presentmentRecord: PresentmentRecord, showNotTrusted: Boolean) -> Unit,
+    onViewVerificationClicked: (query: Query, presentmentRecord: PresentmentRecord, atTime: Instant, showNotTrusted: Boolean) -> Unit,
     onDeletePendingVerificationClicked: (requestId: String) -> Unit,
     onDeleteCompletedVerificationClicked: (requestId: String) -> Unit,
     refreshTrigger: Int,
@@ -200,8 +200,11 @@ fun RequestVerificationScreen(
                     val decryptedResponse = item.decryptResponse()
                     val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
                     val presentmentRecord = item.session.processDcResponse(dcResponse = dcResponse)
+                    val timeForChecking =
+                        item.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
+                        ?: Instant.fromEpochMilliseconds(item.creationTimeMillis)
                     val verifiedPresentations = presentmentRecord.verify(
-                        atTime = Clock.System.now(),
+                        atTime = timeForChecking,
                         documentTypeRepository = documentTypeRepository,
                         zkSystemRepository = zkSystemRepository
                     )
@@ -455,12 +458,16 @@ fun RequestVerificationScreen(
                                 val data = completedItemsData[item.requestId]
                                 val isTrusted = data?.queryResult?.documents?.firstOrNull()?.trustResult?.isTrusted ?: true
                                 val isAgeOver = (data?.queryResult?.documents?.firstOrNull() as? AgeOverDocumentQueryResult)?.isAgeOver
+                                val timeForChecking =
+                                    item.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
+                                        ?: Instant.fromEpochMilliseconds(item.creationTimeMillis)
                                 FloatingItemHeadingAndContent(
                                     modifier = Modifier.clickable {
                                         if (data != null) {
                                             onViewVerificationClicked(
                                                 item.query,
                                                 data.presentmentRecord,
+                                                timeForChecking,
                                                 !isTrusted
                                             )
                                         } else {
@@ -474,6 +481,7 @@ fun RequestVerificationScreen(
                                                     onViewVerificationClicked(
                                                         item.query,
                                                         presentmentRecord,
+                                                        timeForChecking,
                                                         false
                                                     )
                                                 } catch (e: Exception) {

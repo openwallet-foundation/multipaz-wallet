@@ -34,6 +34,8 @@ import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScree
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 private const val TAG = "MdocUrlVerificationGraph"
 
@@ -115,6 +117,7 @@ fun mdocUrlVerificationGraph(
                         backStack.add(VerificationShowResponseDestination(
                             query = settingsModel.readerQuery.value,
                             presentmentRecord = presentmentRecord,
+                            atTime = Clock.System.now(),
                             showNotTrusted = false
                         ))
                     },
@@ -135,6 +138,7 @@ fun mdocUrlVerificationGraph(
                 VerificationShowResponseScreen(
                     query = key.query,
                     presentmentRecord = key.presentmentRecord,
+                    atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
@@ -146,7 +150,8 @@ fun mdocUrlVerificationGraph(
                     onDeveloperExtrasClicked = {
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
-                            presentmentRecord = key.presentmentRecord
+                            presentmentRecord = key.presentmentRecord,
+                            atTime = Instant.fromEpochMilliseconds(key.atTimeMillis)
                         ))
                     },
                     onBackClicked = {
@@ -158,6 +163,7 @@ fun mdocUrlVerificationGraph(
                 VerificationShowResponseDeveloperExtrasScreen(
                     query = key.query,
                     presentmentRecord = key.presentmentRecord,
+                    atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,
