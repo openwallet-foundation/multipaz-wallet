@@ -39,7 +39,7 @@ private val linkVerificationsTableSpec = StorageTableSpec(
     supportExpiration = false
 )
 
-private val VERIFICATION_LINK_EXPIRATION = 1.hours
+val VERIFICATION_LINK_EXPIRATION = 1.hours
 
 @CborSerializable
 data class LinkVerification(
@@ -187,10 +187,26 @@ private suspend fun savePendingVerification(
 
 suspend fun getPendingVerifications(storage: Storage): List<LinkVerification> {
     val table = storage.getTable(linkVerificationsTableSpec)
-    return table.enumerateWithData().map { (_, data) ->
-        LinkVerification.fromCbor(data.toByteArray())
-    }.filter { it.isPending }
-     .sortedByDescending { it.creationTimeMillis }
+    val now = Clock.System.now().toEpochMilliseconds()
+    val all = table.enumerateWithData().map { (key, data) ->
+        key to LinkVerification.fromCbor(data.toByteArray())
+    }
+    val pending = mutableListOf<LinkVerification>()
+    for ((key, verification) in all) {
+        if (verification.isPending) {
+            if (verification.creationTimeMillis + VERIFICATION_LINK_EXPIRATION.inWholeMilliseconds <= now) {
+                try {
+                    table.delete(key)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Logger.e(TAG, "Failed to delete expired verification $key", e)
+                }
+            } else {
+                pending.add(verification)
+            }
+        }
+    }
+    return pending.sortedByDescending { it.creationTimeMillis }
 }
 
 suspend fun deleteVerification(storage: Storage, requestId: String) {

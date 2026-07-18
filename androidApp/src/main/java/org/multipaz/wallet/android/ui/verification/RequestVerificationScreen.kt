@@ -109,6 +109,7 @@ import org.multipaz.wallet.android.LinkVerification
 import org.multipaz.wallet.android.shareVerificationLink
 import org.multipaz.wallet.android.getPendingVerifications
 import org.multipaz.wallet.android.getCompletedVerifications
+import org.multipaz.wallet.android.VERIFICATION_LINK_EXPIRATION
 import org.multipaz.wallet.android.checkVerificationResults
 import org.multipaz.wallet.android.decryptResponse
 import org.multipaz.wallet.android.deleteVerification
@@ -428,7 +429,7 @@ fun RequestVerificationScreen(
                                         Text(
                                             text = stringResource(
                                                 R.string.request_verification_link_expires,
-                                                durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis + 1.hours.inWholeMilliseconds))
+                                                durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis + VERIFICATION_LINK_EXPIRATION.inWholeMilliseconds))
                                             ),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
