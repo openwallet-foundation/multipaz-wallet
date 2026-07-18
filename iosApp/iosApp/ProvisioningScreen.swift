@@ -306,7 +306,7 @@ struct ProvisioningScreen: View {
                     try await viewModel.walletClient.refreshSharedData()
                     if let currentSharedData = viewModel.walletClient.sharedData.value {
                         let newSharedData = try await currentSharedData.addProvisionedDocument(provisionedDocument: provisionedDocument)
-                        try await viewModel.walletClient.setSharedData(sharedData: newSharedData)
+                        try await viewModel.walletClient.setSharedData(sharedData: newSharedData, suppressSpinner: true)
                     }
                 }
                 
