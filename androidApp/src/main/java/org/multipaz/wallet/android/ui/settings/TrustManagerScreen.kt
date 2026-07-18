@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.pickers.FilePicker
 import org.multipaz.compose.pickers.rememberFilePicker
-import org.multipaz.compose.trustmanagement.TrustEntryList
+import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryList
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509Cert
 import org.multipaz.mdoc.rical.SignedRical

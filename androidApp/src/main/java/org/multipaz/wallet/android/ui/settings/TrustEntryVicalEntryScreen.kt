@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.multipaz.compose.trustmanagement.TrustEntryVicalEntryViewer
+import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryVicalEntryViewer
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.wallet.android.R
 

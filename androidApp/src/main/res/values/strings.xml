@@ -496,4 +496,46 @@
     <string name="verification_show_response_street_address_heading">Street address</string>
 
     <string name="wallet_screen_backend_url_format">@ %1$s</string>
+
+    <!-- Trust Management UI -->
+    <string name="trust_entry_editor_change">Change</string>
+    <string name="trust_entry_editor_remove">Remove</string>
+    <string name="trust_entry_editor_name">Name</string>
+    <string name="trust_entry_editor_test_only_certificate">This certificate is for testing only</string>
+    <string name="trust_entry_editor_test_only_vical">This VICAL is for testing only</string>
+    <string name="trust_entry_editor_test_only_rical">This RICAL is for testing only</string>
+
+    <string name="trust_entry_rical_entry_title">RICAL entry</string>
+    <string name="trust_entry_rical_entry_trust_anchor">Trust anchor</string>
+    <string name="trust_entry_rical_entry_yes">Yes</string>
+    <string name="trust_entry_rical_entry_no">No</string>
+    <string name="trust_entry_rical_entry_extensions">Extensions</string>
+
+    <string name="trust_entry_vical_entry_title">VICAL entry</string>
+    <string name="trust_entry_vical_entry_document_types">Document Types</string>
+    <string name="trust_entry_vical_entry_extensions">Extensions</string>
+
+    <string name="trust_entry_viewer_just_imported_cert">This certificate was just imported. Please check its fingerprint to make sure you trust it</string>
+    <string name="trust_entry_viewer_just_imported_vical">This VICAL was just imported. Please check the signer certificate chain to make sure you trust the provider</string>
+    <string name="trust_entry_viewer_just_imported_rical">This RICAL was just imported. Please check the signer certificate chain to make sure you trust the provider</string>
+    <string name="trust_entry_viewer_test_only_heading">Test only</string>
+    <string name="trust_entry_viewer_yes">Yes</string>
+    <string name="trust_entry_viewer_no">No</string>
+    <string name="trust_entry_viewer_vical_data_heading">VICAL data</string>
+    <string name="trust_entry_viewer_version">Version</string>
+    <string name="trust_entry_viewer_provider">Provider</string>
+    <string name="trust_entry_viewer_issue">Issue</string>
+    <string name="trust_entry_viewer_issued_at">Issued at</string>
+    <string name="trust_entry_viewer_next_update">Next update</string>
+    <string name="trust_entry_viewer_valid_until">Valid until</string>
+    <string name="trust_entry_viewer_update_url">Update URL</string>
+    <string name="trust_entry_viewer_signer">Signer</string>
+    <string name="trust_entry_viewer_click_to_view_chain">Click to view certificate chain</string>
+    <string name="trust_entry_viewer_extensions">Extensions</string>
+    <string name="trust_entry_viewer_certificates">Certificates</string>
+    <string name="trust_entry_viewer_certificate_label">Certificate</string>
+    <string name="trust_entry_viewer_rical_data_heading">RICAL data</string>
+    <string name="trust_entry_viewer_type">Type</string>
+    <string name="trust_entry_viewer_id">ID</string>
+    <string name="trust_entry_viewer_url">URL</string>
 </resources>

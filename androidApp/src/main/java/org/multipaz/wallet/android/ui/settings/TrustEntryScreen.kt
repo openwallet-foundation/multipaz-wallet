@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.multipaz.compose.trustmanagement.TrustEntryViewer
+import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryViewer
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.trustmanagement.TrustEntryRical
