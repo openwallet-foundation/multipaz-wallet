@@ -92,9 +92,18 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottiePainter
+import android.app.PendingIntent
+import android.content.ComponentName
+import android.content.Intent
+import androidx.compose.foundation.combinedClickable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.multipaz.compose.cards.VerticalCardList
+import org.multipaz.compose.prompt.PresentmentActivity
+import org.multipaz.wallet.android.App
+import org.multipaz.wallet.android.MainActivity
+import org.multipaz.wallet.android.WalletCombinedNfcService
 import org.multipaz.compose.cards.VerticalCardListState
 import org.multipaz.compose.cards.WarningCard
 import org.multipaz.compose.document.DocumentInfo
@@ -180,28 +189,64 @@ fun WalletScreen(
                     ) {
                         if (BuildConfig.DEVELOPER_MODE_AVAILABLE) {
                             Column(
-                                modifier = Modifier.clickable {
-                                    if (settingsModel.devMode.value) {
-                                        showToast(context.getString(R.string.wallet_screen_dev_mode_already_enabled))
-                                        haptic.performHapticFeedback(HapticFeedbackType.Reject)
-                                    } else {
-                                        if (devModeNumTimesPressed == 4) {
-                                            showToast(context.getString(R.string.wallet_screen_dev_mode_enabled))
-                                            settingsModel.devMode.value = true
-                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                modifier = Modifier.combinedClickable(
+                                    onClick = {
+                                        if (settingsModel.devMode.value) {
+                                            showToast(context.getString(R.string.wallet_screen_dev_mode_already_enabled))
+                                            haptic.performHapticFeedback(HapticFeedbackType.Reject)
                                         } else {
-                                            val tapsRemaining = 4 - devModeNumTimesPressed
-                                            if (tapsRemaining > 1) {
-                                                showToast(context.getString(R.string.wallet_screen_dev_mode_taps_remaining, tapsRemaining))
-                                                haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                                            if (devModeNumTimesPressed == 4) {
+                                                showToast(context.getString(R.string.wallet_screen_dev_mode_enabled))
+                                                settingsModel.devMode.value = true
+                                                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                                             } else {
-                                                showToast(context.getString(R.string.wallet_screen_dev_mode_taps_remaining_1))
-                                                haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                                                val tapsRemaining = 4 - devModeNumTimesPressed
+                                                if (tapsRemaining > 1) {
+                                                    showToast(context.getString(R.string.wallet_screen_dev_mode_taps_remaining, tapsRemaining))
+                                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                                                } else {
+                                                    showToast(context.getString(R.string.wallet_screen_dev_mode_taps_remaining_1))
+                                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                                                }
+                                                devModeNumTimesPressed += 1
                                             }
-                                            devModeNumTimesPressed += 1
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (settingsModel.devMode.value) {
+                                            coroutineScope.launch {
+                                                try {
+                                                    val source = App.getPresentmentSource()
+                                                    val pendingIntent = PresentmentActivity.getPendingIntent(
+                                                        source = source,
+                                                        initiallySelectedDocumentId = null,
+                                                        openWalletAppPendingIntentFn = { document ->
+                                                            PendingIntent.getActivity(
+                                                                /* context = */ context,
+                                                                /* requestCode = */ 0,
+                                                                /* intent = */ Intent(context, MainActivity::class.java).apply {
+                                                                    addFlags(
+                                                                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                                                                Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                                                    )
+                                                                    action = App.ACTION_VIEW_DOCUMENT
+                                                                    putExtra("documentId", document.identifier)
+                                                                },
+                                                                /* flags = */ PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                                            )
+                                                        },
+                                                        preferredService = ComponentName(context, WalletCombinedNfcService::class.java),
+                                                    )
+                                                    pendingIntent.send()
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    Logger.e(TAG, "Failed to launch quick access wallet", e)
+                                                }
+                                            }
                                         }
                                     }
-                                },
+                                ),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
