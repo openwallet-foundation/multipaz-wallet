@@ -1181,7 +1181,7 @@ fun mainGraph(
                                                 keyInfo = keyInfoAndCertification.first,
                                             )
                                         },
-                                        intentToRetain = false // TODO
+                                        intentToRetain = settingsModel.verificationStoreResponse.value
                                     )
                                 )
                                 if (keyInfoAndCertification != null) {

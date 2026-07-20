@@ -431,6 +431,8 @@
     <string name="request_verification_send_link">Send link</string>
     <string name="request_verification_in_person">In-person</string>
     <string name="request_verification_what_to_request">What to request</string>
+    <string name="request_verification_store_response">Store response</string>
+    <string name="request_verification_store_response_content">If set, the response will be stored on this device for later processing.</string>
     <string name="request_verification_generate_link">Generate link</string>
     <string name="request_verification_share_qr_button">Show QR code for link</string>
     <string name="request_verification_share_qr_title">Verification QR Code</string>

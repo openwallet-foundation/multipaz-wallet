@@ -58,7 +58,9 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottiePainter
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.items.FloatingItemHeadingAndText
@@ -155,22 +157,25 @@ fun VerificationShowResponseScreen(
                 ShowParsingFailedError(parsingResponseFailed.value!!)
             } else {
                 LaunchedEffect(Unit) {
-                    coroutineScope.launch {
-                        try {
-                            val verifiedPresentations = presentmentRecord.verify(
+                    try {
+                        val verifiedPresentations = withContext(Dispatchers.Default) {
+                            presentmentRecord.verify(
                                 atTime = atTime,
                                 documentTypeRepository = documentTypeRepository,
                                 zkSystemRepository = zkSystemRepository
                             )
-                            queryResult.value = query.processVerifiedPresentations(
+                        }
+                        val result = withContext(Dispatchers.Default) {
+                            query.processVerifiedPresentations(
                                 verifiedPresentation = verifiedPresentations,
                                 issuerTrustManager = issuerTrustManager
                             )
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-                            Logger.e(TAG, "Error parsing response", e)
-                            parsingResponseFailed.value = e
                         }
+                        queryResult.value = result
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.e(TAG, "Error parsing response", e)
+                        parsingResponseFailed.value = e
                     }
                 }
 

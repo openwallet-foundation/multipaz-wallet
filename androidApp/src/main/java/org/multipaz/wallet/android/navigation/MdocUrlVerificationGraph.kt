@@ -238,7 +238,7 @@ internal suspend fun handleQrCodeScanned(
                         keyInfo = keyInfoAndCertification.first,
                     )
                 },
-                intentToRetain = false // TODO
+                intentToRetain = settingsModel.verificationStoreResponse.value
             )
         )
         if (keyInfoAndCertification != null) {

@@ -69,8 +69,10 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottiePainter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.camera.CameraCaptureResolution
 import org.multipaz.compose.camera.CameraSelection
@@ -96,8 +98,11 @@ import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.android.ui.InfoNote
 import org.multipaz.wallet.client.WalletClient
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Switch
+import org.multipaz.compose.items.FloatingItemText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.delay
@@ -181,22 +186,36 @@ fun RequestVerificationScreen(
     val completedList = remember { mutableStateOf<List<LinkVerification>>(emptyList()) }
 
     LaunchedEffect(isInPerson, refreshTrigger) {
-        pendingList.value = getPendingVerifications(storage)
-        completedList.value = getCompletedVerifications(storage)
+        val pending = withContext(Dispatchers.Default) {
+            getPendingVerifications(storage)
+        }
+        val completed = withContext(Dispatchers.Default) {
+            getCompletedVerifications(storage)
+        }
+        pendingList.value = pending
+        completedList.value = completed
         if (!isInPerson) {
             while (isActive) {
-                checkVerificationResults(walletClient, storage)
-                pendingList.value = getPendingVerifications(storage)
-                completedList.value = getCompletedVerifications(storage)
+                withContext(Dispatchers.Default) {
+                    checkVerificationResults(walletClient, storage)
+                }
+                val p = withContext(Dispatchers.Default) {
+                    getPendingVerifications(storage)
+                }
+                val c = withContext(Dispatchers.Default) {
+                    getCompletedVerifications(storage)
+                }
+                pendingList.value = p
+                completedList.value = c
                 delay(3000)
             }
         }
     }
-
+ 
     LaunchedEffect(completedList.value) {
         for (item in completedList.value) {
             if (completedItemsData.containsKey(item.requestId)) continue
-            coroutineScope.launch {
+            launch(Dispatchers.Default) {
                 try {
                     val decryptedResponse = item.decryptResponse()
                     val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
@@ -224,11 +243,13 @@ fun RequestVerificationScreen(
                         BitmapFactory.decodeByteArray(array, 0, array.size)?.asImageBitmap()
                     }
 
-                    completedItemsData[item.requestId] = CompletedVerificationData(
-                        portrait = portraitBitmap,
-                        queryResult = queryResult,
-                        presentmentRecord = presentmentRecord
-                    )
+                    withContext(Dispatchers.Main) {
+                        completedItemsData[item.requestId] = CompletedVerificationData(
+                            portrait = portraitBitmap,
+                            queryResult = queryResult,
+                            presentmentRecord = presentmentRecord
+                        )
+                    }
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to process completed response for ${item.requestId}", e)
                 }
@@ -364,6 +385,23 @@ fun RequestVerificationScreen(
                             imageVector = Icons.Outlined.ChevronRight,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             contentDescription = null
+                        )
+                    }
+                )
+                val storeResponse = settingsModel.verificationStoreResponse.collectAsState().value
+                FloatingItemHeadingAndContent(
+                    heading = stringResource(R.string.request_verification_store_response),
+                    content = {
+                        Text(
+                            text = stringResource(R.string.request_verification_store_response_content),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = storeResponse,
+                            onCheckedChange = { value -> settingsModel.verificationStoreResponse.value = value }
                         )
                     }
                 )

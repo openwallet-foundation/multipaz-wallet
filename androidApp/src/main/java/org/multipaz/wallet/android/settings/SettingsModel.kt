@@ -145,6 +145,7 @@ class SettingsModel private constructor(
         bind(provisioningServerUrl, "provisioningServerUrl", DEFAULT_PROVISIONING_SERVER_URL)
         bind(readerQuery, "readerQuery", IdentificationQuery(false))
         bind(verificationIsInPerson, "verificationIsInPerson", true)
+        bind(verificationStoreResponse, "verificationStoreResponse", false)
     }
 
     val explicitlySignedOut = MutableStateFlow<Boolean>(false)
@@ -156,4 +157,5 @@ class SettingsModel private constructor(
     val provisioningServerUrl = MutableStateFlow<String>(DEFAULT_PROVISIONING_SERVER_URL)
     val readerQuery = MutableStateFlow<Query>(IdentificationQuery(false))
     val verificationIsInPerson = MutableStateFlow<Boolean>(true)
+    val verificationStoreResponse = MutableStateFlow<Boolean>(false)
 }

@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -49,34 +50,34 @@ fun VerificationProximityTransferScreen(
     val scrollState = rememberScrollState()
 
     val state = proximityReaderModel.state.collectAsState().value
-    when (state) {
-        ProximityReaderModel.State.IDLE,
-        ProximityReaderModel.State.WAITING_FOR_DEVICE_REQUEST -> {}
-        ProximityReaderModel.State.WAITING_FOR_START -> {
-            proximityReaderModel.start(coroutineScope)
-        }
-        ProximityReaderModel.State.CONNECTING -> {}
-        ProximityReaderModel.State.COMPLETED -> {
-            if (proximityReaderModel.error != null) {
-                onTransferError(proximityReaderModel.error!!)
-            } else {
-                val result = proximityReaderModel.result!!
-                if (result.deviceResponse == null) {
-                    onTransferError(IllegalStateException("No DeviceResponse message"))
-                } else if (result.deviceResponse!!.status != 0) {
-                    onTransferError(IllegalStateException("DeviceResponse has non-zero status ${result.deviceResponse!!.status}"))
+    LaunchedEffect(state) {
+        when (state) {
+            ProximityReaderModel.State.WAITING_FOR_START -> {
+                proximityReaderModel.start(coroutineScope)
+            }
+            ProximityReaderModel.State.COMPLETED -> {
+                if (proximityReaderModel.error != null) {
+                    onTransferError(proximityReaderModel.error!!)
                 } else {
-                    val presentmentRecord = Iso18013PresentmentRecord(
-                        response = result.deviceResponse!!.toDataItem(),
-                        sessionTranscript = result.sessionTranscript,
-                        request = result.deviceRequest!!.toDataItem(),
-                        eDeviceKey = result.eReaderKey,
-                        encryptionInfo = null,
-                        origin = null
-                    )
-                    onTransferComplete(presentmentRecord)
+                    val result = proximityReaderModel.result!!
+                    if (result.deviceResponse == null) {
+                        onTransferError(IllegalStateException("No DeviceResponse message"))
+                    } else if (result.deviceResponse!!.status != 0) {
+                        onTransferError(IllegalStateException("DeviceResponse has non-zero status ${result.deviceResponse!!.status}"))
+                    } else {
+                        val presentmentRecord = Iso18013PresentmentRecord(
+                            response = result.deviceResponse!!.toDataItem(),
+                            sessionTranscript = result.sessionTranscript,
+                            request = result.deviceRequest!!.toDataItem(),
+                            eDeviceKey = result.eReaderKey,
+                            encryptionInfo = null,
+                            origin = null
+                        )
+                        onTransferComplete(presentmentRecord)
+                    }
                 }
             }
+            else -> {}
         }
     }
 
