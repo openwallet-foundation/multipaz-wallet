@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.multipaz.context.initializeApplication
 import org.multipaz.util.Logger
+import org.multipaz.wallet.shared.BuildConfig
 
 private const val TAG = "MainActivity"
 
@@ -67,6 +68,11 @@ class MainActivity : FragmentActivity() {
                     val app = App.getInstance()
                     app.viewDocument(documentId)
                 }
+            }
+        } else if (intent.action == ACTION_VIEW_PENDING_VERIFICATION) {
+            lifecycle.coroutineScope.launch {
+                val app = App.getInstance()
+                app.viewRequestVerificationScreen()
             }
         } else if (intent.action == Intent.ACTION_VIEW) {
             intent.data?.let { uri ->
@@ -120,6 +126,10 @@ class MainActivity : FragmentActivity() {
             }
         }
         return result
+    }
+
+    companion object {
+        val ACTION_VIEW_PENDING_VERIFICATION = "${BuildConfig.ANDROID_APP_ID}.action.viewPendingVerification"
     }
 
 }

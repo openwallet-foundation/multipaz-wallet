@@ -46,10 +46,15 @@ import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
 import org.multipaz.eventlogger.EventProvisioning
 import org.multipaz.eventlogger.EventSimple
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.verification.Iso18013PresentmentRecord
+import org.multipaz.verification.OpenID4VPPresentmentRecord
+import org.multipaz.compose.getOutlinedImageVector
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
 import org.multipaz.wallet.android.isForDocumentId
+import org.multipaz.wallet.android.isProximityPresentment
 import org.multipaz.wallet.android.ui.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,6 +150,13 @@ fun EventListScreen(
                                         documentModel = documentModel
                                     )
                                 }
+                                is EventVerification -> {
+                                    EventItemVerification(
+                                        modifier = Modifier
+                                            .clickable { onEventClicked(event) },
+                                        event = event
+                                    )
+                                }
                                 is EventSimple -> {}
                             }
                         }
@@ -228,6 +240,35 @@ private fun EventItemPresentment(
             } ?: Spacer(modifier = Modifier.size(imageSize))
         },
         text = firstDocInfo?.document?.displayName ?: firstDoc?.documentName ?: stringResource(R.string.event_list_screen_unknown_document_text),
+        secondary = text,
+    )
+}
+
+@Composable
+private fun EventItemVerification(
+    event: EventVerification,
+    modifier: Modifier = Modifier,
+    imageSize: Dp = 24.dp,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
+    val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
+    val protocol = if (event.isProximityPresentment()) {
+        "Verified in-person"
+    } else {
+        "Verified using link"
+    }
+    val text = "$eventDateTimeString • $protocol"
+
+    FloatingItemText(
+        modifier = modifier,
+        image = {
+            Icon(
+                modifier = Modifier.size(imageSize),
+                imageVector = org.multipaz.documenttype.Icon.BADGE.getOutlinedImageVector(),
+                contentDescription = null
+            )
+        },
+        text = "Verification",
         secondary = text,
     )
 }

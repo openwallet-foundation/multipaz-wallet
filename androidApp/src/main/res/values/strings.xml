@@ -34,6 +34,16 @@
     <string name="setup_ble_skip">Skip</string>
     <string name="setup_ble_continue">Continue</string>
 
+    <string name="setup_notification_title">Notification Permissions</string>
+    <string name="setup_notification_text">%1$s needs notification permission to notify you when verification responses are received. Please grant the necessary permission to continue.</string>
+    <string name="setup_notification_grant">Grant Permission</string>
+    <string name="setup_notification_skip">Skip</string>
+    <string name="setup_notification_continue">Continue</string>
+
+    <string name="request_verification_notification_permission_title">Notification Permission Required</string>
+    <string name="request_verification_notification_permission_text">Notification permission is required to notify you when the recipient of the link responds. Without this permission, we cannot let you know when they have responded.</string>
+    <string name="request_verification_notification_permission_confirm">Grant Permission</string>
+
     <string name="setup_sign_in_title">Sign in</string>
     <string name="setup_sign_in_text">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You\'ll also be able manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="setup_sign_in_button">Sign in with Google</string>
@@ -455,7 +465,7 @@
     <string name="request_verification_received">Received %1$s</string>
     <string name="request_verification_received_unknown_issuer">Received %1$s. Document is from an unknown issuer</string>
     <string name="request_verification_identified">This person has been identified</string>
-    <string name="request_verification_no_requests">No verification requests sent yet.</string>
+    <string name="request_verification_no_requests">No verification requests are pending.</string>
     <string name="request_verification_devmode_queries">Devmode Queries</string>
     <string name="content_description_error">Error</string>
     <string name="content_description_portrait">Portrait</string>

@@ -25,16 +25,38 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.chooser.ChooserAction
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.IdentificationQuery
+import org.multipaz.wallet.client.verification.SimpleMdocQuery
 import org.multipaz.verification.VerifierIdentity
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.ActivityCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.eventlogger.EventVerification
+import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.trustmanagement.CompositeTrustManager
+import org.multipaz.verification.PresentmentRecord
+import org.multipaz.verification.toCbor
+import org.multipaz.wallet.client.verification.toCbor
+import org.multipaz.wallet.android.getDisplayName
+import org.multipaz.cbor.Cbor
+import kotlinx.datetime.Instant
+import kotlinx.serialization.json.jsonObject
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
 private const val TAG = "VerificationLinkUtils"
 
 private val linkVerificationsTableSpec = StorageTableSpec(
-    name = "LinkVerifications4",
+    name = "LinkVerifications5",
     supportPartitions = false,
     supportExpiration = false
 )
@@ -50,7 +72,9 @@ data class LinkVerification(
     val creationTimeMillis: Long,
     val isPending: Boolean,
     val encryptedResponse: ByteString? = null,
-    val responseReceivedAtMillis: Long? = null
+    val responseReceivedAtMillis: Long? = null,
+    val storeResponse: Boolean = false,
+    val logged: Boolean = false
 ) {
     companion object
 }
@@ -160,6 +184,7 @@ suspend fun generateVerificationLink(
         query = query,
         session = session,
         requestEncryptionKey = requestEncryptionKey,
+        storeResponse = settingsModel.verificationStoreResponse.value
     )
 
     val linkWithEncryptionKey = result.link + "#${requestEncryptionKey.toByteArray().toBase64Url()}"
@@ -171,7 +196,8 @@ private suspend fun savePendingVerification(
     requestId: String,
     query: Query,
     session: VerificationSession,
-    requestEncryptionKey: ByteString
+    requestEncryptionKey: ByteString,
+    storeResponse: Boolean
 ) {
     val table = storage.getTable(linkVerificationsTableSpec)
     val entry = LinkVerification(
@@ -180,9 +206,16 @@ private suspend fun savePendingVerification(
         session = session,
         requestEncryptionKey = requestEncryptionKey,
         creationTimeMillis = System.currentTimeMillis(),
-        isPending = true
+        isPending = true,
+        storeResponse = storeResponse
     )
     table.insert(requestId, ByteString(entry.toCbor()))
+}
+
+suspend fun markVerificationAsLogged(storage: Storage, item: LinkVerification) {
+    val table = storage.getTable(linkVerificationsTableSpec)
+    val updated = item.copy(logged = true)
+    table.update(item.requestId, ByteString(updated.toCbor()))
 }
 
 suspend fun getPendingVerifications(storage: Storage): List<LinkVerification> {
@@ -209,20 +242,81 @@ suspend fun getPendingVerifications(storage: Storage): List<LinkVerification> {
     return pending.sortedByDescending { it.creationTimeMillis }
 }
 
+suspend fun getCompletedVerifications(storage: Storage): List<LinkVerification> {
+    val table = storage.getTable(linkVerificationsTableSpec)
+    val all = table.enumerateWithData().map { (key, data) ->
+        key to LinkVerification.fromCbor(data.toByteArray())
+    }
+    val completed = mutableListOf<LinkVerification>()
+    for ((key, verification) in all) {
+        if (!verification.isPending) {
+            completed.add(verification)
+        }
+    }
+    return completed.sortedByDescending { it.responseReceivedAtMillis ?: it.creationTimeMillis }
+}
+
 suspend fun deleteVerification(storage: Storage, requestId: String) {
     val table = storage.getTable(linkVerificationsTableSpec)
     table.delete(requestId)
 }
 
-suspend fun getCompletedVerifications(storage: Storage): List<LinkVerification> {
-    val table = storage.getTable(linkVerificationsTableSpec)
-    return table.enumerateWithData().map { (_, data) ->
-        LinkVerification.fromCbor(data.toByteArray())
-    }.filter { !it.isPending }
-     .sortedByDescending { it.creationTimeMillis }
+fun postNotification(
+    context: Context,
+    verification: LinkVerification
+) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val name = "Verification Responses"
+        val descriptionText = "Notifications for verification responses received via link"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel = NotificationChannel("verification_responses", name, importance).apply {
+            description = descriptionText
+        }
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    val intent = Intent(context, MainActivity::class.java).apply {
+        action = MainActivity.ACTION_VIEW_PENDING_VERIFICATION
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+
+    val pendingIntent = PendingIntent.getActivity(
+        context,
+        verification.requestId.hashCode(),
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val builder = NotificationCompat.Builder(context, "verification_responses")
+        .setSmallIcon(R.drawable.ic_stat_name)
+        .setContentTitle("Verification Response Received")
+        .setContentText("A pending verification was received")
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setContentIntent(pendingIntent)
+        .setAutoCancel(true)
+
+    val notificationManager = NotificationManagerCompat.from(context)
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        notificationManager.notify(verification.requestId.hashCode(), builder.build())
+    }
 }
 
-suspend fun checkVerificationResults(walletClient: WalletClient, storage: Storage) {
+suspend fun checkVerificationResults(
+    walletClient: WalletClient,
+    storage: Storage,
+    eventLogger: SimpleEventLogger,
+    documentTypeRepository: DocumentTypeRepository,
+    zkSystemRepository: ZkSystemRepository,
+    issuerTrustManager: CompositeTrustManager,
+    onResponseReceived: (verification: LinkVerification) -> Unit
+) {
     val table = storage.getTable(linkVerificationsTableSpec)
     val pending = getPendingVerifications(storage)
     for (verification in pending) {
@@ -239,7 +333,40 @@ suspend fun checkVerificationResults(walletClient: WalletClient, storage: Storag
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to delete verification response from server for ${verification.requestId}", e)
             }
+
+            try {
+                val decryptedResponse = updated.decryptResponse()
+                val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
+                val presentmentRecord = updated.session.processDcResponse(dcResponse = dcResponse)
+                val timeForChecking = updated.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
+                    ?: Instant.fromEpochMilliseconds(updated.creationTimeMillis)
+                val verifiedPresentations = presentmentRecord.verify(
+                    atTime = timeForChecking,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository
+                )
+                val queryResult = updated.query.processVerifiedPresentations(
+                    verifiedPresentation = verifiedPresentations,
+                    issuerTrustManager = issuerTrustManager
+                )
+
+                if (updated.storeResponse) {
+                    val event = EventVerification(
+                        appData = mapOf("query" to Cbor.decode(updated.query.toCbor())),
+                        presentmentRecord = presentmentRecord
+                    )
+                    eventLogger.addEvent(event)
+                    val finalUpdated = updated.copy(logged = true)
+                    table.update(updated.requestId, ByteString(finalUpdated.toCbor()))
+                }
+
+                onResponseReceived(updated)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.e(TAG, "Failed to decrypt/process completed response for ${verification.requestId}", e)
+            }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             Logger.e(TAG, "Failed to check response for ${verification.requestId}", e)
         }
     }

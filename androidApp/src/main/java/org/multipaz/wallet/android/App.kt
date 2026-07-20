@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -43,6 +44,7 @@ import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.addKnownTypes
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.mdoc.zkp.longfellow.LongfellowZkSystem
@@ -69,6 +71,7 @@ import org.multipaz.util.Platform
 import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
+import org.multipaz.wallet.android.navigation.VerificationShowResponseDestination
 import org.multipaz.wallet.android.ui.CommunicatingWithBackendDialog
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
@@ -352,9 +355,9 @@ class App private constructor() {
         return map
     }
 
-    // Only log proximity presentment events
+    // Only log proximity presentment and proximity verification events
     private val Event.logLocation: Boolean
-        get() = this is EventPresentmentIso18013Proximity
+        get() = this is EventPresentmentIso18013Proximity || (this is EventVerification && this.isProximityPresentment())
 
     @Composable
     fun MdocUrlVerificationContent(mdocUrl: String) {
@@ -452,6 +455,7 @@ class App private constructor() {
                 mpzPassesToImportChannel = mpzPassesToImportChannel,
                 credentialOffers = credentialOffers,
                 documentIdToViewChannel = documentIdToViewChannel,
+                requestVerificationFlow = requestVerificationFlow,
                 showToast = ::showToast
             )
         }
@@ -489,10 +493,17 @@ class App private constructor() {
 
     private val documentIdToViewChannel = Channel<String>()
 
+    val requestVerificationFlow = MutableStateFlow<Boolean>(false)
+
     fun viewDocument(documentId: String) {
         CoroutineScope(Dispatchers.Default).launch {
             documentIdToViewChannel.send(documentId)
         }
+    }
+
+    fun viewRequestVerificationScreen() {
+        settingsModel.verificationIsInPerson.value = false
+        requestVerificationFlow.value = true
     }
 
     companion object {

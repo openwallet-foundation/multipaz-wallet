@@ -20,6 +20,7 @@ import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
+import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -51,6 +52,7 @@ fun mdocUrlVerificationGraph(
     imageLoader: ImageLoader,
     coroutineScope: CoroutineScope,
     showToast: (message: String) -> Unit,
+    eventLogger: SimpleEventLogger,
     backendIssuerTrustManagerModel: TrustManagerModel,
     userIssuerTrustManagerModel: TrustManagerModel,
     readerTrustManager: CompositeTrustManager,
@@ -118,7 +120,8 @@ fun mdocUrlVerificationGraph(
                             query = settingsModel.readerQuery.value,
                             presentmentRecord = presentmentRecord,
                             atTime = Clock.System.now(),
-                            showNotTrusted = false
+                            showNotTrusted = false,
+                            eventIdentifier = null
                         ))
                     },
                     onTransferError = {
@@ -147,6 +150,8 @@ fun mdocUrlVerificationGraph(
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
                     showNotTrusted = key.showNotTrusted,
+                    eventLogger = eventLogger,
+                    eventIdentifier = key.eventIdentifier,
                     onDeveloperExtrasClicked = {
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,

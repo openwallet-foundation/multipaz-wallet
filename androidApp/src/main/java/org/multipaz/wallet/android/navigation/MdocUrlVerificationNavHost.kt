@@ -67,6 +67,7 @@ fun MdocUrlVerificationNavHost(
         imageLoader = imageLoader,
         coroutineScope = coroutineScope,
         showToast = showToast,
+        eventLogger = eventLogger,
         backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
         userIssuerTrustManagerModel = userIssuerTrustManagerModel,
         readerTrustManager = readerTrustManager,

@@ -36,6 +36,7 @@ import org.multipaz.crypto.X509CertChain
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
@@ -48,6 +49,9 @@ import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.deleteVerification
 import org.multipaz.wallet.android.generateVerificationLink
+import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.toCbor
+import org.multipaz.wallet.client.verification.fromCbor
 import org.multipaz.wallet.android.shareVerificationLink
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -90,6 +94,9 @@ import org.multipaz.wallet.android.ui.verification.VerificationProximityTransfer
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferScreen
 import org.multipaz.wallet.android.ui.verification.VerificationShowResponseDeveloperExtrasScreen
 import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScreen
+import org.multipaz.wallet.android.ui.verification.VerificationEventListScreen
+import org.multipaz.wallet.android.checkVerificationResults
+import org.multipaz.wallet.android.postNotification
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
@@ -104,6 +111,8 @@ import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.Domains
+import org.multipaz.wallet.shared.Location
+import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -312,6 +321,22 @@ fun mainGraph(
                         },
                         onBackClicked = {
                             backStack.removeAt(backStack.size - 1)
+                        },
+                        onRefresh = {
+                            checkVerificationResults(
+                                walletClient = walletClient,
+                                storage = storage,
+                                eventLogger = eventLogger,
+                                documentTypeRepository = documentTypeRepository,
+                                zkSystemRepository = zkSystemRepository,
+                                issuerTrustManager = issuerTrustManager,
+                                onResponseReceived = { verification ->
+                                    postNotification(
+                                        context = context,
+                                        verification = verification
+                                    )
+                                }
+                            )
                         },
                         showToast = showToast
                     )
@@ -633,10 +658,53 @@ fun mainGraph(
                     documentModel = documentModel,
                     onDeleteAllEvents = { backStack.add(DeleteAllEventsConfirmationDialogDestination) },
                     onEventClicked = { event ->
-                        backStack.add(EventViewerDestination(event.identifier))
+                        if (event is EventVerification) {
+                            val queryDataItem = event.appData["query"]
+                            if (queryDataItem != null) {
+                                val query = Query.fromCbor(Cbor.encode(queryDataItem))
+                                backStack.add(
+                                    VerificationShowResponseDestination(
+                                        query = query,
+                                        presentmentRecord = event.presentmentRecord,
+                                        atTime = event.timestamp,
+                                        showNotTrusted = false,
+                                        eventIdentifier = event.identifier
+                                    )
+                                )
+                            } else {
+                                backStack.add(EventViewerDestination(event.identifier))
+                            }
+                        } else {
+                            backStack.add(EventViewerDestination(event.identifier))
+                        }
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
+                )
+            }
+            is VerificationEventListDestination -> NavEntry(key) {
+                VerificationEventListScreen(
+                    eventLogger = eventLogger,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
+                    issuerTrustManager = issuerTrustManager,
+                    onDeleteAllEvents = { backStack.add(DeleteAllEventsConfirmationDialogDestination) },
+                    onEventClicked = { event ->
+                        val queryDataItem = event.appData["query"]
+                        if (queryDataItem != null) {
+                            val query = Query.fromCbor(Cbor.encode(queryDataItem))
+                            backStack.add(
+                                VerificationShowResponseDestination(
+                                    query = query,
+                                    presentmentRecord = event.presentmentRecord,
+                                    atTime = event.timestamp,
+                                    showNotTrusted = true,
+                                    eventIdentifier = event.identifier
+                                )
+                            )
+                        }
+                    },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is DeleteAllEventsConfirmationDialogDestination -> NavEntry(
@@ -732,6 +800,8 @@ fun mainGraph(
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     promptModel = promptModel,
                     showToast = showToast,
+                    zkSystemRepository = zkSystemRepository,
+                    issuerTrustManager = issuerTrustManager,
                 )
             }
             is DeleteEventConfirmationDialogDestination -> NavEntry(
@@ -1142,6 +1212,7 @@ fun mainGraph(
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
+                    eventLogger = eventLogger,
                     onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
                     onNfcHandover = { scanResult ->
                         coroutineScope.launch {
@@ -1248,11 +1319,9 @@ fun mainGraph(
                     onDeletePendingVerificationClicked = { requestId ->
                         backStack.add(DeletePendingVerificationConfirmationDialogDestination(requestId))
                     },
-                    onDeleteCompletedVerificationClicked = { requestId ->
-                        backStack.add(DeleteVerificationConfirmationDialogDestination(requestId))
-                    },
                     refreshTrigger = backStack.size,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onVerificationHistoryClicked = { backStack.add(VerificationEventListDestination) },
                     showToast = showToast
                 )
             }
@@ -1275,32 +1344,6 @@ fun mainGraph(
                             } catch (e: Exception) {
                                 Logger.e(TAG, "Failed to delete pending request", e)
                                 showToast(context.getString(R.string.request_verification_failed_delete_request, e.message))
-                            } finally {
-                                backStack.removeAt(backStack.size - 1)
-                            }
-                        }
-                    }
-                )
-            }
-            is DeleteVerificationConfirmationDialogDestination -> NavEntry(
-                key = key,
-                metadata = DialogSceneStrategy.dialog()
-            ) {
-                val context = LocalContext.current
-                ConfirmationDialog(
-                    title = stringResource(R.string.request_verification_delete_completed_title),
-                    textMarkdown = stringResource(R.string.request_verification_delete_completed_text),
-                    confirmButtonText = stringResource(R.string.request_verification_delete_confirm),
-                    onDismissed = { backStack.removeAt(backStack.size - 1) },
-                    onConfirmClicked = {
-                        val requestId = key.requestId
-                        coroutineScope.launch {
-                            try {
-                                walletClient.deleteVerificationResponse(requestId)
-                                deleteVerification(storage, requestId)
-                            } catch (e: Exception) {
-                                Logger.e(TAG, "Failed to delete received verification", e)
-                                showToast(context.getString(R.string.request_verification_failed_delete_verification, e.message))
                             } finally {
                                 backStack.removeAt(backStack.size - 1)
                             }
@@ -1372,12 +1415,28 @@ fun mainGraph(
                         backStack.removeAt(backStack.size - 1)
                     },
                     onTransferComplete = { presentmentRecord ->
+                        if (settingsModel.verificationStoreResponse.value) {
+                            coroutineScope.launch {
+                                try {
+                                    val query = settingsModel.readerQuery.value
+                                    eventLogger.addEvent(
+                                        EventVerification(
+                                            appData = mapOf("query" to Cbor.decode(query.toCbor())),
+                                            presentmentRecord = presentmentRecord
+                                        )
+                                    )
+                                } catch (e: Exception) {
+                                    Logger.e(TAG, "Failed to log proximity verification event", e)
+                                }
+                            }
+                        }
                         backStack.removeAt(backStack.size - 1)
                         backStack.add(VerificationShowResponseDestination(
                             query = settingsModel.readerQuery.value,
                             presentmentRecord = presentmentRecord,
                             atTime = Clock.System.now(),
-                            showNotTrusted = false
+                            showNotTrusted = false,
+                            eventIdentifier = null
                         ))
                     },
                     onTransferError = {
@@ -1406,6 +1465,8 @@ fun mainGraph(
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
                     showNotTrusted = key.showNotTrusted,
+                    eventLogger = eventLogger,
+                    eventIdentifier = key.eventIdentifier,
                     onDeveloperExtrasClicked = {
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
@@ -1415,6 +1476,11 @@ fun mainGraph(
                     },
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
+                    },
+                    onEventDelete = key.eventIdentifier?.let { eventId ->
+                        {
+                            backStack.add(DeleteEventConfirmationDialogDestination(eventId))
+                        }
                     }
                 )
             }

@@ -10,13 +10,11 @@ import org.multipaz.util.toBase64Url
 import org.multipaz.verification.PresentmentRecord
 import org.multipaz.verification.fromCbor
 import org.multipaz.verification.toCbor
-import org.multipaz.wallet.android.LinkVerification
-import org.multipaz.wallet.android.fromCbor
-import org.multipaz.wallet.android.toCbor
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.fromCbor
 import org.multipaz.wallet.client.verification.toCbor
 import org.multipaz.wallet.shared.CredentialIssuer
+import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.toCbor
 import kotlin.time.Instant
@@ -44,6 +42,9 @@ data object SetupEulaScreenDestination: Destination()
 
 @Serializable
 data object SetupBlePermissionScreenDestination: Destination()
+
+@Serializable
+data object SetupNotificationPermissionScreenDestination: Destination()
 
 @Serializable
 data object SetupSignInScreenDestination: Destination()
@@ -261,6 +262,9 @@ data object AddToWalletDestination: Destination()
 data object RequestVerificationDestination: Destination()
 
 @Serializable
+data object VerificationEventListDestination: Destination()
+
+@Serializable
 data object SelectVerificationTypeDestination: Destination()
 
 @Serializable
@@ -277,18 +281,21 @@ data class VerificationShowResponseDestination(
     val queryEncoded: String,
     val presentmentRecordEncoded: String,
     val atTimeMillis: Long,
-    val showNotTrusted: Boolean
+    val showNotTrusted: Boolean,
+    val eventIdentifier: String? = null,
 ): Destination() {
     constructor(
         query: Query,
         presentmentRecord: PresentmentRecord,
         atTime: Instant,
-        showNotTrusted: Boolean
+        showNotTrusted: Boolean,
+        eventIdentifier: String? = null,
     ): this(
         queryEncoded = query.toCbor().toBase64Url(),
         presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
         atTimeMillis = atTime.toEpochMilliseconds(),
-        showNotTrusted = showNotTrusted
+        showNotTrusted = showNotTrusted,
+        eventIdentifier = eventIdentifier
     )
 
     val query: Query
@@ -326,11 +333,6 @@ data class VerificationShowResponseDeveloperExtrasDestination(
 @Serializable
 data class RequestVerificationFromMdocUrlDestination(
     val mdocUrl: String
-): Destination()
-
-@Serializable
-data class DeleteVerificationConfirmationDialogDestination(
-    val requestId: String
 ): Destination()
 
 @Serializable
