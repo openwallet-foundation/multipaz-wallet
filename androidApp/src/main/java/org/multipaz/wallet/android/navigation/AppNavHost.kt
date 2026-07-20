@@ -22,6 +22,7 @@ import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.compose.cards.rememberVerticalCardListState
@@ -82,6 +83,7 @@ fun AppNavHost(
     mpzPassesToImportChannel: Channel<ByteString>,
     credentialOffers: Channel<String>,
     documentIdToViewChannel: Channel<String>,
+    requestVerificationFlow: StateFlow<Boolean>,
     showToast: (message: String) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -177,6 +179,15 @@ fun AppNavHost(
         while (true) {
             val documentId = documentIdToViewChannel.receive()
             backStack.add(WalletDestination(documentId = documentId))
+        }
+    }
+    val requestVerificationTrigger = requestVerificationFlow.collectAsState().value
+    LaunchedEffect(requestVerificationTrigger) {
+        if (requestVerificationTrigger) {
+            if (backStack.none { it is RequestVerificationDestination }) {
+                backStack.add(RequestVerificationDestination)
+            }
+            (requestVerificationFlow as? kotlinx.coroutines.flow.MutableStateFlow)?.value = false
         }
     }
 

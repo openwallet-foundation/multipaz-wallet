@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,8 +37,20 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.SelectionContainer
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import org.multipaz.wallet.shared.Location
+import org.multipaz.wallet.shared.fromDataItem
+import org.multipaz.wallet.android.ui.MapView
+import org.multipaz.wallet.android.ui.getAddressFromCoordinates
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -64,6 +77,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.items.FloatingItemHeadingAndText
+import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.datetime.FormatStyle
@@ -77,6 +91,8 @@ import org.multipaz.trustmanagement.TrustPoint
 import org.multipaz.trustmanagement.TrustResult
 import org.multipaz.util.Logger
 import org.multipaz.verification.PresentmentRecord
+import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
@@ -107,10 +123,22 @@ fun VerificationShowResponseScreen(
     onDeveloperExtrasClicked: () -> Unit,
     onBackClicked: () -> Unit,
     showNotTrusted: Boolean,
+    eventLogger: SimpleEventLogger,
+    eventIdentifier: String? = null,
+    onEventDelete: (() -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val queryResult = remember { mutableStateOf<Result?>(null) }
+    
+    var event by remember { mutableStateOf<EventVerification?>(null) }
+    LaunchedEffect(eventIdentifier) {
+        if (eventIdentifier != null) {
+            event = eventLogger.getEvents().find { it.identifier == eventIdentifier } as? EventVerification
+        }
+    }
+    val verificationLocation = event?.appData?.get("location")?.let { Location.fromDataItem(it) }
+    val verificationTime = event?.timestamp
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
     val showNotTrustedState = remember { mutableStateOf(showNotTrusted) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
@@ -136,6 +164,14 @@ fun VerificationShowResponseScreen(
                         IconButton(onClick = onDeveloperExtrasClicked) {
                             Icon(
                                 imageVector = Icons.Outlined.Science,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                    if (onEventDelete != null) {
+                        IconButton(onClick = onEventDelete) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
                                 contentDescription = null
                             )
                         }
@@ -188,7 +224,9 @@ fun VerificationShowResponseScreen(
                                 result = result as AgeOverDocumentQueryResult,
                                 builtInIssuerTrustManager = builtInIssuerTrustManager,
                                 userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-                                imageLoader = imageLoader
+                                imageLoader = imageLoader,
+                                verificationLocation = verificationLocation,
+                                verificationTime = verificationTime
                             )
                         } else {
                             ShowNotTrusted(
@@ -207,7 +245,9 @@ fun VerificationShowResponseScreen(
                                 result = result as IdentificationDocumentQueryResult,
                                 builtInIssuerTrustManager = builtInIssuerTrustManager,
                                 userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-                                imageLoader = imageLoader
+                                imageLoader = imageLoader,
+                                verificationLocation = verificationLocation,
+                                verificationTime = verificationTime
                             )
                         } else {
                             ShowNotTrusted(
@@ -499,7 +539,6 @@ private fun ShowSource(
         //if (result.revocationStatus != null) {
         //}
     }
-    Spacer(modifier = Modifier.height(20.dp))
 }
 
 @Composable
@@ -508,7 +547,9 @@ private fun ShowAgeOverResult(
     result: AgeOverDocumentQueryResult,
     builtInIssuerTrustManager: TrustManagerInterface,
     userIssuerTrustManagerManager: TrustManagerInterface,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    verificationLocation: Location?,
+    verificationTime: Instant?
 ) {
     ShowPortrait(result.portrait)
 
@@ -531,6 +572,8 @@ private fun ShowAgeOverResult(
         userIssuerTrustManagerManager = userIssuerTrustManagerManager,
         imageLoader = imageLoader
     )
+    ShowEventDetails(verificationTime, verificationLocation)
+    Spacer(modifier = Modifier.height(20.dp))
 }
 
 @Composable
@@ -539,7 +582,9 @@ fun ShowIdentificationResult(
     result: IdentificationDocumentQueryResult,
     builtInIssuerTrustManager: TrustManagerInterface,
     userIssuerTrustManagerManager: TrustManagerInterface,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    verificationLocation: Location?,
+    verificationTime: Instant?
 ) {
     ShowPortrait(result.portrait)
 
@@ -572,4 +617,80 @@ fun ShowIdentificationResult(
         userIssuerTrustManagerManager = userIssuerTrustManagerManager,
         imageLoader = imageLoader
     )
+    ShowEventDetails(verificationTime, verificationLocation)
+    Spacer(modifier = Modifier.height(20.dp))
+}
+
+@Composable
+private fun ShowEventDetails(
+    verificationTime: Instant?,
+    verificationLocation: Location?
+) {
+    if (verificationTime != null || verificationLocation != null) {
+        Spacer(modifier = Modifier.height(20.dp))
+        FloatingItemList(title = "Verified at") {
+            if (verificationTime != null) {
+                val eventDateTime = verificationTime.toLocalDateTime(timeZone = TimeZone.currentSystemDefault())
+                val eventDateTimeString = eventDateTime.formatLocalized(
+                    dateStyle = FormatStyle.LONG,
+                    timeStyle = FormatStyle.LONG
+                )
+                FloatingItemHeadingAndText(
+                    heading = "Time",
+                    text = eventDateTimeString
+                )
+            }
+            if (verificationLocation != null) {
+                var address by remember { mutableStateOf<String?>(null) }
+                var isLoadingAddress by remember { mutableStateOf(true) }
+                val localContext = LocalContext.current
+                LaunchedEffect(verificationLocation) {
+                    address = verificationLocation.getAddressFromCoordinates(localContext)
+                    isLoadingAddress = false
+                }
+                val coordinates = "${verificationLocation.latitude}, ${verificationLocation.longitude}"
+                FloatingItemHeadingAndContent(
+                    heading = "Location",
+                    content = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            MapView(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                location = verificationLocation
+                            )
+                            if (isLoadingAddress) {
+                                Text(
+                                    text = "Looking up address... ($coordinates)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                val displayText = address ?: coordinates
+                                SelectionContainer {
+                                    Text(
+                                        text = displayText,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                        ),
+                                        modifier = Modifier.clickable {
+                                            val geoUri = if (address != null) {
+                                                "geo:${verificationLocation.latitude},${verificationLocation.longitude}?q=${Uri.encode(address)}"
+                                            } else {
+                                                "geo:${verificationLocation.latitude},${verificationLocation.longitude}"
+                                            }
+                                            localContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(geoUri)))
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
 }

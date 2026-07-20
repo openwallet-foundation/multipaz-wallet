@@ -89,9 +89,22 @@ import org.multipaz.eventlogger.EventPresentmentUriSchemeOpenID4VP
 import org.multipaz.eventlogger.EventProvisioning
 import org.multipaz.eventlogger.EventProvisioningIssuerDataOpenID4VCI
 import org.multipaz.eventlogger.EventSimple
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.toDataItem
 import org.multipaz.prompt.PromptModel
+import org.multipaz.verification.Iso18013PresentmentRecord
+import org.multipaz.verification.OpenID4VPPresentmentRecord
+import org.multipaz.verification.VerifiedPresentation
+import org.multipaz.verification.MdocVerifiedPresentation
+import org.multipaz.verification.JsonVerifiedPresentation
+import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.trustmanagement.CompositeTrustManager
+import org.multipaz.trustmanagement.TrustManagerInterface
+import org.multipaz.trustmanagement.TrustResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.request.RequestedClaim
 import org.multipaz.wallet.android.R
@@ -100,6 +113,7 @@ import org.multipaz.wallet.android.ui.getAddressFromCoordinates
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromDataItem
+import org.multipaz.wallet.android.isProximityPresentment
 import kotlin.time.Clock
 
 private const val TAG = "EventViewerScreen"
@@ -117,7 +131,9 @@ fun EventViewerScreen(
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
     onBackClicked: () -> Unit,
     promptModel: PromptModel,
-    showToast: (message: String) -> Unit
+    showToast: (message: String) -> Unit,
+    zkSystemRepository: ZkSystemRepository,
+    issuerTrustManager: CompositeTrustManager,
 ) {
     val localContext = LocalContext.current
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
@@ -225,6 +241,16 @@ fun EventViewerScreen(
                                 documentModel = documentModel,
                                 imageLoader = imageLoader,
                                 onViewCertificateChain = onViewCertificateChain
+                            )
+                        }
+                        is EventVerification -> {
+                            EventViewerVerification(
+                                event = event,
+                                documentTypeRepository = documentTypeRepository,
+                                imageLoader = imageLoader,
+                                onViewCertificateChain = onViewCertificateChain,
+                                zkSystemRepository = zkSystemRepository,
+                                issuerTrustManager = issuerTrustManager,
                             )
                         }
                         is EventSimple -> {}
@@ -613,5 +639,251 @@ private fun ExtractClaimsItems(
                 )
             }
         )
+    }
+}
+
+private data class VerifiedPresentationResult(
+    val vp: VerifiedPresentation,
+    val trustResult: TrustResult?
+)
+
+@Composable
+private fun EventViewerVerification(
+    event: EventVerification,
+    documentTypeRepository: DocumentTypeRepository,
+    imageLoader: ImageLoader,
+    onViewCertificateChain: (certChain: X509CertChain) -> Unit,
+    zkSystemRepository: ZkSystemRepository,
+    issuerTrustManager: CompositeTrustManager,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    modifier: Modifier = Modifier
+) {
+    val eventDateTime = event.timestamp.toLocalDateTime(timeZone = timeZone)
+    val eventDateTimeString = eventDateTime.formatLocalized(
+        dateStyle = FormatStyle.LONG,
+        timeStyle = FormatStyle.LONG
+    )
+
+    val protocol = if (event.isProximityPresentment()) {
+        "Verified in-person"
+    } else {
+        "Verified using link"
+    }
+
+    var verifiedPresentationsResult by remember { mutableStateOf<List<VerifiedPresentationResult>?>(null) }
+    var verificationError by remember { mutableStateOf<Throwable?>(null) }
+
+    LaunchedEffect(event) {
+        try {
+            val presentations = withContext(Dispatchers.Default) {
+                event.presentmentRecord.verify(
+                    atTime = event.timestamp,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository
+                )
+            }
+            val mappedResults = presentations.map { vp ->
+                val certChain = vp.documentSignerCertChain
+                val trustResult = certChain?.let {
+                    issuerTrustManager.verify(it.certificates, event.timestamp)
+                }
+                VerifiedPresentationResult(vp, trustResult)
+            }
+            verifiedPresentationsResult = mappedResults
+        } catch (t: Throwable) {
+            if (t is CancellationException) throw t
+            verificationError = t
+        }
+    }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val imageSize = 80.dp
+        Icon(
+            imageVector = Icon.BADGE.getOutlinedImageVector(),
+            contentDescription = null,
+            modifier = Modifier.size(imageSize)
+        )
+
+        Text(
+            text = "Verification Result",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+
+        FloatingItemList(
+            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
+        ) {
+            FloatingItemHeadingAndText(
+                heading = "Date and time",
+                text = eventDateTimeString
+            )
+
+            FloatingItemHeadingAndText(
+                heading = "Presentment protocol",
+                text = protocol
+            )
+
+            if (verificationError != null) {
+                FloatingItemHeadingAndText(
+                    heading = "Verification status",
+                    text = buildAnnotatedString {
+                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                            append("Failed: ${verificationError?.message}")
+                        }
+                    }
+                )
+            } else if (verifiedPresentationsResult == null) {
+                FloatingItemHeadingAndText(
+                    heading = "Verification status",
+                    text = "Verifying..."
+                )
+            } else {
+                FloatingItemHeadingAndText(
+                    heading = "Verification status",
+                    text = "Verified successfully"
+                )
+            }
+
+            event.appData["location"]?.let {
+                val location = Location.fromDataItem(it)
+
+                var address by remember { mutableStateOf<String?>(null) }
+                var isLoadingAddress by remember { mutableStateOf(true) }
+                
+                val localContext = LocalContext.current
+                LaunchedEffect(location) {
+                    isLoadingAddress = true
+                    address = location.getAddressFromCoordinates(localContext)
+                    isLoadingAddress = false
+                }
+
+                FloatingItemContainer {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.event_viewer_screen_location_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        MapView(
+                            location = location,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        )
+                        val coordinates = "${location.latitude}, ${location.longitude}"
+                        if (isLoadingAddress) {
+                            Text(
+                                text = stringResource(R.string.event_viewer_screen_location_looking_up_address) + " ($coordinates)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            val displayText = address ?: coordinates
+                            SelectionContainer {
+                                Text(
+                                    text = displayText,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                    ),
+                                    modifier = Modifier.clickable {
+                                        val geoUri = if (address != null) {
+                                            "geo:${location.latitude},${location.longitude}?q=${Uri.encode(address)}"
+                                        } else {
+                                            "geo:${location.latitude},${location.longitude}"
+                                        }
+                                        localContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(geoUri)))
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        verifiedPresentationsResult?.forEachIndexed { index, result ->
+            val vp = result.vp
+            val formatText = when (vp) {
+                is MdocVerifiedPresentation -> "ISO mdoc"
+                is JsonVerifiedPresentation -> "IETF SD-JWT VC"
+            }
+            val titleText = when (vp) {
+                is MdocVerifiedPresentation -> "Document ${index + 1}: ${vp.docType} ($formatText)"
+                is JsonVerifiedPresentation -> "Document ${index + 1}: ${vp.vct} ($formatText)"
+            }
+            FloatingItemList(
+                modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
+                title = titleText
+            ) {
+                vp.documentSignerCertChain?.let { certChain ->
+                    FloatingItemHeadingAndText(
+                        heading = "Issuer certificate chain",
+                        text = "Click to view",
+                        modifier = Modifier.clickable {
+                            onViewCertificateChain(certChain)
+                        }
+                    )
+
+                    val trustResult = result.trustResult
+                    if (trustResult != null && trustResult.isTrusted) {
+                        val tpName = " (${trustResult.trustPoints.first().metadata.displayName})"
+                        FloatingItemHeadingAndText(
+                            heading = "Issuer Trusted",
+                            text = "Yes$tpName"
+                        )
+                    } else {
+                        FloatingItemHeadingAndText(
+                            heading = "Issuer Trusted",
+                            text = buildAnnotatedString {
+                                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                                    append("No, not in a trust list")
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if (vp.zkpUsed) {
+                    FloatingItemHeadingAndText(
+                        heading = "ZK proof",
+                        text = "Successfully verified 🪄"
+                    )
+                }
+
+                for (n in listOf(0, 1)) {
+                    val (claims, suffix) = if (n == 0) {
+                        Pair(vp.issuerSignedClaims, "")
+                    } else {
+                        Pair(vp.deviceSignedClaims, " (Device Signed)")
+                    }
+                    claims.forEach { claim ->
+                        val typedClaim = Claim.fromDataItem(
+                            dataItem = claim.toDataItem(),
+                            documentTypeRepository = documentTypeRepository
+                        )
+                        val textValue = typedClaim.render()
+                        FloatingItemHeadingAndText(
+                            heading = typedClaim.displayName + suffix,
+                            text = textValue,
+                            image = {
+                                val icon = typedClaim.attribute?.icon ?: Icon.PERSON
+                                Icon(
+                                    imageVector = icon.getOutlinedImageVector(),
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }

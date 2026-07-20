@@ -52,6 +52,7 @@ import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
 import org.multipaz.eventlogger.EventProvisioning
 import org.multipaz.eventlogger.EventSimple
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
@@ -157,6 +158,7 @@ fun DocumentEventListScreen(
                                         imageLoader = imageLoader,
                                     )
                                 }
+                                is EventVerification -> {}
                                 is EventSimple -> {}
                             }
                         }

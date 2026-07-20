@@ -10,6 +10,9 @@ import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.EventPresentmentUriSchemeOpenID4VP
 import org.multipaz.eventlogger.EventProvisioning
 import org.multipaz.eventlogger.EventSimple
+import org.multipaz.eventlogger.EventVerification
+import org.multipaz.verification.Iso18013PresentmentRecord
+import org.multipaz.verification.OpenID4VPPresentmentRecord
 
 // Returns true iff the event is for the given document
 fun Event.isForDocumentId(documentId: String): Boolean {
@@ -26,9 +29,22 @@ fun Event.isForDocumentId(documentId: String): Boolean {
                 return true
             }
         }
+        is EventVerification -> {}
         is EventSimple -> {}
     }
     return false
+}
+
+// Returns true iff the verification event is for proximity presentment.
+fun EventVerification.isProximityPresentment(): Boolean {
+    when (presentmentRecord) {
+        is Iso18013PresentmentRecord -> {
+            return (presentmentRecord as Iso18013PresentmentRecord).origin == null
+        }
+        is OpenID4VPPresentmentRecord -> {
+            return false
+        }
+    }
 }
 
 fun EventPresentment.getSharingType(): String {

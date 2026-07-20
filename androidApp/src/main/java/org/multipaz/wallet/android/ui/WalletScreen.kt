@@ -112,6 +112,11 @@ import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.text.fromMarkdown
+import android.Manifest
+import android.os.Build
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import org.multipaz.document.DocumentStore
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -131,7 +136,7 @@ import kotlin.time.Duration.Companion.seconds
 private const val TAG = "WalletScreen"
 
 @SuppressLint("LocalContextGetResourceValueCall")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun WalletScreen(
     verticalCardListState: VerticalCardListState,
@@ -153,6 +158,7 @@ fun WalletScreen(
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit,
     onBackClicked: () -> Unit,
+    onRefresh: suspend () -> Unit = {},
     showToast: (message: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -432,6 +438,7 @@ fun WalletScreen(
                                 }
                             }
                             walletClient.refreshReaderKeys()
+                            onRefresh()
                         } catch (e: Exception) {
                             Logger.e(TAG, "Error refreshing data", e)
                             showToast(e.toString())

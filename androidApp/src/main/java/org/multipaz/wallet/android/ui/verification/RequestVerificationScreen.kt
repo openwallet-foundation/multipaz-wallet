@@ -27,9 +27,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,6 +74,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottiePainter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,7 +104,13 @@ import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.InfoNote
+import org.multipaz.wallet.android.ui.ConfirmationDialog
+import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.wallet.client.WalletClient
+import android.Manifest
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Switch
 import org.multipaz.compose.items.FloatingItemText
@@ -116,9 +127,13 @@ import org.multipaz.wallet.android.getPendingVerifications
 import org.multipaz.wallet.android.getCompletedVerifications
 import org.multipaz.wallet.android.VERIFICATION_LINK_EXPIRATION
 import org.multipaz.wallet.android.checkVerificationResults
-import org.multipaz.wallet.android.decryptResponse
 import org.multipaz.wallet.android.deleteVerification
+import org.multipaz.wallet.android.postNotification
+import org.multipaz.wallet.android.decryptResponse
+import org.multipaz.cbor.Cbor
+import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.toCbor
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import org.multipaz.util.toBase64Url
@@ -152,7 +167,7 @@ private data class CompletedVerificationData(
 
 private const val TAG = "RequestVerificationScreen"
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun RequestVerificationScreen(
     walletClient: WalletClient,
@@ -163,24 +178,40 @@ fun RequestVerificationScreen(
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
+    eventLogger: SimpleEventLogger,
     onSelectVerificationTypeClicked: () -> Unit,
     onNfcHandover: (result: ScanMdocReaderResult) -> Unit,
     onQrCodeScanned: (qrCode: String?) -> Unit,
     onGenerateVerificationLinkClicked: () -> Unit,
     onViewVerificationClicked: (query: Query, presentmentRecord: PresentmentRecord, atTime: Instant, showNotTrusted: Boolean) -> Unit,
     onDeletePendingVerificationClicked: (requestId: String) -> Unit,
-    onDeleteCompletedVerificationClicked: (requestId: String) -> Unit,
     refreshTrigger: Int,
     onBackClicked: () -> Unit,
+    onVerificationHistoryClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope { promptModel }
     val context = LocalContext.current
-    val completedItemsData = remember { mutableStateMapOf<String, CompletedVerificationData>() }
-
     val signedInData = walletClient.signedInUser.collectAsState().value
     val isDarkTheme = isSystemInDarkTheme()
     val isInPerson = settingsModel.verificationIsInPerson.collectAsState().value
+    val notificationPermissionState = rememberNotificationPermissionState()
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    if (showPermissionDialog) {
+        ConfirmationDialog(
+            title = stringResource(R.string.request_verification_notification_permission_title),
+            textMarkdown = stringResource(R.string.request_verification_notification_permission_text),
+            confirmButtonText = stringResource(R.string.request_verification_notification_permission_confirm),
+            onDismissed = { showPermissionDialog = false },
+            onConfirmClicked = {
+                showPermissionDialog = false
+                coroutineScope.launch {
+                    notificationPermissionState.launchPermissionRequest()
+                }
+            }
+        )
+    }
 
     val pendingList = remember { mutableStateOf<List<LinkVerification>>(emptyList()) }
     val completedList = remember { mutableStateOf<List<LinkVerification>>(emptyList()) }
@@ -196,65 +227,73 @@ fun RequestVerificationScreen(
         completedList.value = completed
         if (!isInPerson) {
             while (isActive) {
-                withContext(Dispatchers.Default) {
-                    checkVerificationResults(walletClient, storage)
-                }
-                val p = withContext(Dispatchers.Default) {
+                val currentPending = withContext(Dispatchers.Default) {
                     getPendingVerifications(storage)
                 }
-                val c = withContext(Dispatchers.Default) {
-                    getCompletedVerifications(storage)
+                pendingList.value = currentPending
+                if (currentPending.isNotEmpty()) {
+                    withContext(Dispatchers.Default) {
+                        checkVerificationResults(
+                            walletClient = walletClient,
+                            storage = storage,
+                            eventLogger = eventLogger,
+                            documentTypeRepository = documentTypeRepository,
+                            zkSystemRepository = zkSystemRepository,
+                            issuerTrustManager = issuerTrustManager,
+                            onResponseReceived = { verification ->
+                                postNotification(
+                                    context = context,
+                                    verification = verification
+                                )
+                            }
+                        )
+                    }
+                    val updatedPending = withContext(Dispatchers.Default) {
+                        getPendingVerifications(storage)
+                    }
+                    val updatedCompleted = withContext(Dispatchers.Default) {
+                        getCompletedVerifications(storage)
+                    }
+                    pendingList.value = updatedPending
+                    completedList.value = updatedCompleted
                 }
-                pendingList.value = p
-                completedList.value = c
                 delay(3000)
             }
         }
     }
- 
+    val completedUiStates = remember { mutableStateOf<List<CompletedVerificationUiState>>(emptyList()) }
     LaunchedEffect(completedList.value) {
-        for (item in completedList.value) {
-            if (completedItemsData.containsKey(item.requestId)) continue
-            launch(Dispatchers.Default) {
-                try {
+        val states = withContext(Dispatchers.Default) {
+            completedList.value.map { item ->
+                val presentmentRecord = try {
                     val decryptedResponse = item.decryptResponse()
                     val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
-                    val presentmentRecord = item.session.processDcResponse(dcResponse = dcResponse)
-                    val timeForChecking =
-                        item.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
-                        ?: Instant.fromEpochMilliseconds(item.creationTimeMillis)
-                    val verifiedPresentations = presentmentRecord.verify(
-                        atTime = timeForChecking,
-                        documentTypeRepository = documentTypeRepository,
-                        zkSystemRepository = zkSystemRepository
-                    )
-                    val queryResult = item.query.processVerifiedPresentations(
-                        verifiedPresentation = verifiedPresentations,
-                        issuerTrustManager = issuerTrustManager
-                    )
-                    val docResult = queryResult.documents.firstOrNull()
-                    val portraitBytes = when (docResult) {
-                        is AgeOverDocumentQueryResult -> docResult.portrait
-                        is IdentificationDocumentQueryResult -> docResult.portrait
-                        else -> null
-                    }
-                    val portraitBitmap = portraitBytes?.let {
-                        val array = it.toByteArray()
-                        BitmapFactory.decodeByteArray(array, 0, array.size)?.asImageBitmap()
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        completedItemsData[item.requestId] = CompletedVerificationData(
-                            portrait = portraitBitmap,
-                            queryResult = queryResult,
-                            presentmentRecord = presentmentRecord
-                        )
-                    }
+                    item.session.processDcResponse(dcResponse = dcResponse)
                 } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to process completed response for ${item.requestId}", e)
+                    null
                 }
+                val isTrusted = presentmentRecord?.let {
+                    try {
+                        val timeForChecking = item.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
+                            ?: Instant.fromEpochMilliseconds(item.creationTimeMillis)
+                        val verifiedPresentations = it.verify(
+                            atTime = timeForChecking,
+                            documentTypeRepository = documentTypeRepository,
+                            zkSystemRepository = zkSystemRepository
+                        )
+                        val queryResult = item.query.processVerifiedPresentations(
+                            verifiedPresentation = verifiedPresentations,
+                            issuerTrustManager = issuerTrustManager
+                        )
+                        queryResult.documents.firstOrNull()?.trustResult?.isTrusted ?: true
+                    } catch (e: Exception) {
+                        true
+                    }
+                } ?: true
+                CompletedVerificationUiState(item, presentmentRecord, isTrusted)
             }
         }
+        completedUiStates.value = states
     }
 
     val nfcTagReader = NfcTagReader.getReaders().firstOrNull()
@@ -325,6 +364,14 @@ fun RequestVerificationScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onVerificationHistoryClicked) {
+                        Icon(
+                            imageVector = Icons.Outlined.History,
+                            contentDescription = "Verification History"
                         )
                     }
                 },
@@ -411,7 +458,15 @@ fun RequestVerificationScreen(
                 Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = onGenerateVerificationLinkClicked,
+                    onClick = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            !notificationPermissionState.isGranted
+                        ) {
+                            showPermissionDialog = true
+                        } else {
+                            onGenerateVerificationLinkClicked()
+                        }
+                    },
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -491,127 +546,57 @@ fun RequestVerificationScreen(
                         }
                     }
 
-                    if (completedList.value.isNotEmpty()) {
+                    if (completedUiStates.value.isNotEmpty()) {
                         FloatingItemList(title = stringResource(R.string.request_verification_completed_heading)) {
-                            for (item in completedList.value) {
-                                val data = completedItemsData[item.requestId]
-                                val isTrusted = data?.queryResult?.documents?.firstOrNull()?.trustResult?.isTrusted ?: true
-                                val isAgeOver = (data?.queryResult?.documents?.firstOrNull() as? AgeOverDocumentQueryResult)?.isAgeOver
-                                val timeForChecking =
-                                    item.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
-                                        ?: Instant.fromEpochMilliseconds(item.creationTimeMillis)
+                            for (state in completedUiStates.value) {
+                                val item = state.item
+                                val timeText = durationFromNowText(Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis))
+                                val presentmentRecord = state.presentmentRecord
+                                val isTrusted = state.isTrusted
+
                                 FloatingItemHeadingAndContent(
                                     modifier = Modifier.clickable {
-                                        if (data != null) {
-                                            onViewVerificationClicked(
-                                                item.query,
-                                                data.presentmentRecord,
-                                                timeForChecking,
-                                                !isTrusted
-                                            )
-                                        } else {
+                                        if (presentmentRecord != null) {
                                             coroutineScope.launch {
                                                 try {
-                                                    val decryptedResponse = item.decryptResponse()
-                                                    val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
-                                                    val presentmentRecord = item.session.processDcResponse(
-                                                        dcResponse = dcResponse
-                                                    )
-                                                    onViewVerificationClicked(
-                                                        item.query,
-                                                        presentmentRecord,
-                                                        timeForChecking,
-                                                        false
-                                                    )
+                                                    walletClient.deleteVerificationResponse(item.requestId)
+                                                    deleteVerification(storage, item.requestId)
                                                 } catch (e: Exception) {
-                                                    Logger.e(TAG, "Failed to load response details", e)
+                                                    Logger.e(TAG, "Failed to delete verification on click", e)
                                                 }
                                             }
+                                            onViewVerificationClicked(
+                                                item.query,
+                                                presentmentRecord,
+                                                Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis),
+                                                !isTrusted
+                                            )
                                         }
                                     },
                                     image = {
-                                        if (!isTrusted) {
-                                            Icon(
-                                                modifier = Modifier.size(48.dp),
-                                                imageVector = Icons.Outlined.ErrorOutline,
-                                                tint = MaterialTheme.colorScheme.error,
-                                                contentDescription = stringResource(R.string.content_description_error)
-                                            )
-                                        } else if (data?.portrait != null) {
-                                            Image(
-                                                modifier = Modifier
-                                                    .size(48.dp)
-                                                    .clip(RoundedCornerShape(8.dp)),
-                                                bitmap = data.portrait,
-                                                contentDescription = stringResource(R.string.content_description_portrait),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            Icon(
-                                                modifier = Modifier.size(48.dp),
-                                                imageVector = Icons.Outlined.Link,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                contentDescription = stringResource(R.string.content_description_link)
-                                            )
-                                        }
+                                        val icon = if (isTrusted) Icons.Outlined.CheckCircle else Icons.Outlined.Warning
+                                        val tint = if (isTrusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                        Icon(
+                                            modifier = Modifier.size(48.dp),
+                                            imageVector = icon,
+                                            tint = tint,
+                                            contentDescription = null
+                                        )
                                     },
-                                    heading = if (isTrusted) {
-                                        when (val q = item.query) {
-                                            is AgeOverQuery -> {
-                                                if (isAgeOver == false) {
-                                                    stringResource(R.string.verification_show_response_age_over_failure, q.ageOver)
-                                                } else {
-                                                    stringResource(R.string.verification_show_response_age_over_success, q.ageOver)
-                                                }
-                                            }
-                                            is IdentificationQuery -> stringResource(R.string.request_verification_identified)
-                                            else -> q.getDisplayName()
-                                        }
-                                    } else {
-                                        item.query.getDisplayName()
-                                    },
+                                    heading = item.query.getDisplayName(),
                                     content = {
-                                        val durationText = durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis))
-                                        val text = if (!isTrusted) {
-                                            stringResource(R.string.request_verification_received_unknown_issuer, durationText)
-                                        } else {
-                                            stringResource(R.string.request_verification_received, durationText)
-                                        }
+                                        val resId = if (isTrusted) R.string.request_verification_received else R.string.request_verification_received_unknown_issuer
                                         Text(
-                                            text = text,
+                                            text = stringResource(resId, timeText),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    },
-                                    trailingContent = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            IconButton(
-                                                onClick = {
-                                                    onDeleteCompletedVerificationClicked(item.requestId)
-                                                }
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Delete,
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    contentDescription = stringResource(R.string.content_description_delete)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Icon(
-                                                modifier = Modifier.size(24.dp),
-                                                imageVector = Icons.Outlined.ChevronRight,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                contentDescription = null
-                                            )
-                                        }
                                     }
                                 )
                             }
                         }
                     }
- 
+
                     if (pendingList.value.isEmpty() && completedList.value.isEmpty()) {
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(
@@ -875,3 +860,9 @@ private val nfcPollingFramesInsertionSupported by lazy {
         false
     }
 }
+
+data class CompletedVerificationUiState(
+    val item: LinkVerification,
+    val presentmentRecord: PresentmentRecord?,
+    val isTrusted: Boolean
+)

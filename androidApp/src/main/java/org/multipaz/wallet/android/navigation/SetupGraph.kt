@@ -19,6 +19,7 @@ import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.ui.setup.SetupActivityLoggingLocationScreen
 import org.multipaz.wallet.android.ui.setup.SetupActivityLoggingScreen
 import org.multipaz.wallet.android.ui.setup.SetupBlePermissionScreen
+import org.multipaz.wallet.android.ui.setup.SetupNotificationPermissionScreen
 import org.multipaz.wallet.android.ui.setup.SetupDefaultWalletScreen
 import org.multipaz.wallet.android.ui.setup.SetupDeviceCheckScreen
 import org.multipaz.wallet.android.ui.setup.SetupEulaScreen
@@ -107,6 +108,13 @@ fun setupGraph(
             }
             is SetupBlePermissionScreenDestination -> NavEntry(key) {
                 SetupBlePermissionScreen(
+                    onContinueClicked = {
+                        backStack.add(SetupNotificationPermissionScreenDestination)
+                    }
+                )
+            }
+            is SetupNotificationPermissionScreenDestination -> NavEntry(key) {
+                SetupNotificationPermissionScreen(
                     onContinueClicked = {
                         backStack.add(SetupSignInScreenDestination)
                     }
