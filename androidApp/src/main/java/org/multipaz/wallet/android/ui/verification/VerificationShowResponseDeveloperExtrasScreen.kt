@@ -32,7 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.multipaz.wallet.android.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.JsonObject
@@ -179,7 +181,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
             .fillMaxSize(),
         topBar = {
             MediumTopAppBar(
-                title = { Text("Detailed response") },
+                title = { Text(stringResource(R.string.verification_show_response_developer_extras_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
                         Icon(
@@ -202,10 +204,10 @@ fun VerificationShowResponseDeveloperExtrasScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Note(
-                markdownString = "This screen contains low-level information about the response."
+                markdownString = stringResource(R.string.verification_show_response_developer_extras_note)
             )
             if (verificationError.value != null) {
-                Text(text = verificationError.value!!.message ?: "Failed")
+                Text(text = verificationError.value!!.message ?: stringResource(R.string.verification_show_response_developer_extras_failed))
             } else if (verficationResult.value != null) {
                 for (section in verficationResult.value!!.sections) {
                     Spacer(modifier = Modifier.height(10.dp))
@@ -222,7 +224,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                 is ValueSize -> {
                                     FloatingItemHeadingAndText(
                                         heading = line.header,
-                                        text = "${line.value.size} bytes"
+                                        text = stringResource(R.string.verification_show_response_developer_extras_bytes, line.value.size)
                                     )
                                 }
 
@@ -249,14 +251,14 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                             onViewCertChain?.let { it(line.value.certChain) }
                                         },
                                         heading = line.header,
-                                        text = "Click to view certificate chain"
+                                        text = stringResource(R.string.verification_show_response_developer_extras_click_to_view_chain)
                                     )
                                 }
 
                                 is ValueDuration -> {
                                     FloatingItemHeadingAndText(
                                         heading = line.header,
-                                        text = line.value.duration?.let { "${it.inWholeMilliseconds} msec" } ?: "-"
+                                        text = line.value.duration?.let { stringResource(R.string.verification_show_response_developer_extras_msec, it.inWholeMilliseconds) } ?: "-"
                                     )
                                 }
 

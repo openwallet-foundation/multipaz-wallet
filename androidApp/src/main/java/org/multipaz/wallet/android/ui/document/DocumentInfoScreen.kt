@@ -82,7 +82,7 @@ fun DocumentInfoScreen(
                         IconButton(onClick = onDeveloperExtrasClicked) {
                             Icon(
                                 imageVector = Icons.Outlined.Science,
-                                contentDescription = "Developer Extras"
+                                contentDescription = stringResource(R.string.document_info_developer_extras_content_description)
                             )
                         }
                     }

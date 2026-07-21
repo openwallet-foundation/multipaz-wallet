@@ -33,7 +33,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.multipaz.wallet.android.R
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.request.get
@@ -97,7 +99,7 @@ fun CredentialInfoScreen(
         topBar = {
             MediumTopAppBar(
                 title = {
-                    Text("Credential info")
+                    Text(stringResource(R.string.credential_info_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
@@ -120,7 +122,7 @@ fun CredentialInfoScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Note(
-                markdownString = "This screen contains low-level technical details about a specific credential"
+                markdownString = stringResource(R.string.credential_info_note)
             )
             if (credentialInfo != null) {
                 FloatingItemList() {
@@ -135,7 +137,7 @@ fun CredentialInfoScreen(
                 }
             } else {
                 FloatingItemList {
-                    FloatingItemCenteredText("No info for credential")
+                    FloatingItemCenteredText(stringResource(R.string.credential_info_empty))
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
@@ -151,17 +153,17 @@ private fun CredentialInfoSection(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    FloatingItemHeadingAndText("Type", credentialInfo.credential.credentialType)
-    FloatingItemHeadingAndText("Identifier", credentialInfo.credential.identifier)
-    FloatingItemHeadingAndText("Domain", credentialInfo.credential.domain)
-    FloatingItemHeadingAndText("Certified", if (credentialInfo.credential.isCertified) "Yes" else "No")
+    FloatingItemHeadingAndText(stringResource(R.string.credential_info_type), credentialInfo.credential.credentialType)
+    FloatingItemHeadingAndText(stringResource(R.string.credential_info_identifier), credentialInfo.credential.identifier)
+    FloatingItemHeadingAndText(stringResource(R.string.credential_info_domain), credentialInfo.credential.domain)
+    FloatingItemHeadingAndText(stringResource(R.string.credential_info_certified), if (credentialInfo.credential.isCertified) stringResource(R.string.credential_info_yes) else stringResource(R.string.credential_info_no))
     if (credentialInfo.credential.isCertified) {
         FloatingItemHeadingAndText(
-            "Valid From",
+            stringResource(R.string.credential_info_valid_from),
             formattedDateTime(credentialInfo.credential.validFrom)
         )
         FloatingItemHeadingAndText(
-            "Valid Until",
+            stringResource(R.string.credential_info_valid_until),
             formattedDateTime(credentialInfo.credential.validUntil)
         )
         FloatingItemHeadingAndText(

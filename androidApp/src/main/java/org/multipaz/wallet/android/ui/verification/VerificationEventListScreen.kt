@@ -161,7 +161,7 @@ fun VerificationEventListScreen(
         topBar = {
             MediumTopAppBar(
                 title = {
-                    Text("Verification History")
+                    Text(stringResource(R.string.verification_history_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
@@ -194,7 +194,7 @@ fun VerificationEventListScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Note(
-                markdownString = "Verifications with stored responses received in the last 60 days are shown here."
+                markdownString = stringResource(R.string.verification_history_note)
             )
             FloatingItemList {
                 if (currentEvents == null) {
@@ -202,7 +202,7 @@ fun VerificationEventListScreen(
                 } else {
                     if (currentEvents.isEmpty()) {
                         FloatingItemCenteredText(
-                            text = "No verifications logged",
+                            text = stringResource(R.string.verification_history_empty),
                         )
                     } else {
                         currentEvents.forEach { event ->
@@ -240,12 +240,13 @@ private fun EventItemVerification(
     }
     val isProximity = event.isProximityPresentment()
     val protocol = if (isProximity) {
-        "Verified in-person"
+        stringResource(R.string.verification_history_in_person)
     } else {
-        "Verified using link"
+        stringResource(R.string.verification_history_link)
     }
-    val secondaryText = "$timeText • $protocol"
+    val secondaryText = stringResource(R.string.verification_history_time_protocol, timeText, protocol)
 
+    val defaultTitle = stringResource(R.string.verification_history_default_title)
     val headingText = if (data != null) {
         if (isTrusted) {
             val queryDataItem = event.appData["query"]
@@ -259,15 +260,15 @@ private fun EventItemVerification(
                     }
                 }
                 is IdentificationQuery -> stringResource(R.string.request_verification_identified)
-                else -> query?.getDisplayName() ?: "Verification"
+                else -> query?.getDisplayName() ?: defaultTitle
             }
         } else {
             val queryDataItem = event.appData["query"]
             val query = queryDataItem?.let { Query.fromCbor(Cbor.encode(it)) }
-            query?.getDisplayName() ?: "Verification"
+            query?.getDisplayName() ?: defaultTitle
         }
     } else {
-        "Verification"
+        defaultTitle
     }
 
     FloatingItemHeadingAndContent(

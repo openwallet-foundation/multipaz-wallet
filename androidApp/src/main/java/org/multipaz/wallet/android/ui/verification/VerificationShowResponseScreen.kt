@@ -628,7 +628,7 @@ private fun ShowEventDetails(
 ) {
     if (verificationTime != null || verificationLocation != null) {
         Spacer(modifier = Modifier.height(20.dp))
-        FloatingItemList(title = "Verified at") {
+        FloatingItemList(title = stringResource(R.string.verification_show_response_verified_at)) {
             if (verificationTime != null) {
                 val eventDateTime = verificationTime.toLocalDateTime(timeZone = TimeZone.currentSystemDefault())
                 val eventDateTimeString = eventDateTime.formatLocalized(
@@ -663,7 +663,7 @@ private fun ShowEventDetails(
                             )
                             if (isLoadingAddress) {
                                 Text(
-                                    text = "Looking up address... ($coordinates)",
+                                    text = stringResource(R.string.verification_show_response_looking_up_address_fmt, coordinates),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

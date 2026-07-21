@@ -550,4 +550,77 @@
     <string name="trust_entry_viewer_type">Type</string>
     <string name="trust_entry_viewer_id">ID</string>
     <string name="trust_entry_viewer_url">URL</string>
+
+    <!-- Verification History -->
+    <string name="verification_history_title">Verification History</string>
+    <string name="verification_history_note">Verifications with stored responses received in the last 60 days are shown here.</string>
+    <string name="verification_history_empty">No verifications logged</string>
+    <string name="verification_history_in_person">Verified in-person</string>
+    <string name="verification_history_link">Verified using link</string>
+    <string name="verification_history_default_title">Verification</string>
+    <string name="verification_history_time_protocol">%1$s • %2$s</string>
+
+    <!-- Verification Notifications -->
+    <string name="verification_notification_channel_name">Verification Responses</string>
+    <string name="verification_notification_channel_description">Notifications for verification responses received via link</string>
+    <string name="verification_notification_title">Verification Response Received</string>
+    <string name="verification_notification_text">A pending verification was received</string>
+
+    <!-- Verification Details & Extras -->
+    <string name="verification_show_response_developer_extras_title">Detailed response</string>
+    <string name="verification_show_response_developer_extras_note">This screen contains low-level information about the response.</string>
+    <string name="verification_show_response_developer_extras_failed">Failed</string>
+    <string name="verification_show_response_developer_extras_click_to_view_chain">Click to view certificate chain</string>
+    <string name="verification_show_response_developer_extras_bytes">%1$d bytes</string>
+    <string name="verification_show_response_developer_extras_msec">%1$d msec</string>
+    <string name="verification_show_response_developer_extras_credential_format">Credential format</string>
+    <string name="verification_show_response_developer_extras_doctype">DocType</string>
+    <string name="verification_show_response_developer_extras_issuer_ds_curve">Issuer DS curve</string>
+    <string name="verification_show_response_developer_extras_issuer_trusted">Issuer Trusted</string>
+    <string name="verification_show_response_developer_extras_yes">Yes</string>
+    <string name="verification_show_response_developer_extras_no">No</string>
+    <string name="verification_show_response_developer_extras_issuer_cert_chain">Issuer certificate chain</string>
+    <string name="verification_show_response_developer_extras_zk_proof">ZK proof</string>
+    <string name="verification_show_response_developer_extras_zk_proof_success">Successfully verified 🪄</string>
+    <string name="verification_show_response_developer_extras_valid_from">Valid from</string>
+    <string name="verification_show_response_developer_extras_valid_until">Valid until</string>
+    <string name="verification_show_response_developer_extras_signed_at">Signed at</string>
+    <string name="verification_show_response_developer_extras_expected_update">Expected update</string>
+    <string name="verification_show_response_developer_extras_document_n_of_m">Document %1$d of %2$d</string>
+    <string name="verification_show_response_developer_extras_namespace">Namespace %1$s</string>
+    <string name="verification_show_response_developer_extras_namespace_device_signed">Namespace %1$s (Device-Signed)</string>
+    <string name="verification_show_response_developer_extras_vct">Verifiable Credential Type</string>
+    <string name="verification_show_response_developer_extras_claims">Claims</string>
+    <string name="verification_show_response_developer_extras_claims_device_signed">Claims (Device Signed)</string>
+    <string name="verification_show_response_verified_at">Verified at</string>
+    <string name="verification_show_response_looking_up_address_fmt">Looking up address… (%1$s)</string>
+
+    <!-- OpenID4VCI Refresh & Toasts -->
+    <string name="openid4vci_refresh_not_supported">Cannot refresh. Document isn\'t from a OpenID4VCI server</string>
+    <string name="openid4vci_refreshing">Refreshing credentials…</string>
+    <string name="openid4vci_refreshed_count">Refreshed %1$d credentials</string>
+    <string name="openid4vci_refresh_error">Error refreshing credentials: %1$s</string>
+    <string name="verification_link_share_failed">Failed to share link: %1$s</string>
+    <string name="verification_link_generate_error">Error generating verification link: %1$s</string>
+    <string name="select_verification_type_custom_mdl_description">Requests an mDL with portrait and age_over_18</string>
+
+    <!-- Credential Info & Document Info -->
+    <string name="credential_info_title">Credential info</string>
+    <string name="credential_info_note">This screen contains low-level technical details about a specific credential</string>
+    <string name="credential_info_empty">No info for credential</string>
+    <string name="credential_info_type">Type</string>
+    <string name="credential_info_identifier">Identifier</string>
+    <string name="credential_info_domain">Domain</string>
+    <string name="credential_info_certified">Certified</string>
+    <string name="credential_info_yes">Yes</string>
+    <string name="credential_info_no">No</string>
+    <string name="credential_info_valid_from">Valid From</string>
+    <string name="credential_info_valid_until">Valid Until</string>
+    <string name="credential_info_click_to_check_status">Click to check status</string>
+    <string name="credential_info_http_status">HTTP Status: %1$d</string>
+    <string name="credential_info_failed_parse_status_list">Failed to parse status list</string>
+    <string name="credential_info_failed_parse_identifier_list">Failed to parse identifier list</string>
+    <string name="document_info_credentials_title">Credentials</string>
+    <string name="document_info_refresh_credentials_content_description">Refresh credentials</string>
+    <string name="document_info_developer_extras_content_description">Developer Extras</string>
 </resources>

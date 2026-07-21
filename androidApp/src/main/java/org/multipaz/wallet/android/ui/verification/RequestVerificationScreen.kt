@@ -371,7 +371,7 @@ fun RequestVerificationScreen(
                     IconButton(onClick = onVerificationHistoryClicked) {
                         Icon(
                             imageVector = Icons.Outlined.History,
-                            contentDescription = "Verification History"
+                            contentDescription = stringResource(R.string.verification_history_title)
                         )
                     }
                 },
@@ -505,7 +505,7 @@ fun RequestVerificationScreen(
                                                 shareVerificationLink(context, link)
                                             } catch (e: Exception) {
                                                 Logger.e(TAG, "Failed to share pending link", e)
-                                                showToast("Failed to share link: ${e.message}")
+                                                showToast(context.getString(R.string.verification_link_share_failed, e.message ?: ""))
                                             }
                                         }
                                     },

@@ -32,8 +32,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.multipaz.wallet.android.R
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.multipaz.compose.datetime.formattedDateTime
@@ -73,7 +74,7 @@ fun DocumentInfoExtrasScreen(
         topBar = {
             MediumTopAppBar(
                 title = {
-                    Text("Credentials")
+                    Text(stringResource(R.string.document_info_credentials_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
@@ -87,7 +88,7 @@ fun DocumentInfoExtrasScreen(
                     IconButton(onClick = onRefreshCredentialsClicked) {
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
-                            contentDescription = "Refresh credentials"
+                            contentDescription = stringResource(R.string.document_info_refresh_credentials_content_description)
                         )
                     }
                 },

@@ -147,7 +147,7 @@ fun SelectVerificationTypeScreen(
                 FloatingItemList(title = stringResource(R.string.request_verification_devmode_queries)) {
                     val query = SimpleMdocQuery(
                         name = "mDL with portrait and age_over_18",
-                        description = "Requests an mDL with portrait and age_over_18",
+                        description = stringResource(R.string.select_verification_type_custom_mdl_description),
                         docType = DrivingLicense.MDL_DOCTYPE,
                         claims = listOf("portrait", "age_over_18").map {
                             MdocRequestedClaim(

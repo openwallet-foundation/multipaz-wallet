@@ -423,21 +423,21 @@ fun mainGraph(
                             val document = documentStore.lookupDocument(key.documentId)
                             val authorizationData = document?.authorizationData
                             if (authorizationData == null) {
-                                showToast("Cannot refresh. Document isn't from a OpenID4VCI server")
+                                showToast(context.getString(R.string.openid4vci_refresh_not_supported))
                             } else {
                                 try {
-                                    showToast("Refreshing credentials...")
+                                    showToast(context.getString(R.string.openid4vci_refreshing))
                                     val numCredentialsAdded = provisioningModel.openID4VCIRefreshCredentials(
                                         document = document,
                                         authorizationData = authorizationData,
                                         clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
                                         backend = walletClient.getOpenID4VCIBackend()
                                     )
-                                    showToast("Refreshed ${numCredentialsAdded} credentials")
+                                    showToast(context.getString(R.string.openid4vci_refreshed_count, numCredentialsAdded))
                                 } catch (e: Exception) {
                                     if (e is CancellationException) throw e
                                     Logger.w(TAG, "Error refreshing credentials", e)
-                                    showToast("Error refreshing credentials: ${e.message}")
+                                    showToast(context.getString(R.string.openid4vci_refresh_error, e.message ?: ""))
                                 }
                             }
                         }
@@ -1303,7 +1303,7 @@ fun mainGraph(
                                 shareVerificationLink(context, verificationLink)
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
-                                showToast("Error generating verification link: $e")
+                                showToast(context.getString(R.string.verification_link_generate_error, e.message ?: e.toString()))
                                 Logger.e(TAG, "Error generating verification link", e)
                             }
                         }

@@ -266,8 +266,8 @@ fun postNotification(
     verification: LinkVerification
 ) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val name = "Verification Responses"
-        val descriptionText = "Notifications for verification responses received via link"
+        val name = context.getString(R.string.verification_notification_channel_name)
+        val descriptionText = context.getString(R.string.verification_notification_channel_description)
         val importance = NotificationManager.IMPORTANCE_HIGH
         val channel = NotificationChannel("verification_responses", name, importance).apply {
             description = descriptionText
@@ -291,8 +291,8 @@ fun postNotification(
 
     val builder = NotificationCompat.Builder(context, "verification_responses")
         .setSmallIcon(R.drawable.ic_stat_name)
-        .setContentTitle("Verification Response Received")
-        .setContentText("A pending verification was received")
+        .setContentTitle(context.getString(R.string.verification_notification_title))
+        .setContentText(context.getString(R.string.verification_notification_text))
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setContentIntent(pendingIntent)
         .setAutoCancel(true)
