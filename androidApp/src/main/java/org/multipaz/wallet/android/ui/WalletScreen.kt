@@ -63,7 +63,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -114,9 +113,20 @@ import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.text.fromMarkdown
 import android.Manifest
 import android.os.Build
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.get
+import io.ktor.client.statement.readRawBytes
+import io.ktor.http.HttpStatusCode
+import org.multipaz.compose.cards.InfoCard
 import org.multipaz.document.DocumentStore
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -418,6 +428,8 @@ fun WalletScreen(
                     Text(stringResource(R.string.wallet_screen_ble_permission_warning))
                 }
             }
+
+            AppUpdateCard()
 
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
@@ -834,5 +846,66 @@ private fun EmptyWalletStateContent() {
             color = MaterialTheme.colorScheme.secondary,
             fontStyle = FontStyle.Italic
         )
+    }
+}
+
+@Composable
+private fun AppUpdateCard() {
+    // Uncomment below if working on this code from Android Studio.
+    //
+    //val updateUrl =  "https://apps.multipaz.org/multipaz-wallet/LATEST-VERSION.txt"
+    //val updateWebsiteUrl =  "https://apps.multipaz.org/"
+    //val currentVersion = "2026.W22.1-15-git-4808d2a"
+    val updateUrl = BuildConfig.UPDATE_URL
+    val updateWebsiteUrl = BuildConfig.UPDATE_WEBSITE
+    val currentVersion = BuildConfig.VERSION
+
+    if (updateUrl.isEmpty()) {
+        return
+    }
+
+    val latestVersionString = remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(true) {
+        try {
+            val httpClient = HttpClient(Android)
+            val response = httpClient.get(updateUrl)
+            if (response.status == HttpStatusCode.OK) {
+                latestVersionString.value = response.readRawBytes().decodeToString().trim()
+                Logger.i(
+                    TAG, "Latest available version from $updateWebsiteUrl is ${latestVersionString.value} " +
+                            "and our version is $currentVersion")
+            }
+        } catch (e: Throwable) {
+            Logger.e(TAG, "Error checking latest version from $updateWebsiteUrl", e)
+        }
+    }
+
+
+    latestVersionString.value?.let {
+        // Our version numbers are so arranged that we can just compare strings.
+        if (currentVersion < it) {
+            InfoCard(
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                val str = buildAnnotatedString {
+                    append(
+                        "Version $it is available for download. Visit "
+                    )
+                    withLink(
+                        LinkAnnotation.Url(
+                            updateWebsiteUrl,
+                            TextLinkStyles(
+                                style = SpanStyle(color = Color.Blue, textDecoration = TextDecoration.Underline),
+                            )
+                        )
+                    ) {
+                        append(updateWebsiteUrl)
+                    }
+                    append(" to update.")
+                }
+                Text(text = str)
+            }
+        }
     }
 }
