@@ -1,5 +1,11 @@
 package org.multipaz.wallet.client
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.annotation.CborSerializable
@@ -258,5 +264,38 @@ suspend fun DocumentStore.deleteDocumentFromWalletBackend(
     }
     deleteDocument(document.identifier)
     Logger.i(TAG, "deleteDocument: Removed local document")
+}
+
+/**
+ * Monitors [WalletClient.signedInUser] and deletes all documents in [this] [DocumentStore]
+ * whenever [WalletClient.signedInUser] transitions from non-null to `null`.
+ *
+ * @receiver the [DocumentStore] to clean up.
+ * @param walletClient the [WalletClient] whose sign-in state to observe.
+ * @param coroutineScope the [CoroutineScope] in which to collect state changes.
+ * @return a [Job] representing the observation task.
+ */
+fun DocumentStore.clearOnSignOut(
+    walletClient: WalletClient,
+    coroutineScope: CoroutineScope
+): Job {
+    return coroutineScope.launch {
+        walletClient.signedInUser
+            .scan(initial = null as WalletClientSignedInUser?) { previousUser, newUser ->
+                if (previousUser != null && newUser == null) {
+                    Logger.i(TAG, "User signed out, clearing all documents in DocumentStore")
+                    try {
+                        for (document in listDocuments()) {
+                            deleteDocument(document.identifier)
+                        }
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.e(TAG, "Error clearing documents on sign-out", e)
+                    }
+                }
+                newUser
+            }
+            .collect()
+    }
 }
 

@@ -237,9 +237,9 @@ val WalletAvatarMenu = FC<WalletAvatarMenuProps> { props ->
                 // Actions (White floating list)
                 FloatingItemList {
                     FloatingItemText {
-                        icon = SettingsIcon
-                        title = "Settings"
-                        onClick = { /* Future: Navigate to settings */ }
+                        icon = DevicesIcon
+                        title = "Device sessions"
+                        onClick = { window.location.hash = "devices" }
                     }
 
                     FloatingItemText {

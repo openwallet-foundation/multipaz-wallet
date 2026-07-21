@@ -20,15 +20,38 @@ interface WalletBackend {
     @RpcMethod
     suspend fun getNonce(): String
 
+    /**
+     * Signs in the client using a Google ID token string.
+     *
+     * @param nonce the nonce obtained from [getNonce].
+     * @param googleIdTokenString the Google ID token string.
+     * @param walletServerEncryptionKeySha256 SHA-256 hash of the shared wallet server encryption key.
+     * @param resetSharedData if `true`, resets any existing server-side shared data for the user.
+     * @param initialSharedData initial data to store if creating shared data.
+     * @param clientType the platform type of the client.
+     */
     @RpcMethod
     suspend fun signIn(
         nonce: String,
-        googleIdTokenString:String,
+        googleIdTokenString: String,
         walletServerEncryptionKeySha256: ByteString,
         resetSharedData: Boolean,
-        initialSharedData: ByteString
+        initialSharedData: ByteString,
+        clientType: ClientType
     )
 
+    /**
+     * Signs in the client using a Google authorization code.
+     *
+     * @param nonce the nonce obtained from [getNonce].
+     * @param authorizationCode OAuth 2.0 authorization code from Google.
+     * @param redirectUri redirect URI used during authorization code request.
+     * @param walletServerEncryptionKeySha256 SHA-256 hash of the shared wallet server encryption key.
+     * @param resetSharedData if `true`, resets any existing server-side shared data for the user.
+     * @param initialSharedData initial data to store if creating shared data.
+     * @param clientType the platform type of the client.
+     * @return the access token for Drive access.
+     */
     @RpcMethod
     suspend fun signInWithGoogleCode(
         nonce: String,
@@ -36,7 +59,8 @@ interface WalletBackend {
         redirectUri: String,
         walletServerEncryptionKeySha256: ByteString,
         resetSharedData: Boolean,
-        initialSharedData: ByteString
+        initialSharedData: ByteString,
+        clientType: ClientType
     ): String
 
     @RpcMethod
@@ -46,8 +70,34 @@ interface WalletBackend {
         redirectUri: String
     ): GoogleTokens
 
+    /**
+     * Gets the client identifier for the current calling device session.
+     *
+     * @return the client ID string.
+     */
+    @RpcMethod
+    suspend fun getClientId(): String
+
     @RpcMethod
     suspend fun signOut()
+
+    /**
+     * Gets all active device sessions for the signed-in user.
+     *
+     * @return a list of active [Session] instances.
+     * @throws WalletBackendNotSignedInException if not signed in.
+     */
+    @RpcMethod
+    suspend fun getSessions(): List<Session>
+
+    /**
+     * Signs out a specific device session by its [clientId].
+     *
+     * @param clientId the identifier of the client session to sign out.
+     * @throws WalletBackendNotSignedInException if not signed in.
+     */
+    @RpcMethod
+    suspend fun signOutSession(clientId: String)
 
     /**
      * Gets the latest data shared among signed-in clients.

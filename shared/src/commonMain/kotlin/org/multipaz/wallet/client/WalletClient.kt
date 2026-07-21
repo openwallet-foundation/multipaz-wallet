@@ -41,9 +41,11 @@ import org.multipaz.util.deflate
 import org.multipaz.util.inflate
 import org.multipaz.wallet.client.WalletClient.Companion.create
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.ClientType
 import org.multipaz.wallet.shared.CreateVerificationLinkResult
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.GoogleTokens
+import org.multipaz.wallet.shared.Session
 import org.multipaz.wallet.shared.WalletBackend
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendException
@@ -116,8 +118,11 @@ private const val TAG = "WalletClient"
  * and clears local encryption data.
  *
  * Use [create] to create a new instance.
+ *
+ * @property clientType the type of client.
  */
 class WalletClient private constructor(
+    val clientType: ClientType,
     private var backendUrl: String,
     private val secret: String,
     private val storage: Storage,
@@ -418,7 +423,8 @@ class WalletClient private constructor(
                             Crypto.digest(Algorithm.SHA256, walletBackendEncryptionKey.toByteArray())
                         ),
                         resetSharedData = resetSharedData,
-                        initialSharedData = createInitialSharedData(walletBackendEncryptionKey)
+                        initialSharedData = createInitialSharedData(walletBackendEncryptionKey),
+                        clientType = clientType
                     )
                 } catch (e: HttpTransport.HttpClientException) {
                     throw WalletClientBackendUnreachableException(e.message, e)
@@ -490,7 +496,8 @@ class WalletClient private constructor(
                             Crypto.digest(Algorithm.SHA256, walletBackendEncryptionKey.toByteArray())
                         ),
                         resetSharedData = resetSharedData,
-                        initialSharedData = createInitialSharedData(walletBackendEncryptionKey)
+                        initialSharedData = createInitialSharedData(walletBackendEncryptionKey),
+                        clientType = clientType
                     )
                 } catch (e: HttpTransport.HttpClientException) {
                     throw WalletClientBackendUnreachableException(e.message, e)
@@ -532,6 +539,101 @@ class WalletClient private constructor(
             withContext(session) {
                 try {
                     walletBackend.signOut()
+                } catch (e: HttpTransport.HttpClientException) {
+                    throw WalletClientBackendUnreachableException(e.message, e)
+                }
+            }
+        }
+    }
+
+    private suspend fun handleNotSignedInException(e: WalletBackendNotSignedInException): Nothing {
+        check(lock.isLocked)
+        Logger.i(TAG, "Server reports we're not signed in, clearing local state")
+        saveEncryptionKey(null)
+        clearLocalSharedData()
+        _signedInUser.value = null
+        onSharedDataUpdated()
+        throw e
+    }
+
+    /**
+     * Gets the client identifier for this client instance.
+     *
+     * @return the client ID string.
+     * @throws WalletClientBackendUnreachableException if unable to reach the wallet backend.
+     * @throws WalletClientAuthorizationException if not authorized to access the wallet backend.
+     */
+    @Throws(
+        WalletClientBackendUnreachableException::class,
+        WalletClientAuthorizationException::class,
+        CancellationException::class
+    )
+    suspend fun getClientId(): String {
+        return lock.withLock {
+            val walletBackend = getWalletBackend()
+            withContext(session) {
+                try {
+                    walletBackend.getClientId()
+                } catch (e: WalletBackendNotSignedInException) {
+                    handleNotSignedInException(e)
+                } catch (e: HttpTransport.HttpClientException) {
+                    throw WalletClientBackendUnreachableException(e.message, e)
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets all active device sessions for the signed-in user.
+     *
+     * @return a list of active [Session] instances.
+     * @throws WalletBackendNotSignedInException if not signed in.
+     * @throws WalletClientBackendUnreachableException if unable to reach the wallet backend.
+     * @throws WalletClientAuthorizationException if not authorized to access the wallet backend.
+     */
+    @Throws(
+        WalletClientBackendUnreachableException::class,
+        WalletClientAuthorizationException::class,
+        WalletBackendNotSignedInException::class,
+        CancellationException::class
+    )
+    suspend fun getSessions(): List<Session> {
+        return lock.withLock {
+            val walletBackend = getWalletBackend()
+            withContext(session) {
+                try {
+                    walletBackend.getSessions()
+                } catch (e: WalletBackendNotSignedInException) {
+                    handleNotSignedInException(e)
+                } catch (e: HttpTransport.HttpClientException) {
+                    throw WalletClientBackendUnreachableException(e.message, e)
+                }
+            }
+        }
+    }
+
+    /**
+     * Signs out a specific device session by its [clientId].
+     *
+     * @param clientId the identifier of the client session to sign out.
+     * @throws WalletBackendNotSignedInException if not signed in.
+     * @throws WalletClientBackendUnreachableException if unable to reach the wallet backend.
+     * @throws WalletClientAuthorizationException if not authorized to access the wallet backend.
+     */
+    @Throws(
+        WalletClientBackendUnreachableException::class,
+        WalletClientAuthorizationException::class,
+        WalletBackendNotSignedInException::class,
+        CancellationException::class
+    )
+    suspend fun signOutSession(clientId: String) {
+        lock.withLock {
+            val walletBackend = getWalletBackend()
+            withContext(session) {
+                try {
+                    walletBackend.signOutSession(clientId)
+                } catch (e: WalletBackendNotSignedInException) {
+                    handleNotSignedInException(e)
                 } catch (e: HttpTransport.HttpClientException) {
                     throw WalletClientBackendUnreachableException(e.message, e)
                 }
@@ -695,12 +797,7 @@ class WalletClient private constructor(
             try {
                 walletBackend.getSharedData(currentVersion)
             } catch (e: WalletBackendNotSignedInException) {
-                Logger.i(TAG, "Server reports we're not signed in, clearing local state")
-                saveEncryptionKey(null)
-                clearLocalSharedData()
-                _signedInUser.value = null
-                onSharedDataUpdated()
-                throw e
+                handleNotSignedInException(e)
             } catch (e: HttpTransport.HttpClientException) {
                 throw WalletClientBackendUnreachableException(e.message, e)
             }
@@ -725,11 +822,7 @@ class WalletClient private constructor(
                 )
             } catch (e: IllegalStateException) {
                 Logger.w(TAG, "Decryption failed", e)
-                saveEncryptionKey(null)
-                clearLocalSharedData()
-                _signedInUser.value = null
-                onSharedDataUpdated()
-                throw WalletBackendNotSignedInException("User has been signed out because decryption failed")
+                handleNotSignedInException(WalletBackendNotSignedInException("User has been signed out because decryption failed"))
             }
             decryptedData.inflate()
         }
@@ -808,6 +901,8 @@ class WalletClient private constructor(
         val newVersion = withContext(session) {
             try {
                 walletBackend.putSharedData(ByteString(nonce + encryptedData.toByteArray()))
+            } catch (e: WalletBackendNotSignedInException) {
+                handleNotSignedInException(e)
             } catch (e: HttpTransport.HttpClientException) {
                 throw WalletClientBackendUnreachableException(e.message, e)
             }
@@ -1052,9 +1147,13 @@ class WalletClient private constructor(
 
         val walletBackend = getWalletBackend()
         val readerCertifications = withContext(session) {
-            walletBackend.certifyReaderKeys(
-                readerKeys = keysToCertify.map { it.attestation }
-            )
+            try {
+                walletBackend.certifyReaderKeys(
+                    readerKeys = keysToCertify.map { it.attestation }
+                )
+            } catch (e: WalletBackendNotSignedInException) {
+                handleNotSignedInException(e)
+            }
         }
         check(readerCertifications.size == keysToCertify.size)
         Logger.i(TAG, "Retrieved ${readerCertifications.size} new reader keys")
@@ -1306,22 +1405,25 @@ class WalletClient private constructor(
         /**
          * Creates a new [WalletClient] instance.
          *
+         * @param clientType the platform type of the client.
          * @param url the URL for the wallet backend.
          * @param secret the secret for the wallet backend.
          * @param storage the storage to use for caching.
          * @param secureArea the [SecureArea] to use for device attestations.
-         * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          * @param httpClientEngineFactory a [HttpClientEngineFactory] to use for the HTTP client.
+         * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          */
         suspend fun create(
+            clientType: ClientType,
             url: String,
             secret: String,
             storage: Storage,
             secureArea: SecureArea,
-            numReaderKeys: Int = 0,
             httpClientEngineFactory: HttpClientEngineFactory<*>,
+            numReaderKeys: Int = 0,
         ): WalletClient {
             val client = WalletClient(
+                clientType = clientType,
                 backendUrl = url,
                 secret = secret,
                 storage = storage,
@@ -1337,6 +1439,7 @@ class WalletClient private constructor(
         /**
          * Creates a new [WalletClient] instance (for testing only).
          *
+         * @param clientType the platform type of the client.
          * @param dispatcher the [RpcDispatcher] to use.
          * @param notifier the [RpcNotifier] to use.
          * @param storage the storage to use for caching.
@@ -1344,6 +1447,7 @@ class WalletClient private constructor(
          * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          */
         suspend fun create(
+            clientType: ClientType,
             dispatcher: RpcDispatcher,
             notifier: RpcNotifier,
             storage: Storage,
@@ -1351,6 +1455,7 @@ class WalletClient private constructor(
             numReaderKeys: Int = 0,
         ): WalletClient {
             val client = WalletClient(
+                clientType = clientType,
                 backendUrl = "http://127.0.0.1",
                 secret = "",
                 storage = storage,

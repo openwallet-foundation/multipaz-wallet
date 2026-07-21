@@ -72,11 +72,13 @@ import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
 import org.multipaz.wallet.android.ui.CommunicatingWithBackendDialog
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.clearOnSignOut
 import org.multipaz.wallet.client.checkPreconsent
 import org.multipaz.wallet.client.isProximityReader
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.ClientType
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromAndroidLocation
@@ -219,12 +221,13 @@ class App private constructor() {
         val walletBackendUrl = settingsModel.walletBackendUrl.value ?: BuildConfig.BACKEND_URL
         Logger.i(TAG, "Using wallet backend URL $walletBackendUrl")
         walletClient = WalletClient.create(
+            clientType = ClientType.ANDROID,
             url = walletBackendUrl,
             secret = BuildConfig.BACKEND_SECRET,
             storage = storage,
             secureArea = secureArea,
+            httpClientEngineFactory = Android,
             numReaderKeys = 10,
-            httpClientEngineFactory = Android
         )
 
         userIssuerTrustManager = TrustManager(
@@ -246,6 +249,7 @@ class App private constructor() {
         )
 
         val coroutineScope = CoroutineScope(Dispatchers.IO)
+        documentStore.clearOnSignOut(walletClient, coroutineScope)
         userIssuerTrustManagerModel = TrustManagerModel(userIssuerTrustManager, coroutineScope)
         backendIssuerTrustManagerModel = TrustManagerModel(walletClient.issuerTrustManager, coroutineScope)
         userReaderTrustManagerModel = TrustManagerModel(userReaderTrustManager, coroutineScope)

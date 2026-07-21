@@ -28,18 +28,20 @@ import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import org.multipaz.util.truncateToWholeSeconds
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.ClientType
 import org.multipaz.wallet.shared.CreateVerificationLinkResult
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.GetSharedDataResult
-import org.multipaz.wallet.shared.WalletClientPublicData
+import org.multipaz.wallet.shared.GoogleTokens
+import org.multipaz.wallet.shared.Session
 import org.multipaz.wallet.shared.WalletBackend
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import org.multipaz.wallet.shared.WalletBackendVerificationLinkExpiredException
-import org.multipaz.wallet.shared.GoogleTokens
+import org.multipaz.wallet.shared.WalletClientPublicData
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -78,7 +80,7 @@ abstract class WalletBackendBase: WalletBackend {
      *
      * @return the client instance identifier.
      */
-    abstract suspend fun getClientId(): String
+    abstract override suspend fun getClientId(): String
 
     override suspend fun getNonce(): String {
         val nonceTable = BackendEnvironment.getTable(nonceTableSpec)
@@ -104,7 +106,8 @@ abstract class WalletBackendBase: WalletBackend {
         googleIdTokenString: String,
         walletServerEncryptionKeySha256: ByteString,
         resetSharedData: Boolean,
-        initialSharedData: ByteString
+        initialSharedData: ByteString,
+        clientType: ClientType
     ) {
         consumeNonce(nonce)
 
@@ -114,7 +117,8 @@ abstract class WalletBackendBase: WalletBackend {
             googleUserId = googleUserId,
             walletServerEncryptionKeySha256 = walletServerEncryptionKeySha256,
             resetSharedData = resetSharedData,
-            initialSharedData = initialSharedData
+            initialSharedData = initialSharedData,
+            clientType = clientType
         )
     }
 
@@ -124,7 +128,8 @@ abstract class WalletBackendBase: WalletBackend {
         redirectUri: String,
         walletServerEncryptionKeySha256: ByteString,
         resetSharedData: Boolean,
-        initialSharedData: ByteString
+        initialSharedData: ByteString,
+        clientType: ClientType
     ): String {
         consumeNonce(nonce)
 
@@ -134,7 +139,8 @@ abstract class WalletBackendBase: WalletBackend {
             googleUserId = googleUserId,
             walletServerEncryptionKeySha256 = walletServerEncryptionKeySha256,
             resetSharedData = resetSharedData,
-            initialSharedData = initialSharedData
+            initialSharedData = initialSharedData,
+            clientType = clientType
         )
         return accessToken
     }
@@ -144,13 +150,6 @@ abstract class WalletBackendBase: WalletBackend {
         authorizationCode: String,
         redirectUri: String
     ): GoogleTokens {
-        // We don't strictly NEED to consume the nonce here if the client is going to call
-        // signInWithGoogle later with the same nonce, but it's safer to have a fresh nonce
-        // for each sensitive operation. For now, let's NOT consume it here because the
-        // StartScreen uses the same nonce for the whole flow.
-        // Wait, if we don't consume it, replay is possible.
-        // Let's consume it and have the client get a new one? No, that's too complex.
-        // Let's just NOT consume it here, but verify it exists.
         val nonceTable = BackendEnvironment.getTable(nonceTableSpec)
         if (nonceTable.get(key = nonce) == null) {
             throw WalletBackendNonceException("Unknown nonce")
@@ -173,7 +172,8 @@ abstract class WalletBackendBase: WalletBackend {
         googleUserId: String,
         walletServerEncryptionKeySha256: ByteString,
         resetSharedData: Boolean,
-        initialSharedData: ByteString
+        initialSharedData: ByteString,
+        clientType: ClientType
     ) {
         val walletClient = loadRemoteWalletClient()
         val signedInUser = GoogleSignedInUser(
@@ -190,7 +190,8 @@ abstract class WalletBackendBase: WalletBackend {
             )
         }
         val newWalletClient = walletClient.copy(
-            signedInUser = signedInUser
+            signedInUser = signedInUser,
+            clientType = clientType
         )
 
         if (resetSharedData) {
@@ -221,19 +222,65 @@ abstract class WalletBackendBase: WalletBackend {
         saveRemoteWalletClient(newWalletClient)
     }
 
+    override suspend fun getSessions(): List<Session> {
+        val walletClient = loadRemoteWalletClient()
+        val signedInUser = walletClient.signedInUser
+            ?: throw WalletBackendNotSignedInException("User is not signed in")
+        val userSharedDataKey = signedInUser.sharedDataKey
+
+        val walletClientsTable = BackendEnvironment.getTable(walletClientsTableSpec)
+        val allClients = walletClientsTable.enumerateWithData().map { (_, data) ->
+            RemoteWalletClient.fromCbor(data.toByteArray())
+        }
+
+        return allClients
+            .filter { it.signedInUser?.sharedDataKey == userSharedDataKey }
+            .map { client ->
+                Session(
+                    clientId = client.clientId,
+                    clientType = client.clientType ?: error("clientType not set for client ${client.clientId}"),
+                    lastSeenMillis = client.lastSeenMillis ?: error("lastSeenMillis not set for client ${client.clientId}")
+                )
+            }
+    }
+
+    override suspend fun signOutSession(clientId: String) {
+        val callingClient = loadRemoteWalletClient()
+        val signedInUser = callingClient.signedInUser
+            ?: throw WalletBackendNotSignedInException("User is not signed in")
+        val callingUserSharedDataKey = signedInUser.sharedDataKey
+
+        val walletClientsTable = BackendEnvironment.getTable(walletClientsTableSpec)
+        val targetClientData = walletClientsTable.get(key = clientId) ?: return
+        val targetClient = RemoteWalletClient.fromCbor(targetClientData.toByteArray())
+
+        if (targetClient.signedInUser?.sharedDataKey == callingUserSharedDataKey) {
+            val updatedTargetClient = targetClient.copy(signedInUser = null)
+            walletClientsTable.update(
+                key = clientId,
+                data = ByteString(updatedTargetClient.toCbor())
+            )
+        }
+    }
+
     private suspend fun loadRemoteWalletClient(): RemoteWalletClient {
         val clientId = getClientId()
         val walletClientsTable = BackendEnvironment.getTable(walletClientsTableSpec)
         val walletClientEncoded = walletClientsTable.get(
             key = clientId
         )
-        if (walletClientEncoded != null) {
-            return RemoteWalletClient.fromCbor(walletClientEncoded.toByteArray())
+        val now = Clock.System.now().toEpochMilliseconds()
+        val remoteWalletClient = if (walletClientEncoded != null) {
+            RemoteWalletClient.fromCbor(walletClientEncoded.toByteArray()).copy(
+                lastSeenMillis = now
+            )
+        } else {
+            RemoteWalletClient(
+                clientId = clientId,
+                signedInUser = null,
+                lastSeenMillis = now
+            )
         }
-        val remoteWalletClient = RemoteWalletClient(
-            clientId = clientId,
-            signedInUser = null
-        )
         saveRemoteWalletClient(remoteWalletClient)
         return remoteWalletClient
     }

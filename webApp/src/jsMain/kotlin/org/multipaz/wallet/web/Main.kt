@@ -6,8 +6,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.multipaz.wallet.shared.BuildConfig
+import org.multipaz.wallet.shared.ClientType
 import org.multipaz.util.Platform
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.clearOnSignOut
 import io.ktor.client.engine.js.Js
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -30,11 +32,12 @@ fun main() {
                 val backendUrl = window.location.origin
                 
                 val walletClient = WalletClient.create(
+                    clientType = ClientType.WEB,
                     url = backendUrl,
                     secret = BuildConfig.BACKEND_SECRET,
                     storage = storage,
                     secureArea = secureArea,
-                    httpClientEngineFactory = Js
+                    httpClientEngineFactory = Js,
                 )
 
                 val documentTypeRepository = DocumentTypeRepository()
@@ -51,6 +54,7 @@ fun main() {
                     storage = storage,
                     secureAreaRepository = secureAreaRepository
                 ) {}
+                documentStore.clearOnSignOut(walletClient, CoroutineScope(Dispatchers.Main))
 
                 val documentModel = DocumentModel.create(
                     documentStore = documentStore,

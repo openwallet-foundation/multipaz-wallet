@@ -38,6 +38,7 @@ sealed class Screen {
     object Wallet : Screen()
     object AddToWallet : Screen()
     data class DocumentInfo(val documentId: String) : Screen()
+    object DeviceSessions : Screen()
 }
 
 val App = FC<AppProps> { props ->
@@ -106,6 +107,8 @@ val App = FC<AppProps> { props ->
                 setScreen(Screen.DocumentInfo(documentId))
             } else if (hash == "#add") {
                 setScreen(Screen.AddToWallet)
+            } else if (hash == "#devices" || hash == "#device-sessions") {
+                setScreen(Screen.DeviceSessions)
             } else {
                 setScreen(Screen.Wallet)
             }
@@ -190,6 +193,15 @@ val App = FC<AppProps> { props ->
                         }
                         this.onDelete = {
                             setDeleteConfirmationId(s.documentId)
+                        }
+                    }
+                }
+                is Screen.DeviceSessions -> {
+                    DeviceSessionsScreen {
+                        this.walletClient = props.walletClient
+                        this.settingsModel = props.settingsModel
+                        this.onBack = {
+                            window.location.hash = ""
                         }
                     }
                 }

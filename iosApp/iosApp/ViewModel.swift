@@ -64,6 +64,7 @@ class ViewModel {
         secureArea = try! await Platform.shared.getSecureArea(storage: storage)
         
         walletClient =  try! await WalletClient.companion.create(
+            clientType: ClientType.ios,
             //url: "http://10.122.146.254:8010/rpc",
             url: BuildConfig.shared.BACKEND_URL,
             secret: BuildConfig.shared.BACKEND_SECRET,

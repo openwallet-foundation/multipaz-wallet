@@ -1,6 +1,7 @@
 package org.multipaz.wallet.shared
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.bytestring.ByteString
@@ -58,6 +59,7 @@ import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.client.WalletClientSharedData
 import org.multipaz.wallet.client.WalletClientSignedInUser
+import org.multipaz.wallet.client.clearOnSignOut
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.toCbor
@@ -318,7 +320,8 @@ class WalletClientTest {
         clientStorage: Storage,
         clientSecureArea: SecureArea,
         serverConfiguration: Configuration? = null,
-        readerKeyTestData: ReaderKeyTestData? = null
+        readerKeyTestData: ReaderKeyTestData? = null,
+        clientType: ClientType = ClientType.ANDROID
     ): WalletClient {
         val now = Clock.System.now()
         val readerRootKey = Crypto.createEcPrivateKey(EcCurve.P256)
@@ -340,11 +343,12 @@ class WalletClientTest {
             exceptionMap = exceptionMap
         )
         val client = WalletClient.create(
+            clientType = clientType,
             dispatcher = localDispatcher,
             notifier = localDispatcher.environment.getInterface(RpcNotifier::class)!!,
             storage = clientStorage,
             secureArea = clientSecureArea,
-            numReaderKeys = 10,
+            numReaderKeys = 10
         )
         return client
     }
@@ -367,6 +371,9 @@ class WalletClientTest {
         }
         assertFailsWith(WalletBackendNotSignedInException::class) {
             client.putSharedData(ByteString(1, 2, 3))
+        }
+        assertFailsWith(WalletBackendNotSignedInException::class) {
+            client.getSessions()
         }
     }
 
@@ -504,6 +511,131 @@ class WalletClientTest {
         assertEquals(sharedData2, client1.getSharedData())
         assertFalse(client1.refreshSharedData())
         assertFalse(client2.refreshSharedData())
+    }
+
+    @Test
+    fun getSessionsTest() = runTest {
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val client1Storage = EphemeralStorage()
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea, clientType = ClientType.WEB)
+        val client1Nonce = client1.getNonce()
+        client1.signInWithGoogle(
+            nonce = client1Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client1Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        assertNotNull(client1.signedInUser.value)
+
+        val client2Storage = EphemeralStorage()
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea, clientType = ClientType.ANDROID)
+        val client2Nonce = client2.getNonce()
+        client2.signInWithGoogle(
+            nonce = client2Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client2Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        assertNotNull(client2.signedInUser.value)
+
+        val sessions = client1.getSessions()
+        assertEquals(2, sessions.size)
+
+        val client1Id = client1.getClientId()
+        val client2Id = client2.getClientId()
+        assertNotNull(client1Id)
+        assertNotNull(client2Id)
+        assertNotEquals(client1Id, client2Id)
+
+        val webSession = sessions.find { it.clientType == ClientType.WEB }
+        assertNotNull(webSession)
+        assertEquals(client1Id, webSession.clientId)
+        assertTrue(webSession.lastSeenMillis > 0L)
+
+        val androidSession = sessions.find { it.clientType == ClientType.ANDROID }
+        assertNotNull(androidSession)
+        assertEquals(client2Id, androidSession.clientId)
+        assertTrue(androidSession.lastSeenMillis > 0L)
+
+        // Sign out client2 via client1
+        client1.signOutSession(client2Id)
+
+        // Verify sessions list from client1 now only contains client1
+        val sessionsAfterSignOut = client1.getSessions()
+        assertEquals(1, sessionsAfterSignOut.size)
+        assertEquals(client1Id, sessionsAfterSignOut[0].clientId)
+
+        // Verify client2 is signed out when performing backend operation
+        assertFailsWith(WalletBackendNotSignedInException::class) {
+            client2.getSessions()
+        }
+
+        assertNull(client2.signedInUser.value)
+    }
+
+    @Test
+    fun documentStoreClearOnSignOutTest() = runTest {
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val client1Storage = EphemeralStorage()
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea, clientType = ClientType.WEB)
+        val client1Nonce = client1.getNonce()
+        client1.signInWithGoogle(
+            nonce = client1Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client1Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+
+        val documentStore = buildDocumentStore(
+            storage = client1Storage,
+            secureAreaRepository = SecureAreaRepository.Builder().add(client1SecureArea).build()
+        ) {}
+
+        val job = documentStore.clearOnSignOut(client1, this)
+        yield()
+
+        documentStore.createDocument(
+            displayName = "Test Document",
+            typeDisplayName = "Test Type",
+            cardArt = null
+        )
+        assertEquals(1, documentStore.listDocuments().size)
+
+        // Sign out client1
+        client1.signOut()
+
+        // Wait for flow collection to react and clear documents
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(0, documentStore.listDocuments().size)
+        job.cancel()
     }
 
     @Test

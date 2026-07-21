@@ -35,12 +35,12 @@
     <string name="setup_ble_continue">Continue</string>
 
     <string name="setup_sign_in_title">Sign in</string>
-    <string name="setup_sign_in_text">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
+    <string name="setup_sign_in_text">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You\'ll also be able manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="setup_sign_in_button">Sign in with Google</string>
     <string name="setup_sign_in_skip">Use without an account</string>
     <string name="setup_sign_in_continue_button">Continue</string>
     <string name="setup_sign_in_signed_in_title">Signed in</string>
-    <string name="setup_sign_in_signed_in_text">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
+    <string name="setup_sign_in_signed_in_text">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You can manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="setup_sign_in_signed_in_continue_button">Continue</string>
     <string name="setup_sign_in_signed_in_sign_out_button">Sign out</string>
 
@@ -85,8 +85,8 @@
     <string name="settings_screen_use_without_google">Use without a Google account</string>
     <string name="settings_screen_signing_in">Signing in to your Google account…</string>
     <string name="settings_screen_sign_in">Sign in to your Google account</string>
-    <string name="settings_screen_sync_info_signed_in">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
-    <string name="settings_screen_sync_info_signed_out">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app.</string>
+    <string name="settings_screen_sync_info_signed_in">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You can manage passes and device sessions at [%1$s](%1$s).</string>
+    <string name="settings_screen_sync_info_signed_out">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You\'ll also be able manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="settings_screen_trusted_issuers">Trusted issuers</string>
     <string name="settings_screen_trusted_verifiers">Trusted verifiers</string>
     <string name="settings_screen_developer_settings">Developer settings</string>

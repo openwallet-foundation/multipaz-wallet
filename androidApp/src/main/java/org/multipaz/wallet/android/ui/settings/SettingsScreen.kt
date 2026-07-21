@@ -140,9 +140,9 @@ fun SettingsScreen(
                 }
             }
             val markdownString = if (signedInData != null) {
-                stringResource(R.string.settings_screen_sync_info_signed_in)
+                stringResource(R.string.settings_screen_sync_info_signed_in, BuildConfig.BACKEND_URL)
             } else {
-                stringResource(R.string.settings_screen_sync_info_signed_out)
+                stringResource(R.string.settings_screen_sync_info_signed_out, BuildConfig.BACKEND_URL)
             }
             InfoNote(markdownString = markdownString)
 

@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.launch
+import org.multipaz.wallet.shared.BuildConfig
 
 @Composable
 fun SetupSignInScreen(
@@ -128,7 +129,7 @@ private fun UserSignedIn(
     Spacer(modifier = Modifier.height(16.dp))
 
     Text(
-        text = AnnotatedString.fromMarkdown(stringResource(R.string.setup_sign_in_signed_in_text)),
+        text = AnnotatedString.fromMarkdown(stringResource(R.string.setup_sign_in_signed_in_text, BuildConfig.BACKEND_URL)),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -181,7 +182,7 @@ private fun UserNotSignedIn(
     Spacer(modifier = Modifier.height(16.dp))
 
     Text(
-        text = AnnotatedString.fromMarkdown(stringResource(R.string.setup_sign_in_text)),
+        text = AnnotatedString.fromMarkdown(stringResource(R.string.setup_sign_in_text, BuildConfig.BACKEND_URL)),
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant
