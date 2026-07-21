@@ -67,6 +67,10 @@ fun main() {
                         window.location.pathname.startsWith("/verify")
                 val isKeysPage = window.location.pathname.startsWith("/web/keys") || 
                         window.location.pathname.startsWith("/keys")
+                val isDocPage = window.location.pathname.contains("/privacy") ||
+                        window.location.pathname.contains("/terms") ||
+                        window.location.pathname.contains("/google-privacy") ||
+                        window.location.pathname.contains("/google-terms")
 
                 val rootElement = document.getElementById("root") ?: error("No root element found")
                 val root = createRoot(rootElement.unsafeCast<Element>())
@@ -76,6 +80,8 @@ fun main() {
                     })
                 } else if (isKeysPage) {
                     root.render(KeysApp.create())
+                } else if (isDocPage) {
+                    root.render(DocViewerApp.create())
                 } else {
                     root.render(App.create {
                         this.walletClient = walletClient

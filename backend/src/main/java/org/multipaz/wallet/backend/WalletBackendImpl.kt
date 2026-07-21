@@ -123,5 +123,17 @@ class WalletBackendImpl: WalletBackendBase(), WalletBackend, RpcAuthInspector by
         )
     }
 
+    override suspend fun getEula(locale: String): String {
+        val docIds = listOf("privacy", "terms", "google-privacy", "google-terms")
+        val docsContent = docIds.mapNotNull { id ->
+            this::class.java.classLoader.getResource("docs/$id.md")?.readText()
+        }.joinToString("\n\n---\n\n")
+
+        val rawText = if (docsContent.isNotBlank()) docsContent else super.getEula(locale)
+        return rawText
+            .replace("\${BuildConfig.APP_NAME}", BuildConfig.APP_NAME)
+            .replace("\${APP_NAME}", BuildConfig.APP_NAME)
+    }
+
     companion object
 }

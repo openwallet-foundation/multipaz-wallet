@@ -488,8 +488,11 @@ abstract class WalletBackendBase: WalletBackend {
             Json.parseToJsonElement(it) as JsonObject
         } ?: throw IllegalStateException("EULA not configured")
         // TODO: support multiple locales
-        return eula.string("en")
+        val rawEula = eula.string("en")
             ?: throw IllegalStateException("EULA not configured")
+        return rawEula
+            .replace("\${BuildConfig.APP_NAME}", BuildConfig.APP_NAME)
+            .replace("\${APP_NAME}", BuildConfig.APP_NAME)
     }
 
     override suspend fun createVerificationLink(

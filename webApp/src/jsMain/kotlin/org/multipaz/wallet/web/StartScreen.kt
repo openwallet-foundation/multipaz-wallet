@@ -52,12 +52,35 @@ val StartScreen = FC<StartScreenProps> { props ->
     div {
         className = ClassName("flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white p-4 relative")
 
-        // Bottom Center Keys Link
-        a {
-            href = "/keys"
-            (this.asDynamic()).target = "_blank"
-            className = ClassName("absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-slate-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer")
-            +"Public Keys & Certificates"
+        // Bottom Center Links
+        div {
+            className = ClassName("absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center space-x-3 text-xs text-slate-400 font-medium")
+            a {
+                href = "/terms"
+                (this.asDynamic()).target = "_blank"
+                className = ClassName("hover:text-indigo-300 transition-colors cursor-pointer")
+                +"Terms of Service"
+            }
+            span {
+                className = ClassName("text-slate-600")
+                +"·"
+            }
+            a {
+                href = "/privacy"
+                (this.asDynamic()).target = "_blank"
+                className = ClassName("hover:text-indigo-300 transition-colors cursor-pointer")
+                +"Privacy Policy"
+            }
+            span {
+                className = ClassName("text-slate-600")
+                +"·"
+            }
+            a {
+                href = "/keys"
+                (this.asDynamic()).target = "_blank"
+                className = ClassName("hover:text-indigo-300 transition-colors cursor-pointer")
+                +"Public Keys & Certificates"
+            }
         }
 
         div {

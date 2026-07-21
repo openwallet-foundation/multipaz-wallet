@@ -149,41 +149,48 @@ fun Application.configureRouting(serverEnvironment: Deferred<ServerEnvironment>)
         get("/") {
             call.respondRedirect("/web/")
         }
-        get ("/privacy-policy.html") {
-            call.respondText(
-                contentType = ContentType.Text.Html,
-                text = """
-                    <html lang="en">
-                    <head>
-                        <meta charset="utf-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1">
-                        <title>${BuildConfig.APP_NAME}</title>
-                    </head>
-                    <body>
-                      Placeholder for privacy policy for <i>${BuildConfig.APP_NAME}</i>.
-                      <p>
-                      To be filled out.
-                    </body>
-                """.trimIndent()
-            )
+        val serveDocPage: suspend (io.ktor.server.application.ApplicationCall) -> Unit = { call ->
+            val content = this::class.java.classLoader.getResource("static/web/docs.html")?.readText()
+                ?: this::class.java.classLoader.getResource("static/web/keys.html")?.readText()
+            if (content != null) {
+                call.respondText(content, ContentType.Text.Html)
+            } else {
+                call.respondText("Doc page not found", status = io.ktor.http.HttpStatusCode.NotFound)
+            }
         }
-        get ("/terms-of-service.html") {
-            call.respondText(
-                contentType = ContentType.Text.Html,
-                text = """
-                    <html lang="en">
-                    <head>
-                        <meta charset="utf-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1">
-                        <title>${BuildConfig.APP_NAME}</title>
-                    </head>
-                    <body>
-                      Placeholder for terms of service for <i>${BuildConfig.APP_NAME}</i>.
-                      <p>
-                      To be filled out.
-                    </body>
-                """.trimIndent()
-            )
+        get("/privacy") { serveDocPage(call) }
+        get("/web/privacy") { serveDocPage(call) }
+        get("/terms") { serveDocPage(call) }
+        get("/web/terms") { serveDocPage(call) }
+        get("/google-privacy") { serveDocPage(call) }
+        get("/web/google-privacy") { serveDocPage(call) }
+        get("/google-terms") { serveDocPage(call) }
+        get("/web/google-terms") { serveDocPage(call) }
+
+        get("/api/docs/{id}") {
+            val id = call.parameters["id"] ?: "privacy"
+            val docPath = "docs/$id.md"
+            var markdownText = this::class.java.classLoader.getResource(docPath)?.readText()
+            if (markdownText != null) {
+                markdownText = markdownText
+                    .replace("\${BuildConfig.APP_NAME}", BuildConfig.APP_NAME)
+                    .replace("\${APP_NAME}", BuildConfig.APP_NAME)
+                val responseJson = buildJsonObject {
+                    put("id", id)
+                    put("content", markdownText)
+                }
+                call.respondText(responseJson.toString(), ContentType.Application.Json)
+            } else {
+                call.respondText("Document not found", status = io.ktor.http.HttpStatusCode.NotFound)
+            }
+        }
+        // TODO: Temporary redirect until Google OAuth configuration in Google Cloud Console is updated to point to /google-privacy
+        get("/privacy-policy.html") {
+            call.respondRedirect("/google-privacy")
+        }
+        // TODO: Temporary redirect until Google OAuth configuration in Google Cloud Console is updated to point to /google-terms
+        get("/terms-of-service.html") {
+            call.respondRedirect("/google-terms")
         }
         get("/.well-known/assetlinks.json") {
             call.respondText(

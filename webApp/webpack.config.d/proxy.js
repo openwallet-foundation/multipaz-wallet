@@ -4,9 +4,17 @@ if (config.devServer) {
         rewrites: [
             { from: /^\/web\/verify/, to: '/verify.html' },
             { from: /^\/web\/keys/, to: '/keys.html' },
+            { from: /^\/web\/privacy/, to: '/docs.html' },
+            { from: /^\/web\/terms/, to: '/docs.html' },
+            { from: /^\/web\/google-privacy/, to: '/docs.html' },
+            { from: /^\/web\/google-terms/, to: '/docs.html' },
             { from: /^\/web\/webApp\.js/, to: '/webApp.js' },
             { from: /^\/verify/, to: '/verify.html' },
-            { from: /^\/keys/, to: '/keys.html' }
+            { from: /^\/keys/, to: '/keys.html' },
+            { from: /^\/privacy/, to: '/docs.html' },
+            { from: /^\/terms/, to: '/docs.html' },
+            { from: /^\/google-privacy/, to: '/docs.html' },
+            { from: /^\/google-terms/, to: '/docs.html' }
         ]
     };
     config.devServer.proxy = [
