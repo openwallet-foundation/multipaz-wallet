@@ -14,16 +14,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,6 +54,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -113,6 +117,7 @@ import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.text.fromMarkdown
 import android.Manifest
 import android.os.Build
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextLinkStyles
@@ -377,6 +382,7 @@ fun WalletScreen(
                 // Add padding to provide space for the shadow to draw during animation
                 Box(modifier = Modifier.padding(bottom = 12.dp)) {
                     HorizontalFloatingToolbar(
+                        modifier = Modifier.height(IntrinsicSize.Min),
                         expanded = true,
                         colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
                         expandedShadowElevation = 6.dp
@@ -388,7 +394,15 @@ fun WalletScreen(
                                 imageVector = Icons.Outlined.CheckCircle,
                                 contentDescription = null,
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = stringResource(R.string.wallet_screen_verify))
                         }
+                        VerticalDivider(
+                            modifier = Modifier
+                                .padding(vertical = 12.dp)
+                                .width(1.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        )
                         TextButton(
                             onClick = onAddClicked,
                         ) {
@@ -401,7 +415,7 @@ fun WalletScreen(
                 }
             }
         },
-        floatingActionButtonPosition = FabPosition.End,
+        floatingActionButtonPosition = FabPosition.Center,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Column(

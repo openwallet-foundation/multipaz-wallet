@@ -79,6 +79,7 @@
     <string name="wallet_screen_remove">Remove</string>
     <string name="wallet_screen_no_documents">Your wallet is empty.\nPress the + button to add passes</string>
     <string name="wallet_screen_pass_was_added">The pass was successfully added</string>
+    <string name="wallet_screen_verify">Verify</string>
 
     <string name="wallet_screen_sync_info_dialog_title">About syncing</string>
     <string name="wallet_screen_sync_info_dialog_text_mpzpass_md">This pass is ready to use on any device signed in to your Google Account. No extra setup is required.</string>
