@@ -65,6 +65,8 @@ fun main() {
 
                 val isVerifyPage = window.location.pathname.startsWith("/web/verify") || 
                         window.location.pathname.startsWith("/verify")
+                val isKeysPage = window.location.pathname.startsWith("/web/keys") || 
+                        window.location.pathname.startsWith("/keys")
 
                 val rootElement = document.getElementById("root") ?: error("No root element found")
                 val root = createRoot(rootElement.unsafeCast<Element>())
@@ -72,6 +74,8 @@ fun main() {
                     root.render(VerifyApp.create {
                         this.walletClient = walletClient
                     })
+                } else if (isKeysPage) {
+                    root.render(KeysApp.create())
                 } else {
                     root.render(App.create {
                         this.walletClient = walletClient

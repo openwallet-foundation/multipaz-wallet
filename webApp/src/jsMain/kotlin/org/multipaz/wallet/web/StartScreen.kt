@@ -12,6 +12,7 @@ import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.shared.BuildConfig
 import react.FC
 import react.Props
+import react.dom.html.ReactHTML.a
 import react.dom.html.ReactHTML.button
 import react.dom.html.ReactHTML.div
 import react.dom.html.ReactHTML.h1
@@ -49,7 +50,15 @@ val StartScreen = FC<StartScreenProps> { props ->
     }
 
     div {
-        className = ClassName("flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white p-4")
+        className = ClassName("flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white p-4 relative")
+
+        // Bottom Center Keys Link
+        a {
+            href = "/keys"
+            (this.asDynamic()).target = "_blank"
+            className = ClassName("absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-slate-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer")
+            +"Public Keys & Certificates"
+        }
 
         div {
             className = ClassName("max-w-sm w-full space-y-8 flex flex-col items-center text-center")

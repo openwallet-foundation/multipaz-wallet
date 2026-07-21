@@ -243,6 +243,15 @@ val WalletAvatarMenu = FC<WalletAvatarMenuProps> { props ->
                     }
 
                     FloatingItemText {
+                        icon = KeyIcon
+                        title = "Public keys & certificates"
+                        onClick = {
+                            setIsMenuOpen(false)
+                            window.open("/keys", "_blank")
+                        }
+                    }
+
+                    FloatingItemText {
                         icon = LogoutIcon
                         title = "Sign out"
                         onClick = { props.onSignOut() }
