@@ -16,6 +16,7 @@ import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.securearea.SecureArea
@@ -35,6 +36,7 @@ import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScree
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.toCbor
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -115,6 +117,21 @@ fun mdocUrlVerificationGraph(
                         backStack.removeAt(backStack.size - 1)
                     },
                     onTransferComplete = { presentmentRecord ->
+                        if (settingsModel.verificationStoreResponse.value) {
+                            coroutineScope.launch {
+                                try {
+                                    val query = settingsModel.readerQuery.value
+                                    eventLogger.addEvent(
+                                        EventVerification(
+                                            appData = mapOf("query" to Cbor.decode(query.toCbor())),
+                                            presentmentRecord = presentmentRecord
+                                        )
+                                    )
+                                } catch (e: Exception) {
+                                    Logger.e(TAG, "Failed to log proximity verification event", e)
+                                }
+                            }
+                        }
                         backStack.removeAt(backStack.size - 1)
                         backStack.add(VerificationShowResponseDestination(
                             query = settingsModel.readerQuery.value,

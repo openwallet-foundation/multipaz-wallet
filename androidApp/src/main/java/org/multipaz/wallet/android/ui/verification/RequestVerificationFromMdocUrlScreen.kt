@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -96,6 +97,23 @@ fun RequestVerificationFromMdocUrlScreen(
                             imageVector = Icons.Outlined.ChevronRight,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             contentDescription = null
+                        )
+                    }
+                )
+                val storeResponse = settingsModel.verificationStoreResponse.collectAsState().value
+                FloatingItemHeadingAndContent(
+                    heading = stringResource(R.string.request_verification_store_response),
+                    content = {
+                        Text(
+                            text = stringResource(R.string.request_verification_store_response_content),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = storeResponse,
+                            onCheckedChange = { value -> settingsModel.verificationStoreResponse.value = value }
                         )
                     }
                 )
