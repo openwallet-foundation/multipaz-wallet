@@ -271,7 +271,6 @@ val KeysApp = FC<Props> {
                                             (this.asDynamic()).target = "_blank"
                                             className = ClassName("text-indigo-400 hover:underline font-medium")
                                             +"ISO/IEC 18013-5"
-                                            +"ISO/IEC 18013-5"
                                         }
                                         +" mdoc reader authentication & "
                                         a {
