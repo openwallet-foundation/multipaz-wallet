@@ -114,6 +114,7 @@ import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromDataItem
 import org.multipaz.wallet.android.isProximityPresentment
+import org.multipaz.wallet.android.shareEvent
 import kotlin.time.Clock
 
 private const val TAG = "EventViewerScreen"
@@ -165,24 +166,9 @@ fun EventViewerScreen(
                             coroutineScope.launch {
                                 val event = eventLogger.getEvents().find { it.identifier == eventId }
                                 if (event != null) {
-                                    // Just do a text file for now. In the future we might define
-                                    // a binary format and provide tools for offline analysis.
-                                    val format = DateTimeComponents.Format {
-                                        byUnicodePattern("yyyyMMdd-HHmmss")
-                                    }
-                                    val timeStampString = event.timestamp.format(
-                                        format = format,
-                                        offset = TimeZone.currentSystemDefault().offsetAt(Clock.System.now())
-                                    )
-                                    val shareManager = ShareManager()
-                                    shareManager.shareDocument(
-                                        content = Cbor.toDiagnostics(
-                                            item = event.toDataItem(),
-                                            options = setOf(DiagnosticOption.PRETTY_PRINT, DiagnosticOption.EMBEDDED_CBOR)
-                                        ).encodeToByteArray(),
-                                        filename = "event-${timeStampString}.txt",
-                                        mimeType = "text/plain",
-                                        title = localContext.getString(R.string.event_viewer_screen_file_name_text, BuildConfig.APP_NAME, event.timestamp)
+                                    shareEvent(
+                                        context = localContext,
+                                        event = event
                                     )
                                 }
                             }

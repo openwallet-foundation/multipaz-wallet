@@ -68,6 +68,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -108,6 +109,7 @@ import org.multipaz.eventlogger.toDataItem
 import org.multipaz.prompt.PromptModel
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.android.shareEvent
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DocumentQueryResult
@@ -191,22 +193,9 @@ fun VerificationShowResponseScreen(
                                 coroutineScope.launch {
                                     val eventToShare = eventLogger.getEvents().find { it.identifier == eventIdentifier }
                                     if (eventToShare != null) {
-                                        val format = DateTimeComponents.Format {
-                                            byUnicodePattern("yyyyMMdd-HHmmss")
-                                        }
-                                        val timeStampString = eventToShare.timestamp.format(
-                                            format = format,
-                                            offset = TimeZone.currentSystemDefault().offsetAt(Clock.System.now())
-                                        )
-                                        val shareManager = ShareManager()
-                                        shareManager.shareDocument(
-                                            content = Cbor.toDiagnostics(
-                                                item = eventToShare.toDataItem(),
-                                                options = setOf(DiagnosticOption.PRETTY_PRINT, DiagnosticOption.EMBEDDED_CBOR)
-                                            ).encodeToByteArray(),
-                                            filename = "event-${timeStampString}.txt",
-                                            mimeType = "text/plain",
-                                            title = localContext.getString(R.string.event_viewer_screen_file_name_text, BuildConfig.APP_NAME, eventToShare.timestamp)
+                                        shareEvent(
+                                            context = localContext,
+                                            event = eventToShare
                                         )
                                     }
                                 }
@@ -724,7 +713,7 @@ private fun ShowEventDetails(
                                         text = displayText,
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             color = MaterialTheme.colorScheme.primary,
-                                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                                            textDecoration = TextDecoration.Underline
                                         ),
                                         modifier = Modifier.clickable {
                                             val geoUri = if (address != null) {

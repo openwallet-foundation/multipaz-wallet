@@ -273,7 +273,7 @@
     <string name="event_ext_event_type_shared_with_app_text">Shared with application</string>
 
     <string name="event_viewer_screen_title_text">Event viewer</string>
-    <string name="event_viewer_screen_file_name_text">%1$s event recorded at %2$s</string>
+    <string name="event_viewer_screen_file_name_text">%1$s event for %2$s recorded at %3$s</string>
     <string name="event_viewer_screen_protocol_w3dc_18013_7_annex_c_text">W3C Digital Credentials API with ISO/IEC 18013-7:2025 Annex C exchange protocol</string>
     <string name="event_viewer_screen_protocol_w3dc_openid4v_text">W3C Digital Credentials API with OpenID4VP exchange protocol</string>
     <string name="event_viewer_screen_protocol_uri_openid4vp_text">URI scheme with OpenID4VP</string>
