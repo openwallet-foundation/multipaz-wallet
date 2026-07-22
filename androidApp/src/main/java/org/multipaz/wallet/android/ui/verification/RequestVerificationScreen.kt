@@ -108,6 +108,7 @@ import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.wallet.client.WalletClient
 import android.Manifest
+import android.annotation.SuppressLint
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -167,6 +168,7 @@ private data class CompletedVerificationData(
 
 private const val TAG = "RequestVerificationScreen"
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun RequestVerificationScreen(

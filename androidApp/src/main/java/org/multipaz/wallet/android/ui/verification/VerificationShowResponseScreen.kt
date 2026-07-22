@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.verification
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +52,11 @@ import org.multipaz.wallet.shared.fromDataItem
 import org.multipaz.wallet.android.ui.MapView
 import org.multipaz.wallet.android.ui.getAddressFromCoordinates
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.FormatStringsInDatetimeFormats
+import kotlinx.datetime.format.byUnicodePattern
+import kotlinx.datetime.offsetAt
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,10 +82,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
+import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.DiagnosticOption
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.rememberUiBoundCoroutineScope
+import org.multipaz.compose.sharemanager.ShareManager
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
@@ -93,6 +104,8 @@ import org.multipaz.util.Logger
 import org.multipaz.verification.PresentmentRecord
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.toDataItem
+import org.multipaz.prompt.PromptModel
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
@@ -102,12 +115,14 @@ import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
+import org.multipaz.wallet.shared.BuildConfig
 import kotlin.time.Clock
 import kotlin.time.Instant
 
 private const val TAG = "VerificationShowResponseScreen"
 
-@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("LocalContextGetResourceValueCall")
+@OptIn(ExperimentalMaterial3Api::class, FormatStringsInDatetimeFormats::class)
 @Composable
 fun VerificationShowResponseScreen(
     query: Query,
@@ -120,6 +135,7 @@ fun VerificationShowResponseScreen(
     userIssuerTrustManagerManager: TrustManagerInterface,
     settingsModel: SettingsModel,
     imageLoader: ImageLoader,
+    promptModel: PromptModel,
     onDeveloperExtrasClicked: () -> Unit,
     onBackClicked: () -> Unit,
     showNotTrusted: Boolean,
@@ -127,7 +143,8 @@ fun VerificationShowResponseScreen(
     eventIdentifier: String? = null,
     onEventDelete: (() -> Unit)? = null
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    val localContext = LocalContext.current
+    val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
     val scrollState = rememberScrollState()
     val queryResult = remember { mutableStateOf<Result?>(null) }
     
@@ -164,6 +181,39 @@ fun VerificationShowResponseScreen(
                         IconButton(onClick = onDeveloperExtrasClicked) {
                             Icon(
                                 imageVector = Icons.Outlined.Science,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                    if (eventIdentifier != null) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val eventToShare = eventLogger.getEvents().find { it.identifier == eventIdentifier }
+                                    if (eventToShare != null) {
+                                        val format = DateTimeComponents.Format {
+                                            byUnicodePattern("yyyyMMdd-HHmmss")
+                                        }
+                                        val timeStampString = eventToShare.timestamp.format(
+                                            format = format,
+                                            offset = TimeZone.currentSystemDefault().offsetAt(Clock.System.now())
+                                        )
+                                        val shareManager = ShareManager()
+                                        shareManager.shareDocument(
+                                            content = Cbor.toDiagnostics(
+                                                item = eventToShare.toDataItem(),
+                                                options = setOf(DiagnosticOption.PRETTY_PRINT, DiagnosticOption.EMBEDDED_CBOR)
+                                            ).encodeToByteArray(),
+                                            filename = "event-${timeStampString}.txt",
+                                            mimeType = "text/plain",
+                                            title = localContext.getString(R.string.event_viewer_screen_file_name_text, BuildConfig.APP_NAME, eventToShare.timestamp)
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
                                 contentDescription = null
                             )
                         }

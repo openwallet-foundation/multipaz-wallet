@@ -73,7 +73,7 @@
     }
   },
   "public_data": {
-    "version": "2026_0709_2149",
+    "version": "2026_0709_2150",
     "trusted_issuers": [
       {
         "display_name": "Google Wallet ID pass (US)",

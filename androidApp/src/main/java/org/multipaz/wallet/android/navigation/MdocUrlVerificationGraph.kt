@@ -22,6 +22,7 @@ import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.prompt.PromptModel
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -52,6 +53,7 @@ fun mdocUrlVerificationGraph(
     zkSystemRepository: ZkSystemRepository,
     proximityReaderModel: ProximityReaderModel,
     imageLoader: ImageLoader,
+    promptModel: PromptModel,
     coroutineScope: CoroutineScope,
     showToast: (message: String) -> Unit,
     eventLogger: SimpleEventLogger,
@@ -166,6 +168,7 @@ fun mdocUrlVerificationGraph(
                     userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
+                    promptModel = promptModel,
                     showNotTrusted = key.showNotTrusted,
                     eventLogger = eventLogger,
                     eventIdentifier = key.eventIdentifier,

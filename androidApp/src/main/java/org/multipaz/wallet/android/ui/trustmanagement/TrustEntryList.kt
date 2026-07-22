@@ -93,8 +93,8 @@ internal fun TrustEntryInfo.RenderImage(
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier
 ) {
-    entry.metadata.displayIcon?.let {
-        val bitmap = remember { decodeImage(it.toByteArray()) }
+    entry.metadata.displayIcon?.let { displayIcon ->
+        val bitmap = remember { decodeImage(displayIcon.toByteArray()) }
         Image(
             modifier = modifier.size(size),
             bitmap = bitmap,
@@ -103,15 +103,17 @@ internal fun TrustEntryInfo.RenderImage(
         return
     }
 
-    entry.metadata.displayIconUrl?.let {
-        AsyncImage(
-            modifier = modifier.size(size),
-            model = it,
-            imageLoader = imageLoader,
-            contentScale = ContentScale.Crop,
-            contentDescription = null
-        )
-        return
+    entry.metadata.displayIconUrl?.let { displayIconUrl ->
+        if (displayIconUrl.isNotEmpty()) {
+            AsyncImage(
+                modifier = modifier.size(size),
+                model = displayIconUrl,
+                imageLoader = imageLoader,
+                contentScale = ContentScale.Crop,
+                contentDescription = null
+            )
+            return
+        }
     }
 
     Branding.Current.collectAsState().value.AvatarIcon(

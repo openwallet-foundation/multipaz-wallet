@@ -662,7 +662,10 @@ abstract class WalletBackendBase: WalletBackend {
                 val displayName = item.string("display_name")
                     ?: throw IllegalStateException("$name must have display_name set")
                 val testOnly = item.bool("test_only")
-                val displayIconUrl = item.string("display_icon_url")
+                val displayIconUrl = item.string(
+                    name = "display_icon_url",
+                    default = null
+                )
                 val certificate = item.string("certificate")
                     ?: throw IllegalStateException("$name must have certificate set")
                 // TODO: also support RICALs and VICALs in the future

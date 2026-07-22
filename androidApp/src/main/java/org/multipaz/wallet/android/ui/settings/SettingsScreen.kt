@@ -3,8 +3,10 @@ package org.multipaz.wallet.android.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,9 +21,11 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.NoAccounts
 import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,16 +39,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.multipaz.compose.items.FloatingItemCenteredText
+import org.multipaz.compose.items.FloatingItemContainer
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
-import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.android.ui.InfoNote
 import org.multipaz.wallet.android.ui.ProfilePicture
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.shared.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,9 +130,24 @@ fun SettingsScreen(
                     }
                 } else {
                     if (isSigningIn.value) {
-                        FloatingItemCenteredText(
-                            text = stringResource(R.string.settings_screen_signing_in),
-                        )
+                        FloatingItemContainer {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.CenterHorizontally),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp).padding(4.dp),
+                                    strokeWidth = 1.dp
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_screen_signing_in),
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontStyle = FontStyle.Italic
+                                )
+                            }
+                        }
                     } else {
                         FloatingItemText(
                             modifier = Modifier.clickable {

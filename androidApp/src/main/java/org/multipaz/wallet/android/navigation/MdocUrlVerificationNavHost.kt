@@ -65,6 +65,7 @@ fun MdocUrlVerificationNavHost(
         zkSystemRepository = zkSystemRepository,
         proximityReaderModel = proximityReaderModel,
         imageLoader = imageLoader,
+        promptModel = promptModel,
         coroutineScope = coroutineScope,
         showToast = showToast,
         eventLogger = eventLogger,

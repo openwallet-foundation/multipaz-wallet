@@ -1464,6 +1464,7 @@ fun mainGraph(
                     userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
+                    promptModel = promptModel,
                     showNotTrusted = key.showNotTrusted,
                     eventLogger = eventLogger,
                     eventIdentifier = key.eventIdentifier,
