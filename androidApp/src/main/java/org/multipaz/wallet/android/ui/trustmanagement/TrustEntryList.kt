@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
@@ -22,6 +21,7 @@ import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.compose.trustmanagement.getDetails
 import org.multipaz.trustmanagement.TrustEntry
 import org.multipaz.trustmanagement.TrustEntryBasedTrustManager
+import org.multipaz.trustmanagement.TrustEntryX509Cert
 
 /**
  * A Composable that displays a scrollable list of trust entries managed in a [TrustEntryBasedTrustManager].
@@ -119,6 +119,9 @@ internal fun TrustEntryInfo.RenderImage(
     Branding.Current.collectAsState().value.AvatarIcon(
         size = size,
         name = getDisplayName(),
-        additionalData = entry.identifier.encodeToByteArray()
+        additionalData = when (entry) {
+            is TrustEntryX509Cert -> (entry as TrustEntryX509Cert).certificate.subjectKeyIdentifier
+            else -> entry.identifier.encodeToByteArray()
+        }
     )
 }

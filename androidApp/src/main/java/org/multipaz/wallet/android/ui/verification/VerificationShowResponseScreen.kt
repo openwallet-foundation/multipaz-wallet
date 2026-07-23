@@ -1,8 +1,11 @@
 package org.multipaz.wallet.android.ui.verification
 
+
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,17 +17,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
-
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,44 +37,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.selection.SelectionContainer
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import org.multipaz.wallet.shared.Location
-import org.multipaz.wallet.shared.fromDataItem
-import org.multipaz.wallet.android.ui.MapView
-import org.multipaz.wallet.android.ui.getAddressFromCoordinates
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.DateTimeComponents
-import kotlinx.datetime.format.FormatStringsInDatetimeFormats
-import kotlinx.datetime.format.byUnicodePattern
-import kotlinx.datetime.offsetAt
-import kotlinx.datetime.toLocalDateTime
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -80,8 +59,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -92,34 +69,34 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format.FormatStringsInDatetimeFormats
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.bytestring.ByteString
-import org.multipaz.cbor.Cbor
-import org.multipaz.cbor.DiagnosticOption
+import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
+import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.rememberUiBoundCoroutineScope
-import org.multipaz.compose.sharemanager.ShareManager
-import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.Options
+import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.prompt.PromptModel
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.trustmanagement.TrustPoint
-import org.multipaz.trustmanagement.TrustResult
 import org.multipaz.util.Logger
 import org.multipaz.verification.PresentmentRecord
-import org.multipaz.eventlogger.SimpleEventLogger
-import org.multipaz.eventlogger.EventVerification
-import org.multipaz.eventlogger.toDataItem
-import org.multipaz.prompt.PromptModel
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.shareEvent
+import org.multipaz.wallet.android.ui.MapView
+import org.multipaz.wallet.android.ui.getAddressFromCoordinates
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DocumentQueryResult
@@ -129,11 +106,9 @@ import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
-
-
 import org.multipaz.wallet.client.verification.Result
-import org.multipaz.wallet.shared.BuildConfig
-import kotlin.time.Clock
+import org.multipaz.wallet.shared.Location
+import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Instant
 
 private const val TAG = "VerificationShowResponseScreen"
@@ -440,15 +415,28 @@ internal fun TrustPoint.RenderImage(
         return
     }
 
-    metadata.displayIconUrl?.let {
-        AsyncImage(
-            modifier = modifier.size(size),
-            model = it,
-            imageLoader = imageLoader,
-            contentScale = ContentScale.Crop,
-            contentDescription = null
-        )
-        return
+    metadata.displayIconUrl?.let { displayIconUrl ->
+        if (displayIconUrl.isNotEmpty()) {
+            AsyncImage(
+                modifier = modifier.size(size),
+                model = displayIconUrl,
+                imageLoader = imageLoader,
+                contentScale = ContentScale.Crop,
+                contentDescription = null
+            )
+            return
+        }
+    }
+
+    metadata.displayName?.let { displayName ->
+        if (displayName.isNotEmpty()) {
+            Branding.Current.collectAsState().value.AvatarIcon(
+                size = size,
+                name = displayName,
+                additionalData = certificate.subjectKeyIdentifier
+            )
+            return
+        }
     }
 
     Image(
