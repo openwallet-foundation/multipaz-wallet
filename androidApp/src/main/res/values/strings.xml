@@ -106,6 +106,8 @@
 
     <string name="dev_settings_screen_title">Developer Settings</string>
     <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk.</string>
+    <string name="dev_settings_logging_debug_title">Enable debug logging</string>
+    <string name="dev_settings_logging_debug_text">Enable debug to print out structures helpful for debugging. Warning: debug messages may contain PII.</string>
     <string name="dev_settings_corrupt_key_title">Corrupt encryption key in Google Drive</string>
     <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted.</string>
     <string name="dev_settings_not_signed_in">User is not signed in</string>

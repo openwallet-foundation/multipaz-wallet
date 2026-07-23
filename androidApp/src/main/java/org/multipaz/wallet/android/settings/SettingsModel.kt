@@ -18,6 +18,7 @@ import org.multipaz.crypto.X509CertChain
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
 import org.multipaz.storage.StorageTableSpec
+import org.multipaz.util.Logger
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.fromDataItem
@@ -138,6 +139,7 @@ class SettingsModel private constructor(
     private suspend fun init() {
         bind(explicitlySignedOut, "explicitlySignedOut", false)
         bind(devMode, "devMode", false)
+        bind(loggingDebugEnabled, "loggingDebugEnabled", false)
         bind(walletBackendUrl, "walletBackendUrl", null)
         bind(firstTimeSetupDone, "firstTimeSetupDone", false)
         bind(eventLoggingEnabled, "eventLoggingEnabled", true)
@@ -146,10 +148,18 @@ class SettingsModel private constructor(
         bind(readerQuery, "readerQuery", IdentificationQuery(false))
         bind(verificationIsInPerson, "verificationIsInPerson", true)
         bind(verificationStoreResponse, "verificationStoreResponse", false)
+
+        Logger.isDebugEnabled = loggingDebugEnabled.value
+        CoroutineScope(Dispatchers.Default).launch {
+            loggingDebugEnabled.asStateFlow().collect { enabled ->
+                Logger.isDebugEnabled = enabled
+            }
+        }
     }
 
     val explicitlySignedOut = MutableStateFlow<Boolean>(false)
     val devMode = MutableStateFlow<Boolean>(false)
+    val loggingDebugEnabled = MutableStateFlow<Boolean>(false)
     val walletBackendUrl = MutableStateFlow<String?>(null)
     val firstTimeSetupDone = MutableStateFlow<Boolean>(false)
     val eventLoggingEnabled = MutableStateFlow<Boolean>(true)

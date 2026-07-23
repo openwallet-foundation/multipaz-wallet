@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Login
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoorBack
@@ -26,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -108,6 +110,28 @@ fun DeveloperSettingsScreen(
                 markdownString = stringResource(R.string.dev_settings_screen_warning),
             )
             FloatingItemList {
+                FloatingItemHeadingAndText(
+                    modifier = Modifier.clickable {
+                        settingsModel.loggingDebugEnabled.value = !settingsModel.loggingDebugEnabled.value
+                    },
+                    image = {
+                        Icon(
+                            imageVector = Icons.Outlined.BugReport,
+                            contentDescription = null
+                        )
+                    },
+                    heading = stringResource(R.string.dev_settings_logging_debug_title),
+                    text = stringResource(R.string.dev_settings_logging_debug_text),
+                    trailingContent = {
+                        Switch(
+                            checked = settingsModel.loggingDebugEnabled.collectAsState().value,
+                            onCheckedChange = { value ->
+                                settingsModel.loggingDebugEnabled.value = value
+                            }
+                        )
+                    }
+                )
+
                 FloatingItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onCorruptEncryptionKeyClicked()
