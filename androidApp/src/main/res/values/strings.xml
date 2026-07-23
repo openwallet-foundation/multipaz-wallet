@@ -472,7 +472,6 @@
     <string name="request_verification_driving_privileges_verified">Driving privileges verified</string>
 
     <string name="request_verification_no_requests">No verification requests are pending.</string>
-    <string name="request_verification_devmode_queries">Devmode Queries</string>
     <string name="content_description_error">Error</string>
     <string name="content_description_portrait">Portrait</string>
     <string name="content_description_link">Link</string>
@@ -609,7 +608,6 @@
     <string name="openid4vci_refresh_error">Error refreshing credentials: %1$s</string>
     <string name="verification_link_share_failed">Failed to share link: %1$s</string>
     <string name="verification_link_generate_error">Error generating verification link: %1$s</string>
-    <string name="select_verification_type_custom_mdl_description">Requests an mDL with portrait and age_over_18</string>
 
     <!-- Credential Info & Document Info -->
     <string name="credential_info_title">Credential info</string>

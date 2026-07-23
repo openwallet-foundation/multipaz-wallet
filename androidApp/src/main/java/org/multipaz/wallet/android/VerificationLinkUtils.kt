@@ -27,7 +27,6 @@ import android.service.chooser.ChooserAction
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
-import org.multipaz.wallet.client.verification.SimpleMdocQuery
 import org.multipaz.verification.VerifierIdentity
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random

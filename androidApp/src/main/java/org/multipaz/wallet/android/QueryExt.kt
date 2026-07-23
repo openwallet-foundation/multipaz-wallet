@@ -6,7 +6,6 @@ import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
-import org.multipaz.wallet.client.verification.SimpleMdocQuery
 
 @Composable
 fun Query.getDisplayName(): String = when (this) {
@@ -23,7 +22,6 @@ fun Query.getDisplayName(): String = when (this) {
     is DrivingPrivilegesQuery -> {
         stringResource(R.string.reader_query_driving_privileges)
     }
-    is SimpleMdocQuery -> name
 }
 
 @Composable
@@ -41,5 +39,4 @@ fun Query.getDescription(): String = when (this) {
     is DrivingPrivilegesQuery -> {
         stringResource(R.string.reader_query_driving_privileges_description)
     }
-    is SimpleMdocQuery -> description
 }

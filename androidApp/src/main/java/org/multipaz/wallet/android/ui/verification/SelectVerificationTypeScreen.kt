@@ -33,8 +33,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.multipaz.compose.items.FloatingItemContainer
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.documenttype.knowntypes.DrivingLicense
-import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
@@ -43,7 +41,6 @@ import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
-import org.multipaz.wallet.client.verification.SimpleMdocQuery
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,29 +150,6 @@ fun SelectVerificationTypeScreen(
                     },
                 )
 
-            }
-            if (settingsModel.devMode.collectAsState().value) {
-                FloatingItemList(title = stringResource(R.string.request_verification_devmode_queries)) {
-                    val query = SimpleMdocQuery(
-                        name = "mDL with portrait and age_over_18",
-                        description = stringResource(R.string.select_verification_type_custom_mdl_description),
-                        docType = DrivingLicense.MDL_DOCTYPE,
-                        claims = listOf("portrait", "age_over_18").map {
-                            MdocRequestedClaim(
-                                docType = DrivingLicense.MDL_DOCTYPE,
-                                namespaceName = DrivingLicense.MDL_NAMESPACE,
-                                dataElementName = it,
-                                intentToRetain = false
-                            )
-                        },
-                    )
-                    RequestOption(
-                        title = query.getDisplayName(),
-                        description = query.getDescription(),
-                        selected = selectedQuery == query,
-                        onClick = { settingsModel.readerQuery.value = query },
-                    )
-                }
             }
             Spacer(modifier = Modifier.height(20.dp))
         }
