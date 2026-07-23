@@ -73,9 +73,12 @@ import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.DrivingPrivilegesDocumentQueryResult
+import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
+
 import org.multipaz.wallet.client.verification.Result
 import org.multipaz.wallet.client.verification.fromCbor
 
@@ -130,6 +133,7 @@ fun VerificationEventListScreen(
                             val portraitBytes = when (docResult) {
                                 is AgeOverDocumentQueryResult -> docResult.portrait
                                 is IdentificationDocumentQueryResult -> docResult.portrait
+                                is DrivingPrivilegesDocumentQueryResult -> docResult.portrait
                                 else -> null
                             }
                             val portraitBitmap = portraitBytes?.let {
@@ -260,6 +264,8 @@ private fun EventItemVerification(
                     }
                 }
                 is IdentificationQuery -> stringResource(R.string.request_verification_identified)
+                is DrivingPrivilegesQuery -> stringResource(R.string.request_verification_driving_privileges_verified)
+
                 else -> query?.getDisplayName() ?: defaultTitle
             }
         } else {

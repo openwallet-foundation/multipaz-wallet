@@ -41,8 +41,10 @@ import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.SimpleMdocQuery
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,6 +144,15 @@ fun SelectVerificationTypeScreen(
                         settingsModel.readerQuery.value = IdentificationQuery(true)
                     },
                 )
+                RequestOption(
+                    title = DrivingPrivilegesQuery().getDisplayName(),
+                    description = DrivingPrivilegesQuery().getDescription(),
+                    selected = selectedQuery is DrivingPrivilegesQuery,
+                    onClick = {
+                        settingsModel.readerQuery.value = DrivingPrivilegesQuery()
+                    },
+                )
+
             }
             if (settingsModel.devMode.collectAsState().value) {
                 FloatingItemList(title = stringResource(R.string.request_verification_devmode_queries)) {

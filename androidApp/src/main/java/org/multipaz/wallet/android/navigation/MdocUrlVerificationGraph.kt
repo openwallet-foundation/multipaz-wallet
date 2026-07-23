@@ -139,7 +139,6 @@ fun mdocUrlVerificationGraph(
                             query = settingsModel.readerQuery.value,
                             presentmentRecord = presentmentRecord,
                             atTime = Clock.System.now(),
-                            showNotTrusted = false,
                             eventIdentifier = null
                         ))
                     },
@@ -169,7 +168,6 @@ fun mdocUrlVerificationGraph(
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
                     promptModel = promptModel,
-                    showNotTrusted = key.showNotTrusted,
                     eventLogger = eventLogger,
                     eventIdentifier = key.eventIdentifier,
                     onDeveloperExtrasClicked = {

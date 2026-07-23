@@ -667,7 +667,6 @@ fun mainGraph(
                                         query = query,
                                         presentmentRecord = event.presentmentRecord,
                                         atTime = event.timestamp,
-                                        showNotTrusted = false,
                                         eventIdentifier = event.identifier
                                     )
                                 )
@@ -698,7 +697,6 @@ fun mainGraph(
                                     query = query,
                                     presentmentRecord = event.presentmentRecord,
                                     atTime = event.timestamp,
-                                    showNotTrusted = true,
                                     eventIdentifier = event.identifier
                                 )
                             )
@@ -1313,7 +1311,6 @@ fun mainGraph(
                             query = query,
                             presentmentRecord = presentmentRecord,
                             atTime = atTime,
-                            showNotTrusted = showNotTrusted
                         ))
                     },
                     onDeletePendingVerificationClicked = { requestId ->
@@ -1435,7 +1432,6 @@ fun mainGraph(
                             query = settingsModel.readerQuery.value,
                             presentmentRecord = presentmentRecord,
                             atTime = Clock.System.now(),
-                            showNotTrusted = false,
                             eventIdentifier = null
                         ))
                     },
@@ -1465,7 +1461,6 @@ fun mainGraph(
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
                     promptModel = promptModel,
-                    showNotTrusted = key.showNotTrusted,
                     eventLogger = eventLogger,
                     eventIdentifier = key.eventIdentifier,
                     onDeveloperExtrasClicked = {

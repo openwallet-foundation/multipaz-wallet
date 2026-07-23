@@ -281,20 +281,17 @@ data class VerificationShowResponseDestination(
     val queryEncoded: String,
     val presentmentRecordEncoded: String,
     val atTimeMillis: Long,
-    val showNotTrusted: Boolean,
     val eventIdentifier: String? = null,
 ): Destination() {
     constructor(
         query: Query,
         presentmentRecord: PresentmentRecord,
         atTime: Instant,
-        showNotTrusted: Boolean,
         eventIdentifier: String? = null,
     ): this(
         queryEncoded = query.toCbor().toBase64Url(),
         presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
         atTimeMillis = atTime.toEpochMilliseconds(),
-        showNotTrusted = showNotTrusted,
         eventIdentifier = eventIdentifier
     )
 

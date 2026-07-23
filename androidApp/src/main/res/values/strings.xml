@@ -430,6 +430,9 @@
     <string name="reader_query_age_over_description">Requests portrait image and proof that the person verified is at least %1$d years old.</string>
     <string name="reader_query_identification_and_address_description">Requests name, birth date, street address, and portrait image.</string>
     <string name="reader_query_identification_description">Requests name, birth date, and portrait image.</string>
+    <string name="reader_query_driving_privileges">Driving privileges</string>
+    <string name="reader_query_driving_privileges_description">Requests name, birth date, driving privileges, and portrait image.</string>
+
 
     <!-- Document Types -->
     <string name="document_type_mobile_driving_license">Mobile Driving License</string>
@@ -466,6 +469,8 @@
     <string name="request_verification_received">Received %1$s</string>
     <string name="request_verification_received_unknown_issuer">Received %1$s. Document is from an unknown issuer</string>
     <string name="request_verification_identified">This person has been identified</string>
+    <string name="request_verification_driving_privileges_verified">Driving privileges verified</string>
+
     <string name="request_verification_no_requests">No verification requests are pending.</string>
     <string name="request_verification_devmode_queries">Devmode Queries</string>
     <string name="content_description_error">Error</string>
@@ -499,14 +504,15 @@
     <string name="verification_show_response_issuer_user_trust">Issuer is on the user-defined trust list</string>
     <string name="verification_show_response_no_trust_anchor">No trust anchor found for this issuer</string>
     <string name="verification_show_response_trust_anchor_heading">Trust anchor</string>
-    <string name="verification_show_response_test_only_heading">Test only</string>
-    <string name="verification_show_response_test_only_text">This document has been issued only for testing purposes</string>
+    <string name="verification_show_response_test_only_text">The returned document is for testing purposes only</string>
     <string name="verification_show_response_age_over_success">This person is older than %1$d</string>
     <string name="verification_show_response_age_over_failure">This person is NOT older than %1$d</string>
     <string name="verification_show_response_verified">This person has been verified</string>
     <string name="verification_show_response_name_heading">Name</string>
     <string name="verification_show_response_birth_date_heading">Birth date</string>
     <string name="verification_show_response_street_address_heading">Street address</string>
+    <string name="verification_show_response_driving_privileges_heading">Driving privileges</string>
+
 
     <string name="wallet_screen_backend_url_format">@ %1$s</string>
 

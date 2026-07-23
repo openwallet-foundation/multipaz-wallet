@@ -3,6 +3,7 @@ package org.multipaz.wallet.android
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import org.multipaz.wallet.client.verification.AgeOverQuery
+import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.SimpleMdocQuery
@@ -19,6 +20,9 @@ fun Query.getDisplayName(): String = when (this) {
             stringResource(R.string.reader_query_identification)
         }
     }
+    is DrivingPrivilegesQuery -> {
+        stringResource(R.string.reader_query_driving_privileges)
+    }
     is SimpleMdocQuery -> name
 }
 
@@ -33,6 +37,9 @@ fun Query.getDescription(): String = when (this) {
         } else {
             stringResource(R.string.reader_query_identification_description)
         }
+    }
+    is DrivingPrivilegesQuery -> {
+        stringResource(R.string.reader_query_driving_privileges_description)
     }
     is SimpleMdocQuery -> description
 }

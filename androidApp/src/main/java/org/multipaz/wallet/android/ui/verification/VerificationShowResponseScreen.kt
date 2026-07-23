@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -60,11 +62,17 @@ import kotlinx.datetime.offsetAt
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -72,6 +80,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -113,9 +123,14 @@ import org.multipaz.wallet.android.shareEvent
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DocumentQueryResult
+import org.multipaz.wallet.client.verification.DrivingPrivilege
+import org.multipaz.wallet.client.verification.DrivingPrivilegesDocumentQueryResult
+import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
+
+
 import org.multipaz.wallet.client.verification.Result
 import org.multipaz.wallet.shared.BuildConfig
 import kotlin.time.Clock
@@ -140,7 +155,6 @@ fun VerificationShowResponseScreen(
     promptModel: PromptModel,
     onDeveloperExtrasClicked: () -> Unit,
     onBackClicked: () -> Unit,
-    showNotTrusted: Boolean,
     eventLogger: SimpleEventLogger,
     eventIdentifier: String? = null,
     onEventDelete: (() -> Unit)? = null
@@ -159,7 +173,6 @@ fun VerificationShowResponseScreen(
     val verificationLocation = event?.appData?.get("location")?.let { Location.fromDataItem(it) }
     val verificationTime = event?.timestamp
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
-    val showNotTrustedState = remember { mutableStateOf(showNotTrusted) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -257,45 +270,43 @@ fun VerificationShowResponseScreen(
                 when (queryResult.value?.query) {
                     is AgeOverQuery -> {
                         val result = queryResult.value!!.documents.first()
-                        if (result.trustResult.isTrusted || showNotTrustedState.value) {
-                            ShowAgeOverResult(
-                                query = queryResult.value!!.query as AgeOverQuery,
-                                result = result as AgeOverDocumentQueryResult,
-                                builtInIssuerTrustManager = builtInIssuerTrustManager,
-                                userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-                                imageLoader = imageLoader,
-                                verificationLocation = verificationLocation,
-                                verificationTime = verificationTime
-                            )
-                        } else {
-                            ShowNotTrusted(
-                                trustResult = result.trustResult,
-                                devModeEnabled = devModeEnabled,
-                                showNotTrusted = showNotTrustedState
-                            )
-                        }
+                        ShowAgeOverResult(
+                            query = queryResult.value!!.query as AgeOverQuery,
+                            result = result as AgeOverDocumentQueryResult,
+                            builtInIssuerTrustManager = builtInIssuerTrustManager,
+                            userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+                            imageLoader = imageLoader,
+                            verificationLocation = verificationLocation,
+                            verificationTime = verificationTime
+                        )
                     }
 
                     is IdentificationQuery -> {
                         val result = queryResult.value!!.documents.first()
-                        if (result.trustResult.isTrusted || showNotTrustedState.value) {
-                            ShowIdentificationResult(
-                                query = queryResult.value!!.query as IdentificationQuery,
-                                result = result as IdentificationDocumentQueryResult,
-                                builtInIssuerTrustManager = builtInIssuerTrustManager,
-                                userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-                                imageLoader = imageLoader,
-                                verificationLocation = verificationLocation,
-                                verificationTime = verificationTime
-                            )
-                        } else {
-                            ShowNotTrusted(
-                                trustResult = result.trustResult,
-                                devModeEnabled = devModeEnabled,
-                                showNotTrusted = showNotTrustedState
-                            )
-                        }
+                        ShowIdentificationResult(
+                            query = queryResult.value!!.query as IdentificationQuery,
+                            result = result as IdentificationDocumentQueryResult,
+                            builtInIssuerTrustManager = builtInIssuerTrustManager,
+                            userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+                            imageLoader = imageLoader,
+                            verificationLocation = verificationLocation,
+                            verificationTime = verificationTime
+                        )
                     }
+
+                    is DrivingPrivilegesQuery -> {
+                        val result = queryResult.value!!.documents.first()
+                        ShowDrivingPrivilegesResult(
+                            query = queryResult.value!!.query as DrivingPrivilegesQuery,
+                            result = result as DrivingPrivilegesDocumentQueryResult,
+                            builtInIssuerTrustManager = builtInIssuerTrustManager,
+                            userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+                            imageLoader = imageLoader,
+                            verificationLocation = verificationLocation,
+                            verificationTime = verificationTime
+                        )
+                    }
+
 
                     else -> {}
                 }
@@ -329,46 +340,6 @@ private fun ShowParsingFailedError(
 }
 
 @Composable
-private fun ShowNotTrusted(
-    trustResult: TrustResult,
-    devModeEnabled: Boolean,
-    showNotTrusted: MutableState<Boolean>
-) {
-    Column(
-        modifier = Modifier.let {
-            if (devModeEnabled) {
-                it.combinedClickable(
-                    onClick = {},
-                    onDoubleClick = { showNotTrusted.value = true }
-                )
-            } else it
-        },
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.error_animation))
-        val progressState = animateLottieCompositionAsState(composition = composition)
-        Image(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp).padding(16.dp),
-            painter = rememberLottiePainter(
-                composition = composition,
-                progress = progressState.value,
-            ),
-            contentDescription = null,
-        )
-
-        Text(
-            text = stringResource(R.string.verification_show_response_unknown_issuer),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
 private fun ShowPortrait(portrait: ByteString) {
     val portraitBitmap = remember { decodeImage(portrait.toByteArray()) }
 
@@ -381,7 +352,7 @@ private fun ShowPortrait(portrait: ByteString) {
     ) {
         Image(
             bitmap = portraitBitmap,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.content_description_portrait),
             modifier = Modifier
                 .height(200.dp)
                 .aspectRatio(imageRatio)
@@ -394,12 +365,33 @@ private fun ShowPortrait(portrait: ByteString) {
     }
 }
 
+
 @Composable
 private fun ShowStatement(
+    result: DocumentQueryResult,
     success: Boolean,
     message: String
 ) {
-    val painter = if (success) {
+    val trustPoint = result.trustResult.trustPoints.firstOrNull()
+    val isUnknownIssuer = trustPoint == null
+    val isTestOnly = trustPoint?.metadata?.testOnly == true
+
+    val (effectiveSuccess, effectiveMessage) = when {
+        isUnknownIssuer -> Pair(
+            false,
+            stringResource(R.string.verification_show_response_unknown_issuer)
+        )
+        isTestOnly -> Pair(
+            false,
+            stringResource(R.string.verification_show_response_test_only_text)
+        )
+        else -> Pair(
+            success,
+            message
+        )
+    }
+
+    val painter = if (effectiveSuccess) {
         val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.success_animation))
         val progressState = animateLottieCompositionAsState(composition = composition)
         rememberLottiePainter(
@@ -424,7 +416,7 @@ private fun ShowStatement(
             modifier = Modifier.size(50.dp)
         )
         Text(
-            text = message,
+            text = effectiveMessage,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
@@ -554,29 +546,6 @@ private fun ShowSource(
             heading = stringResource(R.string.verification_show_response_trust_anchor_heading),
             text = message,
         )
-
-        if (trustPoint?.metadata?.testOnly == true) {
-            val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.error_animation))
-            val progressState = animateLottieCompositionAsState(composition = composition)
-            FloatingItemHeadingAndText(
-                image = {
-                    Image(
-                        painter = rememberLottiePainter(
-                            composition = composition,
-                            progress = progressState.value,
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier.size(iconSize),
-                    )
-                },
-                heading = stringResource(R.string.verification_show_response_test_only_heading),
-                text = stringResource(R.string.verification_show_response_test_only_text)
-            )
-        }
-
-        //Logger.i(TAG, "Revocation Status: ${result.revocationStatus}")
-        //if (result.revocationStatus != null) {
-        //}
     }
 }
 
@@ -594,11 +563,13 @@ private fun ShowAgeOverResult(
 
     if (result.isAgeOver) {
         ShowStatement(
+            result = result,
             success = true,
             message = stringResource(R.string.verification_show_response_age_over_success, query.ageOver)
         )
     } else {
         ShowStatement(
+            result = result,
             success = false,
             message = stringResource(R.string.verification_show_response_age_over_failure, query.ageOver)
         )
@@ -628,6 +599,7 @@ fun ShowIdentificationResult(
     ShowPortrait(result.portrait)
 
     ShowStatement(
+        result = result,
         success = true,
         message = stringResource(R.string.verification_show_response_verified)
     )
@@ -659,6 +631,84 @@ fun ShowIdentificationResult(
     ShowEventDetails(verificationTime, verificationLocation)
     Spacer(modifier = Modifier.height(20.dp))
 }
+
+@Composable
+fun ShowDrivingPrivilegesResult(
+    query: DrivingPrivilegesQuery,
+    result: DrivingPrivilegesDocumentQueryResult,
+    builtInIssuerTrustManager: TrustManagerInterface,
+    userIssuerTrustManagerManager: TrustManagerInterface,
+    imageLoader: ImageLoader,
+    verificationLocation: Location?,
+    verificationTime: Instant?
+) {
+    ShowPortrait(result.portrait)
+
+
+    ShowStatement(
+        result = result,
+        success = true,
+        message = stringResource(R.string.request_verification_driving_privileges_verified)
+    )
+
+    Spacer(modifier = Modifier.height(20.dp))
+    FloatingItemList {
+        FloatingItemHeadingAndText(
+            heading = stringResource(R.string.verification_show_response_name_heading),
+            text = result.name
+        )
+        FloatingItemHeadingAndText(
+            heading = stringResource(R.string.verification_show_response_birth_date_heading),
+            text = result.birthDate.formatLocalized(FormatStyle.LONG)
+        )
+    }
+
+    if (result.drivingPrivilegesList.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(20.dp))
+        ShowDrivingPrivileges(result.drivingPrivilegesList)
+    }
+
+    Spacer(modifier = Modifier.height(20.dp))
+    ShowSource(
+        result = result,
+        builtInIssuerTrustManager = builtInIssuerTrustManager,
+        userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+        imageLoader = imageLoader
+    )
+    ShowEventDetails(verificationTime, verificationLocation)
+    Spacer(modifier = Modifier.height(20.dp))
+}
+
+@Composable
+fun ShowDrivingPrivileges(privileges: List<DrivingPrivilege>) {
+    FloatingItemList(title = stringResource(R.string.verification_show_response_driving_privileges_heading)) {
+        for (privilege in privileges) {
+            val details = mutableListOf<String>()
+            privilege.issueDate?.let {
+                details.add("Issue: ${it.formatLocalized(FormatStyle.LONG)}")
+            }
+            privilege.expiryDate?.let {
+                details.add("Expiry: ${it.formatLocalized(FormatStyle.LONG)}")
+            }
+            if (privilege.codes.isNotEmpty()) {
+                val formattedCodes = privilege.codes.joinToString(", ") { code ->
+                    buildString {
+                        append(code.code)
+                        code.sign?.let { append(" ").append(it) }
+                        code.value?.let { append(" ").append(it) }
+                    }
+                }
+                details.add("Codes: $formattedCodes")
+            }
+            FloatingItemHeadingAndText(
+                heading = "Category ${privilege.vehicleCategoryCode}",
+                text = if (details.isNotEmpty()) details.joinToString("\n") else "Valid"
+            )
+        }
+    }
+}
+
+
 
 @Composable
 private fun ShowEventDetails(
