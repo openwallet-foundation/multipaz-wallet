@@ -189,6 +189,7 @@ private fun EventProvisioningForDocument(
 
     FloatingItemText(
         modifier = modifier,
+        showChevron = true,
         image = {
             event.issuerData.display.logo?.let {
                 val bitmap = remember { decodeImage(it.toByteArray()) }
@@ -222,6 +223,7 @@ private fun EventPresentmentForDocument(
     val text = stringResource(R.string.document_event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
     FloatingItemText(
         modifier = modifier,
+        showChevron = true,
         image = {
             event.presentmentData.trustMetadata?.displayIcon?.let {
                 val bitmap = remember { decodeImage(it.toByteArray()) }

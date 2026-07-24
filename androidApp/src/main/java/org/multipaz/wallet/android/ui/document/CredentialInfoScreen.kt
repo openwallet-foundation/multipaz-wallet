@@ -183,6 +183,7 @@ private fun CredentialInfoSection(
                     (credentialInfo.credential as MdocCredential).docType
                 )
                 FloatingItemHeadingAndText(
+                    showChevron = true,
                     heading = "ISO mdoc DS Key Certificate",
                     text = buildAnnotatedString {
                         withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.secondary)) {
@@ -240,6 +241,7 @@ private fun CredentialInfoSection(
                 }
             })
         FloatingItemHeadingAndText(
+            showChevron = true,
             heading = "Device Key Attestation",
             text = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.secondary)) {

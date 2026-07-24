@@ -503,6 +503,7 @@ private fun EventViewerPresentment(
             val requesterCertificate = stringResource(R.string.event_viewer_screen_requester_certificate_text)
             event.presentmentData.requesterCertChain?.let {
                 FloatingItemHeadingAndText(
+                    showChevron = true,
                     heading = requesterCertificate,
                     text = stringResource(R.string.event_viewer_screen_certificate_click_to_view_text),
                     modifier = Modifier.clickable {
@@ -811,6 +812,7 @@ private fun EventViewerVerification(
             ) {
                 vp.documentSignerCertChain?.let { certChain ->
                     FloatingItemHeadingAndText(
+                        showChevron = true,
                         heading = "Issuer certificate chain",
                         text = "Click to view",
                         modifier = Modifier.clickable {

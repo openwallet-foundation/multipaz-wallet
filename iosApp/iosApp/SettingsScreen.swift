@@ -69,32 +69,32 @@ struct SettingsScreen: View {
                 FloatingItemList {
                     FloatingItemText(
                         text: "Trusted issuing authorities",
-                        image: { Image(systemName: "building.columns") },
-                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                        showChevron: true,
+                        image: { Image(systemName: "building.columns") }
                     ).onTapGesture {
                     }
                     FloatingItemText(
                         text: "Trusted verifiers",
-                        image: { Image(systemName: "building.2") },
-                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                        showChevron: true,
+                        image: { Image(systemName: "building.2") }
                     ).onTapGesture {
                     }
                     FloatingItemText(
                         text: "Activity logging",
-                        image: { Image(systemName: "timer") },
-                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                        showChevron: true,
+                        image: { Image(systemName: "timer") }
                     ).onTapGesture {
                     }
                     FloatingItemText(
                         text: "Developer settings",
-                        image: { Image(systemName: "flask") },
-                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                        showChevron: true,
+                        image: { Image(systemName: "flask") }
                     ).onTapGesture {
                     }
                     FloatingItemText(
                         text: "About \(BuildConfig.shared.APP_NAME)",
-                        image: { Image(systemName: "info.circle") },
-                        trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                        showChevron: true,
+                        image: { Image(systemName: "info.circle") }
                     ).onTapGesture {
                     }
                 }

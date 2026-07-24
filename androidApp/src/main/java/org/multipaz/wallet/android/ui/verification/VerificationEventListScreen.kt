@@ -279,6 +279,7 @@ private fun EventItemVerification(
 
     FloatingItemHeadingAndContent(
         modifier = modifier,
+        showChevron = true,
         image = {
             if (!isTrusted) {
                 Icon(

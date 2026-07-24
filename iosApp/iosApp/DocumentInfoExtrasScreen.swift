@@ -40,6 +40,7 @@ struct DocumentInfoExtrasScreen: View {
                                     
                                     FloatingItemText(
                                         text: title,
+                                        showChevron: true,
                                         secondary: secondary
                                     )
                                     .onTapGesture {

@@ -209,6 +209,7 @@ fun AddToWalletScreen(
                                 modifier = Modifier.clickable {
                                     onCredentialIssuerClicked(credentialIssuer)
                                 },
+                                showChevron = true,
                                 text = credentialIssuer.name,
                                 image = {
                                     AsyncImage(

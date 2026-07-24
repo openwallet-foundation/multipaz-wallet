@@ -133,6 +133,7 @@ fun DocumentInfoExtrasScreen(
                             modifier = Modifier.clickable {
                                 onCredentialClicked(credential.identifier)
                             },
+                            showChevron = true,
                             text = text,
                             secondary = secondary
                         )

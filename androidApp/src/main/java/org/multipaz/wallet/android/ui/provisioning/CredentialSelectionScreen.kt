@@ -91,6 +91,7 @@ fun CredentialSelectionScreen(
                         modifier = Modifier.clickable {
                             onCredentialSelected(id)
                         },
+                        showChevron = true,
                         text = credential.display.text,
                         secondary = credential.format.toHumanReadable(),
                         image = {

@@ -420,20 +420,13 @@ fun RequestVerificationScreen(
                 val selectedQuery = settingsModel.readerQuery.collectAsState().value
                 FloatingItemHeadingAndContent(
                     modifier = Modifier.clickable { onSelectVerificationTypeClicked() },
+                    showChevron = true,
                     heading = selectedQuery.getDisplayName(),
                     content = {
                         Text(
                             text = selectedQuery.getDescription(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingContent = {
-                        Icon(
-                            modifier = Modifier.size(24.dp),
-                            imageVector = Icons.Outlined.ChevronRight,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            contentDescription = null
                         )
                     }
                 )
@@ -575,6 +568,7 @@ fun RequestVerificationScreen(
                                             )
                                         }
                                     },
+                                    showChevron = true,
                                     image = {
                                         val icon = if (isTrusted) Icons.Outlined.CheckCircle else Icons.Outlined.Warning
                                         val tint = if (isTrusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error

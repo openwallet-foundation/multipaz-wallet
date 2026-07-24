@@ -174,6 +174,7 @@ fun SettingsScreen(
                     modifier = Modifier.clickable {
                         onTrustedIssuersClicked()
                     },
+                    showChevron = true,
                     text = stringResource(R.string.settings_screen_trusted_issuers),
                     image = {
                         Icon(Icons.Outlined.AccountBalance, contentDescription = null)
@@ -183,6 +184,7 @@ fun SettingsScreen(
                     modifier = Modifier.clickable {
                         onTrustedReadersClicked()
                     },
+                    showChevron = true,
                     text = stringResource(R.string.settings_screen_trusted_verifiers),
                     image = {
                         Icon(Icons.Outlined.Business, contentDescription = null)
@@ -190,6 +192,7 @@ fun SettingsScreen(
                 )
                 FloatingItemText(
                     modifier = Modifier.clickable { onActivityLoggingClicked() },
+                    showChevron = true,
                     text = stringResource(R.string.settings_screen_activity_logging_button_text),
                     image = {
                         Icon(Icons.Outlined.History, contentDescription = null)
@@ -198,6 +201,7 @@ fun SettingsScreen(
                 if (settingsModel.devMode.collectAsState().value) {
                     FloatingItemText(
                         modifier = Modifier.clickable { onDeveloperSettingsClicked() },
+                        showChevron = true,
                         text = stringResource(R.string.settings_screen_developer_settings),
                         image = {
                             Icon(Icons.Outlined.Science, contentDescription = null)
@@ -206,6 +210,7 @@ fun SettingsScreen(
                 }
                 FloatingItemText(
                     modifier = Modifier.clickable { onAboutClicked() },
+                    showChevron = true,
                     text = stringResource(R.string.settings_screen_about, BuildConfig.APP_NAME),
                     image = {
                         Icon(Icons.Outlined.Info, contentDescription = null)

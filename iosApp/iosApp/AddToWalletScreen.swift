@@ -31,6 +31,7 @@ struct AddToWalletScreen: View {
                             let openIdIssuer = issuer as? CredentialIssuerOpenID4VCI
                             FloatingItemText(
                                 text: issuer.name,
+                                showChevron: true,
                                 image: {
                                     AsyncImage(url: URL(string: issuer.iconUrl)) { image in
                                         image.resizable()

@@ -250,6 +250,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                         modifier = Modifier.clickable {
                                             onViewCertChain?.let { it(line.value.certChain) }
                                         },
+                                        showChevron = true,
                                         heading = line.header,
                                         text = stringResource(R.string.verification_show_response_developer_extras_click_to_view_chain)
                                     )

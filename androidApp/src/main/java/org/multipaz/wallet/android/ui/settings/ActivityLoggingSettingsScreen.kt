@@ -149,6 +149,7 @@ fun ActivityLoggingSettingsScreen(
                 )
                 FloatingItemText(
                     modifier = Modifier.clickable { onActivityLogView() },
+                    showChevron = true,
                     text = stringResource(R.string.activity_logging_settings_screen_view_and_manage_events_text),
                     image = {
                         Icon(Icons.AutoMirrored.Outlined.ViewList, contentDescription = null)

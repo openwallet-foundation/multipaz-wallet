@@ -19,6 +19,20 @@ include other credential formats and presentment protocols, including [SD-JWT VC
 [OpenID4VP](https://github.com/openid/OpenID4VP), and [OpenID4VCI](https://github.com/openid/OpenID4VCI).
 See the [Multipaz GitHub](https://github.com/openwallet-foundation/multipaz) for more information.
 
+## Design Language
+
+Multipaz Wallet prioritizes a clean, native experience across all supported platforms while maintaining consistent structural patterns:
+
+* **Platform-Native UI Guidelines:**
+  * **Android:** Strictly adheres to [Material 3 Design Guidelines](https://m3.material.io/) using Jetpack Compose.
+  * **iOS:** Adheres to Apple's [Human Interface Guidelines (HIG)](https://developer.apple.com/design/human-interface-guidelines/) using SwiftUI.
+  * **Web:** Built with React and Tailwind CSS for responsive web application experiences.
+
+* **List Items & Navigation Conventions:**
+  * For structured lists across mobile apps, we use `FloatingItemList` from the Multipaz SDK (available for both Compose and SwiftUI).
+  * **Chevrons (`showChevron`):** List items display a trailing chevron (`showChevron = true` / `showChevron: true`) **only** if clicking the item navigates to another screen.
+  * Chevrons are omitted (`showChevron = false` or omitted) for items that perform inline actions, toggle controls (such as switches), or open dialogs/confirmation sheets.
+
 ## Dev and Prod instances
 
 For development, we host a backend at https://dev.wallet.multipaz.org and this backend is

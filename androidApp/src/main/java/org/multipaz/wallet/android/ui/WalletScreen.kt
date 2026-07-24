@@ -717,6 +717,7 @@ private fun DocumentInfoContentReal(
                             onDocumentSyncClicked(documentInfo)
                         }
                     },
+                    showChevron = documentInfo.document.provisionedDocumentSetupNeeded,
                     text = stringResource(R.string.wallet_screen_syncs_to_account),
                     secondary = syncedSecondaryText,
                     image = {
@@ -733,6 +734,7 @@ private fun DocumentInfoContentReal(
                     modifier = Modifier.clickable {
                         onDocumentInfoClicked(documentInfo)
                     },
+                    showChevron = true,
                     text = stringResource(R.string.wallet_screen_document_info, typeDisplayName),
                     // TODO: Update to "Last update X" where X = today, yesterday, last week, etc
                     //  when we have a way to know when the PII was actually updated
@@ -755,6 +757,7 @@ private fun DocumentInfoContentReal(
                     modifier = Modifier.clickable {
                         onDocumentActivityClicked(documentInfo)
                     },
+                    showChevron = true,
                     text = stringResource(R.string.wallet_screen_activity),
                     secondary = activityLoggingEnabledText,
                     image = {
@@ -772,6 +775,7 @@ private fun DocumentInfoContentReal(
                         modifier = Modifier.clickable {
                             onDocumentPreconsentSettingsClicked(documentInfo)
                         },
+                        showChevron = true,
                         text = stringResource(R.string.preconsent_screen_title),
                         secondary = preconsentSetting.toHumanReadable(documentInfo),
                         secondaryColor = if (preconsentSetting is DocumentPreconsentSetting.NeverRequireConsent) {

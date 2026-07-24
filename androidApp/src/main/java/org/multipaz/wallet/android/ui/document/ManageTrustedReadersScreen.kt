@@ -131,6 +131,7 @@ fun ManageTrustedReadersScreen(
                         }
                         FloatingItemText(
                             modifier = Modifier.clickable { onViewCertificateClicked(reader.certificate) },
+                            showChevron = true,
                             image = {
                                 reader.metadata.displayIcon?.let {
                                     val bitmap = remember { decodeImage(it.toByteArray()) }

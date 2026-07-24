@@ -61,6 +61,7 @@ fun TrustEntryList(
             infos.forEach { trustEntryInfo ->
                 FloatingItemText(
                     modifier = Modifier.clickable { onTrustEntryClicked(trustEntryInfo.entry) },
+                    showChevron = true,
                     image = {
                         trustEntryInfo.RenderImage(
                             size = 40.dp,

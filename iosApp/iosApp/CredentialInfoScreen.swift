@@ -71,10 +71,7 @@ struct CredentialInfoScreen: View {
                                 )
                                 FloatingItemHeadingAndText(
                                     heading: "ISO mdoc DS Key Certificate",
-                                    text: "Click for details",
-                                    trailingContent: {
-                                        Image(systemName: "chevron.right").foregroundColor(.blue)
-                                    }
+                                    text: "Click for details"
                                 )
                                 .onTapGesture {
                                     showDsKeyCertDetails(credential: mdoc)
@@ -111,10 +108,7 @@ struct CredentialInfoScreen: View {
                             )
                             FloatingItemHeadingAndText(
                                 heading: "Device Key Attestation",
-                                text: "Click for details",
-                                trailingContent: {
-                                    Image(systemName: "chevron.right").foregroundColor(.blue)
-                                }
+                                text: "Click for details"
                             )
                             .onTapGesture {
                                 showDeviceKeyAttestationDetails(credential: secureAreaBound)

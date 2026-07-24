@@ -203,7 +203,8 @@ private fun VicalDetails(
             stringResource(R.string.trust_entry_viewer_click_to_view_chain),
             modifier = Modifier.clickable {
                 onViewCertificateChain(signedVical.vicalProviderCertificateChain)
-            }
+            },
+            showChevron = true
         )
         if (signedVical.vical.extensions.isNotEmpty()) {
             ItemWithExtensions(
@@ -220,6 +221,7 @@ private fun VicalDetails(
         signedVical.vical.certificateInfos.forEachIndexed { n, certificateInfo ->
             FloatingItemText(
                 modifier = Modifier.clickable { onViewVicalEntry(n) },
+                showChevron = true,
                 image = { certificateInfo.RenderIconWithFallback() },
                 text = certificateInfo.displayNameWithFallback,
                 secondary = stringResource(R.string.trust_entry_viewer_certificate_label),
@@ -280,7 +282,8 @@ private fun RicalDetails(
             stringResource(R.string.trust_entry_viewer_click_to_view_chain),
             modifier = Modifier.clickable {
                 onViewCertificateChain(signedRical.ricalProviderCertificateChain)
-            }
+            },
+            showChevron = true
         )
         if (signedRical.rical.extensions.isNotEmpty()) {
             ItemWithExtensions(
@@ -297,6 +300,7 @@ private fun RicalDetails(
         signedRical.rical.certificateInfos.forEachIndexed { n, certificateInfo ->
             FloatingItemText(
                 modifier = Modifier.clickable { onViewRicalEntry(n) },
+                showChevron = true,
                 image = { certificateInfo.RenderIconWithFallback() },
                 text = certificateInfo.displayNameWithFallback,
                 secondary = stringResource(R.string.trust_entry_viewer_certificate_label),

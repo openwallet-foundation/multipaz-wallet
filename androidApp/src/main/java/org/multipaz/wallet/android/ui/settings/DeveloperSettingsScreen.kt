@@ -221,6 +221,7 @@ fun DeveloperSettingsScreen(
                     modifier = Modifier.clickable {
                         onRunFirstTimeSetupClicked()
                     },
+                    showChevron = true,
                     image = {
                         Icon(
                             imageVector = Icons.Outlined.RestartAlt,

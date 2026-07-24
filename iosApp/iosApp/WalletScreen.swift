@@ -29,27 +29,27 @@ struct WalletScreen: View {
                         FloatingItemList {
                             FloatingItemText(
                                 text: "\(typeDisplayName) info",
+                                showChevron: true,
                                 secondary: "Pass details and certificate info",
-                                image: { Image(systemName: "person.crop.rectangle") },
-                                trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                                image: { Image(systemName: "person.crop.rectangle") }
                             ).onTapGesture {
                                 viewModel.push(.documentInfoScreen(documentId: docInfo.document.identifier))
                             }
 
                             FloatingItemText(
                                 text: "View and manage activity",
+                                showChevron: true,
                                 secondary: "Logging is enabled",
-                                image: { Image(systemName: "timer") },
-                                trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                                image: { Image(systemName: "timer") }
                             ).onTapGesture {
                                 print("TODO: go to activity page")
                             }
 
                             FloatingItemText(
                                 text: "In person-sharing and consent",
+                                showChevron: true,
                                 secondary: "Always ask before sharing",
-                                image: { Image(systemName: "wave.3.right") },
-                                trailingContent: { Image(systemName: "chevron.right").foregroundColor(.gray) }
+                                image: { Image(systemName: "wave.3.right") }
                             ).onTapGesture {
                                 print("TODO: go to pre-consent configuration")
                             }

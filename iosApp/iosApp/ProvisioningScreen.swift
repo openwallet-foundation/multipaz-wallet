@@ -342,6 +342,7 @@ struct CredentialSelectionView: View {
                     
                     FloatingItemText(
                         text: credential.display.text,
+                        showChevron: true,
                         secondary: toHumanReadable(credential.format),
                         image: {
                             if let logoData = credential.display.logo?.toNSData() {

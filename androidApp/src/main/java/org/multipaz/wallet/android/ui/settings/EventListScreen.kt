@@ -194,6 +194,7 @@ private fun EventItemProvisioning(
 
     FloatingItemText(
         modifier = modifier,
+        showChevron = true,
         image = {
             docInfo?.cardArt?.let {
                 Image(
@@ -230,6 +231,7 @@ private fun EventItemPresentment(
     val text = stringResource(R.string.event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
     FloatingItemText(
         modifier = modifier,
+        showChevron = true,
         image = {
             firstDocInfo?.cardArt?.let {
                 Image(
@@ -261,6 +263,7 @@ private fun EventItemVerification(
 
     FloatingItemText(
         modifier = modifier,
+        showChevron = true,
         image = {
             Icon(
                 modifier = Modifier.size(imageSize),
