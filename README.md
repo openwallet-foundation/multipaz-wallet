@@ -88,6 +88,19 @@ You need to do these steps every time code in `shared/` is changed or when updat
 Multipaz version. Since building the framework is a time-consuming step (~10 minutes) changes
 to `shared/` are normally tested with the Android app, Web App, or unit tests first.
 
+## Contributions
+
+Commit messages must be detailed and to the point. If referring to classes or types in the
+project enclose it in backticks, if referring to function or method names use trailing
+open and close parenthesis.
+
+First line of the commit message must end in a period and be longer than 72 characters and
+should not use backticks for type names.
+
+Commit messages must have a "Test:" stanza detailing how the change was tested.
+
+Commit messages have a Signed-off-by line.
+
 ## Note
 
 This is not an official or supported Google product.

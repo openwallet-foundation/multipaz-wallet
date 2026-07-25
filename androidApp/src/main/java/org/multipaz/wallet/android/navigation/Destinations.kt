@@ -102,6 +102,9 @@ data object AboutDestination: Destination()
 data object SettingsDestination: Destination()
 
 @Serializable
+data object DeviceSessionsDestination: Destination()
+
+@Serializable
 data object ActivityLoggingSettingsDestination: Destination()
 
 @Serializable

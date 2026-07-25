@@ -101,6 +101,11 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
         main {
             className = ClassName("flex-grow max-w-2xl mx-auto px-4 sm:px-6 py-8 w-full space-y-6")
 
+            val accountIdentifier = signedInUser?.id ?: "your account"
+            Note {
+                text = "Devices signed in to $accountIdentifier have access to your synced wallet data. You can review active sessions and sign out of any device at any time."
+            }
+
             if (signedInUser != null) {
                 div {
                     className = ClassName("flex items-center justify-between px-1")
@@ -141,8 +146,12 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
                         +"No active device sessions found."
                     }
                 } else {
+                    val sortedSessions = sessions.sortedWith(
+                        compareByDescending<Session> { currentClientId != null && it.clientId == currentClientId }
+                            .thenByDescending { it.lastSeenMillis }
+                    )
                     FloatingItemList {
-                        for (session in sessions) {
+                        for (session in sortedSessions) {
                             val deviceName = when (session.clientType) {
                                 ClientType.WEB -> "Web Client"
                                 ClientType.ANDROID -> "Android Device"

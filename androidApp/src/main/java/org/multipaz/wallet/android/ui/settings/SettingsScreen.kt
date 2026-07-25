@@ -61,6 +61,7 @@ fun SettingsScreen(
     isSigningIn: MutableState<Boolean>,
     isSigningOut: MutableState<Boolean>,
     onBackClicked: () -> Unit,
+    onSignedInUserClicked: () -> Unit,
     onUseWithoutGoogleAccountClicked: () -> Unit,
     onSignInToGoogleClicked: () -> Unit,
     onTrustedIssuersClicked: () -> Unit,
@@ -112,6 +113,10 @@ fun SettingsScreen(
                         )
                     } else {
                         FloatingItemText(
+                            modifier = Modifier.clickable {
+                                onSignedInUserClicked()
+                            },
+                            showChevron = true,
                             text = signedInData.displayName ?: stringResource(R.string.settings_screen_google_user_default_name),
                             secondary = signedInData.id,
                             image = {

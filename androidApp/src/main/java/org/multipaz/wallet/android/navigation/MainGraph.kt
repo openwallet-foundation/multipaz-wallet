@@ -81,6 +81,7 @@ import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
 import org.multipaz.wallet.android.ui.settings.EventListScreen
 import org.multipaz.wallet.android.ui.settings.EventViewerScreen
 import org.multipaz.wallet.android.ui.settings.SettingsScreen
+import org.multipaz.wallet.android.ui.settings.DeviceSessionsScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryEditScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryRicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryScreen
@@ -305,16 +306,7 @@ fun mainGraph(
                             }
                         },
                         onDocumentSyncClicked = { documentInfo ->
-                            backStack.add(
-                                InfoDialogDestination(
-                                    title = context.getString(R.string.wallet_screen_sync_info_dialog_title),
-                                    textMarkdown = if (documentInfo.document.mpzPassId != null) {
-                                        context.getString(R.string.wallet_screen_sync_info_dialog_text_mpzpass_md)
-                                    } else {
-                                        context.getString(R.string.wallet_screen_sync_info_dialog_text_provisioned_document_md)
-                                    }
-                                )
-                            )
+                            backStack.add(DeviceSessionsDestination)
                         },
                         onDocumentPreconsentSettingsClicked = { documentInfo ->
                             backStack.add(PreconsentSettingsDestination(documentInfo.document.identifier))
@@ -545,6 +537,9 @@ fun mainGraph(
                     isSigningOut = isSigningOut,
                     isSigningIn = isSigningIn,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onSignedInUserClicked = {
+                        backStack.add(DeviceSessionsDestination)
+                    },
                     onUseWithoutGoogleAccountClicked = {
                         backStack.add(SignOutConfirmationDialogDestination)
                     },
@@ -586,6 +581,12 @@ fun mainGraph(
                         backStack.add(AboutDestination)
                     },
                     showToast = showToast,
+                )
+            }
+            is DeviceSessionsDestination -> NavEntry(key) {
+                DeviceSessionsScreen(
+                    walletClient = walletClient,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is ActivityLoggingSettingsDestination -> NavEntry(key) {

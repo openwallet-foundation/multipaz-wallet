@@ -717,7 +717,7 @@ private fun DocumentInfoContentReal(
                             onDocumentSyncClicked(documentInfo)
                         }
                     },
-                    showChevron = documentInfo.document.provisionedDocumentSetupNeeded,
+                    showChevron = true,
                     text = stringResource(R.string.wallet_screen_syncs_to_account),
                     secondary = syncedSecondaryText,
                     image = {

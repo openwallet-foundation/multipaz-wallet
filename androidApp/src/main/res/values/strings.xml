@@ -104,6 +104,22 @@
     <string name="settings_screen_about">About %1$s</string>
     <string name="settings_screen_activity_logging_button_text">Activity logging</string>
 
+    <string name="device_sessions_screen_title">Device sessions</string>
+    <string name="device_sessions_screen_blurb">Devices signed in to %1$s have access to your synced wallet data. You can review active sessions and sign out of any device at any time.</string>
+    <string name="device_sessions_screen_your_account">your account</string>
+    <string name="device_sessions_screen_device_web">Web client</string>
+    <string name="device_sessions_screen_device_android">Android device</string>
+    <string name="device_sessions_screen_device_ios">iOS device</string>
+    <string name="device_sessions_screen_this_device">This device</string>
+    <string name="device_sessions_screen_loading_sessions">Loading device sessions…</string>
+    <string name="device_sessions_screen_no_sessions">No active device sessions found.</string>
+    <string name="device_sessions_screen_sign_out_session">Sign out session</string>
+    <string name="device_sessions_screen_sign_out_session_dialog_title">Sign out %1$s?</string>
+    <string name="device_sessions_screen_sign_out_session_dialog_text">This device session will be signed out from your account and will lose access to synced wallet data.</string>
+    <string name="device_sessions_screen_sign_out_session_dialog_confirm">Sign out</string>
+    <string name="device_sessions_screen_sign_out_session_dialog_cancel">Cancel</string>
+    <string name="device_sessions_screen_sign_out_google_account">Sign out of Google account</string>
+
     <string name="dev_settings_screen_title">Developer Settings</string>
     <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk.</string>
     <string name="dev_settings_logging_debug_title">Enable debug logging</string>
