@@ -94,8 +94,8 @@ Commit messages must be detailed and to the point. If referring to classes or ty
 project enclose it in backticks, if referring to function or method names use trailing
 open and close parenthesis.
 
-First line of the commit message must end in a period and be longer than 72 characters and
-should not use backticks for type names.
+First line of the commit message must end in a period and be no longer than 72 characters
+and should avoid using type or function names.
 
 Commit messages must have a "Test:" stanza detailing how the change was tested.
 
