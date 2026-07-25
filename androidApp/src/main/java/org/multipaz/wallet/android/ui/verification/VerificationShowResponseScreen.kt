@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlin.time.Clock
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -97,19 +99,30 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.shareEvent
 import org.multipaz.wallet.android.ui.MapView
 import org.multipaz.wallet.android.ui.getAddressFromCoordinates
+import org.multipaz.revocation.RevocationStatus
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DocumentQueryResult
 import org.multipaz.wallet.client.verification.DrivingPrivilege
 import org.multipaz.wallet.client.verification.DrivingPrivilegesDocumentQueryResult
+import org.multipaz.crypto.X509CertChain
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
+import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.wallet.client.verification.RevocationCheckResult
+import org.multipaz.wallet.client.verification.RevocationCheckState
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Instant
+
+import androidx.compose.foundation.clickable
+import org.multipaz.compose.trustmanagement.TrustManagerModel
+import org.multipaz.trustmanagement.TrustEntryRical
+import org.multipaz.trustmanagement.TrustEntryVical
+import org.multipaz.trustmanagement.TrustEntryX509Cert
 
 private const val TAG = "VerificationShowResponseScreen"
 
@@ -123,8 +136,8 @@ fun VerificationShowResponseScreen(
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
-    builtInIssuerTrustManager: TrustManagerInterface,
-    userIssuerTrustManagerManager: TrustManagerInterface,
+    builtInIssuerTrustManagerModel: TrustManagerModel,
+    userIssuerTrustManagerModel: TrustManagerModel,
     settingsModel: SettingsModel,
     imageLoader: ImageLoader,
     promptModel: PromptModel,
@@ -132,7 +145,9 @@ fun VerificationShowResponseScreen(
     onBackClicked: () -> Unit,
     eventLogger: SimpleEventLogger,
     eventIdentifier: String? = null,
-    onEventDelete: (() -> Unit)? = null
+    onEventDelete: (() -> Unit)? = null,
+    revocationChecker: RevocationChecker? = null,
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
 ) {
     val localContext = LocalContext.current
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
@@ -248,11 +263,13 @@ fun VerificationShowResponseScreen(
                         ShowAgeOverResult(
                             query = queryResult.value!!.query as AgeOverQuery,
                             result = result as AgeOverDocumentQueryResult,
-                            builtInIssuerTrustManager = builtInIssuerTrustManager,
-                            userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+                            builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+                            userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                             imageLoader = imageLoader,
                             verificationLocation = verificationLocation,
-                            verificationTime = verificationTime
+                            verificationTime = verificationTime,
+                            revocationChecker = revocationChecker,
+                            onTrustEntryClicked = onTrustEntryClicked
                         )
                     }
 
@@ -261,11 +278,13 @@ fun VerificationShowResponseScreen(
                         ShowIdentificationResult(
                             query = queryResult.value!!.query as IdentificationQuery,
                             result = result as IdentificationDocumentQueryResult,
-                            builtInIssuerTrustManager = builtInIssuerTrustManager,
-                            userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+                            builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+                            userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                             imageLoader = imageLoader,
                             verificationLocation = verificationLocation,
-                            verificationTime = verificationTime
+                            verificationTime = verificationTime,
+                            revocationChecker = revocationChecker,
+                            onTrustEntryClicked = onTrustEntryClicked
                         )
                     }
 
@@ -274,14 +293,15 @@ fun VerificationShowResponseScreen(
                         ShowDrivingPrivilegesResult(
                             query = queryResult.value!!.query as DrivingPrivilegesQuery,
                             result = result as DrivingPrivilegesDocumentQueryResult,
-                            builtInIssuerTrustManager = builtInIssuerTrustManager,
-                            userIssuerTrustManagerManager = userIssuerTrustManagerManager,
+                            builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+                            userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                             imageLoader = imageLoader,
                             verificationLocation = verificationLocation,
-                            verificationTime = verificationTime
+                            verificationTime = verificationTime,
+                            revocationChecker = revocationChecker,
+                            onTrustEntryClicked = onTrustEntryClicked
                         )
                     }
-
 
                     else -> {}
                 }
@@ -342,23 +362,52 @@ private fun ShowPortrait(portrait: ByteString) {
 
 
 @Composable
+private fun rememberRevocationCheckResult(
+    result: DocumentQueryResult,
+    revocationChecker: RevocationChecker?,
+    atTime: Instant
+): RevocationCheckResult? {
+    var checkResult by remember(result.revocationStatus) { mutableStateOf<RevocationCheckResult?>(null) }
+    LaunchedEffect(result.revocationStatus) {
+        val status = result.revocationStatus
+        if (revocationChecker != null && status != null && status !is RevocationStatus.Unknown) {
+            checkResult = revocationChecker.check(
+                revocationStatus = status,
+                issuerCertChain = result.certificateChain,
+                atTime = atTime
+            )
+        } else {
+            checkResult = RevocationCheckResult(
+                state = RevocationCheckState.UNKNOWN,
+                error = null
+            )
+        }
+    }
+    return checkResult
+}
+
+@Composable
 private fun ShowStatement(
     result: DocumentQueryResult,
     success: Boolean,
-    message: String
+    message: String,
+    revocationCheckResult: RevocationCheckResult? = null
 ) {
     val trustPoint = result.trustResult.trustPoints.firstOrNull()
     val isUnknownIssuer = trustPoint == null
-    val isTestOnly = trustPoint?.metadata?.testOnly == true
 
     val (effectiveSuccess, effectiveMessage) = when {
         isUnknownIssuer -> Pair(
             false,
             stringResource(R.string.verification_show_response_unknown_issuer)
         )
-        isTestOnly -> Pair(
+        revocationCheckResult?.state == RevocationCheckState.INVALID -> Pair(
             false,
-            stringResource(R.string.verification_show_response_test_only_text)
+            stringResource(R.string.verification_show_response_credential_revoked)
+        )
+        revocationCheckResult?.state == RevocationCheckState.SUSPENDED -> Pair(
+            false,
+            stringResource(R.string.verification_show_response_credential_suspended)
         )
         else -> Pair(
             success,
@@ -366,19 +415,60 @@ private fun ShowStatement(
         )
     }
 
-    val painter = if (effectiveSuccess) {
-        val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.success_animation))
-        val progressState = animateLottieCompositionAsState(composition = composition)
-        rememberLottiePainter(
-            composition = composition,
-            progress = progressState.value,
+    val hasRevocationStatus = result.revocationStatus != null && result.revocationStatus !is RevocationStatus.Unknown
+
+    val singleSuccessComposition by rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.success_animation)
+    )
+    val singleSuccessProgressState = animateLottieCompositionAsState(
+        composition = singleSuccessComposition,
+        isPlaying = effectiveSuccess && !hasRevocationStatus
+    )
+
+    val doubleFirstComposition by rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.success_double_first_animation)
+    )
+    val doubleFirstProgressState = animateLottieCompositionAsState(
+        composition = doubleFirstComposition,
+        isPlaying = effectiveSuccess && hasRevocationStatus
+    )
+
+    val isFirstAnimationDone = doubleFirstProgressState.isAtEnd || doubleFirstProgressState.value >= 1.0f
+    val isRevocationValid = revocationCheckResult?.state == RevocationCheckState.VALID
+    val playSecondAnimation = effectiveSuccess && hasRevocationStatus && isFirstAnimationDone && isRevocationValid
+
+    val doubleSecondComposition by rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.success_double_second_animation)
+    )
+    val doubleSecondProgressState = animateLottieCompositionAsState(
+        composition = doubleSecondComposition,
+        isPlaying = playSecondAnimation
+    )
+
+    val errorComposition by rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.error_animation)
+    )
+    val errorProgressState = animateLottieCompositionAsState(
+        composition = errorComposition,
+        isPlaying = !effectiveSuccess
+    )
+
+    val painter = when {
+        !effectiveSuccess -> rememberLottiePainter(
+            composition = errorComposition,
+            progress = errorProgressState.value
         )
-    } else {
-        val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.error_animation))
-        val progressState = animateLottieCompositionAsState(composition = composition)
-        rememberLottiePainter(
-            composition = composition,
-            progress = progressState.value,
+        !hasRevocationStatus -> rememberLottiePainter(
+            composition = singleSuccessComposition,
+            progress = singleSuccessProgressState.value
+        )
+        playSecondAnimation -> rememberLottiePainter(
+            composition = doubleSecondComposition,
+            progress = doubleSecondProgressState.value
+        )
+        else -> rememberLottiePainter(
+            composition = doubleFirstComposition,
+            progress = doubleFirstProgressState.value
         )
     }
 
@@ -388,7 +478,7 @@ private fun ShowStatement(
         Image(
             painter = painter,
             contentDescription = null,
-            modifier = Modifier.size(50.dp)
+            modifier = Modifier.height(50.dp)
         )
         Text(
             text = effectiveMessage,
@@ -430,7 +520,7 @@ internal fun TrustPoint.RenderImage(
 
     metadata.displayName?.let { displayName ->
         if (displayName.isNotEmpty()) {
-            Branding.Current.collectAsState().value.AvatarIcon(
+Branding.Current.collectAsState().value.AvatarIcon(
                 size = size,
                 name = displayName,
                 additionalData = certificate.subjectKeyIdentifier
@@ -449,12 +539,44 @@ internal fun TrustPoint.RenderImage(
 @Composable
 private fun ShowSource(
     result: DocumentQueryResult,
-    builtInIssuerTrustManager: TrustManagerInterface,
-    userIssuerTrustManagerManager: TrustManagerInterface,
-    imageLoader: ImageLoader
+    builtInIssuerTrustManagerModel: TrustManagerModel,
+    userIssuerTrustManagerModel: TrustManagerModel,
+    imageLoader: ImageLoader,
+    revocationChecker: RevocationChecker? = null,
+    revocationCheckResult: RevocationCheckResult? = null,
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
 ) {
     val trustPoint = result.trustResult.trustPoints.firstOrNull()
     val iconSize = 32.dp
+    val builtInIssuerTrustManager = builtInIssuerTrustManagerModel.trustManager
+    val userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager
+
+    val (trustManagerId, targetModel) = if (trustPoint?.trustManager == builtInIssuerTrustManager) {
+        Pair("backendIssuerTrustManager", builtInIssuerTrustManagerModel)
+    } else if (trustPoint?.trustManager == userIssuerTrustManagerManager) {
+        Pair("userIssuerTrustManager", userIssuerTrustManagerModel)
+    } else {
+        Pair(null, null)
+    }
+
+    val infos = targetModel?.trustManagerInfos?.collectAsState()?.value
+    val trustEntryId = remember(infos, trustPoint) {
+        if (infos == null || trustPoint == null) null
+        else {
+            infos.find { info ->
+                val entry = info.entry
+                when (entry) {
+                    is TrustEntryX509Cert -> entry.certificate == trustPoint.certificate
+                    is TrustEntryVical -> info.signedVical?.vical?.certificateInfos?.any { it.certificate == trustPoint.certificate } == true
+                    is TrustEntryRical -> info.signedRical?.rical?.certificateInfos?.any { it.certificate == trustPoint.certificate } == true
+                    else -> false
+                }
+            }?.entry?.identifier
+                ?: infos.find { it.entry.metadata.displayName == trustPoint.metadata.displayName }?.entry?.identifier
+        }
+    }
+
+    val canClickTrustAnchor = trustManagerId != null && trustEntryId != null && onTrustEntryClicked != null
 
     FloatingItemList(title = stringResource(R.string.verification_show_response_source_title)) {
         if (result.documentType != null && result.issuingAuthority != null && result.issuingCountryCode != null) {
@@ -524,6 +646,14 @@ private fun ShowSource(
         }
 
         FloatingItemHeadingAndText(
+            modifier = if (canClickTrustAnchor) {
+                Modifier.clickable {
+                    onTrustEntryClicked(trustManagerId, trustEntryId)
+                }
+            } else {
+                Modifier
+            },
+            showChevron = canClickTrustAnchor,
             image = {
                 Image(
                     painter = trustAnchorPainter,
@@ -534,6 +664,90 @@ private fun ShowSource(
             heading = stringResource(R.string.verification_show_response_trust_anchor_heading),
             text = message,
         )
+
+        val isResolving = revocationCheckResult == null && revocationChecker != null && result.revocationStatus != null && result.revocationStatus !is RevocationStatus.Unknown
+
+        val revocationState = revocationCheckResult?.state ?: RevocationCheckState.UNKNOWN
+        val isRevocationValid = revocationState == RevocationCheckState.VALID
+
+        val revocationPainter = if (isRevocationValid) {
+            val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.success_animation))
+            val progressState = animateLottieCompositionAsState(composition = composition)
+            rememberLottiePainter(
+                composition = composition,
+                progress = progressState.value,
+            )
+        } else {
+            val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.error_animation))
+            val progressState = animateLottieCompositionAsState(composition = composition)
+            rememberLottiePainter(
+                composition = composition,
+                progress = progressState.value,
+            )
+        }
+
+        val revocationMessage = if (isResolving) {
+            AnnotatedString(stringResource(R.string.verification_show_response_revocation_status_checking))
+        } else {
+            when (revocationState) {
+                RevocationCheckState.VALID -> AnnotatedString(
+                    stringResource(R.string.verification_show_response_revocation_status_valid)
+                )
+                RevocationCheckState.INVALID -> buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                        append(stringResource(R.string.verification_show_response_revocation_status_invalid))
+                    }
+                }
+                RevocationCheckState.SUSPENDED -> buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                        append(stringResource(R.string.verification_show_response_revocation_status_suspended))
+                    }
+                }
+                RevocationCheckState.UNKNOWN -> AnnotatedString(
+                    if (revocationCheckResult?.error != null) {
+                        stringResource(R.string.verification_show_response_revocation_status_error)
+                    } else {
+                        stringResource(R.string.verification_show_response_revocation_status_unknown)
+                    }
+                )
+            }
+        }
+
+        FloatingItemHeadingAndText(
+            image = {
+                if (isResolving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(iconSize)
+                            .padding(4.dp),
+                        strokeWidth = 3.dp
+                    )
+                } else {
+                    Image(
+                        painter = revocationPainter,
+                        contentDescription = null,
+                        modifier = Modifier.size(iconSize),
+                    )
+                }
+            },
+            heading = stringResource(R.string.verification_show_response_revocation_status_heading),
+            text = revocationMessage,
+        )
+
+        if (trustPoint?.metadata?.testOnly == true) {
+            FloatingItemHeadingAndText(
+                image = {
+                    Icon(
+                        imageVector = Icons.Outlined.Science,
+                        contentDescription = null,
+                        modifier = Modifier.size(iconSize),
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                },
+                heading = stringResource(R.string.verification_show_response_test_only_heading),
+                text = AnnotatedString(stringResource(R.string.verification_show_response_test_only_text)),
+            )
+        }
     }
 }
 
@@ -541,34 +755,44 @@ private fun ShowSource(
 private fun ShowAgeOverResult(
     query: AgeOverQuery,
     result: AgeOverDocumentQueryResult,
-    builtInIssuerTrustManager: TrustManagerInterface,
-    userIssuerTrustManagerManager: TrustManagerInterface,
+    builtInIssuerTrustManagerModel: TrustManagerModel,
+    userIssuerTrustManagerModel: TrustManagerModel,
     imageLoader: ImageLoader,
     verificationLocation: Location?,
-    verificationTime: Instant?
+    verificationTime: Instant?,
+    revocationChecker: RevocationChecker? = null,
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
 ) {
+    val atTime = verificationTime ?: Clock.System.now()
+    val revocationCheckResult = rememberRevocationCheckResult(result, revocationChecker, atTime)
+
     ShowPortrait(result.portrait)
 
     if (result.isAgeOver) {
         ShowStatement(
             result = result,
             success = true,
-            message = stringResource(R.string.verification_show_response_age_over_success, query.ageOver)
+            message = stringResource(R.string.verification_show_response_age_over_success, query.ageOver),
+            revocationCheckResult = revocationCheckResult
         )
     } else {
         ShowStatement(
             result = result,
             success = false,
-            message = stringResource(R.string.verification_show_response_age_over_failure, query.ageOver)
+            message = stringResource(R.string.verification_show_response_age_over_failure, query.ageOver),
+            revocationCheckResult = revocationCheckResult
         )
     }
 
     Spacer(modifier = Modifier.height(20.dp))
     ShowSource(
         result = result,
-        builtInIssuerTrustManager = builtInIssuerTrustManager,
-        userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-        imageLoader = imageLoader
+        builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+        userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+        imageLoader = imageLoader,
+        revocationChecker = revocationChecker,
+        revocationCheckResult = revocationCheckResult,
+        onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
     Spacer(modifier = Modifier.height(20.dp))
@@ -578,18 +802,24 @@ private fun ShowAgeOverResult(
 fun ShowIdentificationResult(
     query: IdentificationQuery,
     result: IdentificationDocumentQueryResult,
-    builtInIssuerTrustManager: TrustManagerInterface,
-    userIssuerTrustManagerManager: TrustManagerInterface,
+    builtInIssuerTrustManagerModel: TrustManagerModel,
+    userIssuerTrustManagerModel: TrustManagerModel,
     imageLoader: ImageLoader,
     verificationLocation: Location?,
-    verificationTime: Instant?
+    verificationTime: Instant?,
+    revocationChecker: RevocationChecker? = null,
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
 ) {
+    val atTime = verificationTime ?: Clock.System.now()
+    val revocationCheckResult = rememberRevocationCheckResult(result, revocationChecker, atTime)
+
     ShowPortrait(result.portrait)
 
     ShowStatement(
         result = result,
         success = true,
-        message = stringResource(R.string.verification_show_response_verified)
+        message = stringResource(R.string.verification_show_response_verified),
+        revocationCheckResult = revocationCheckResult
     )
 
     Spacer(modifier = Modifier.height(20.dp))
@@ -612,9 +842,12 @@ fun ShowIdentificationResult(
     Spacer(modifier = Modifier.height(20.dp))
     ShowSource(
         result = result,
-        builtInIssuerTrustManager = builtInIssuerTrustManager,
-        userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-        imageLoader = imageLoader
+        builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+        userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+        imageLoader = imageLoader,
+        revocationChecker = revocationChecker,
+        revocationCheckResult = revocationCheckResult,
+        onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
     Spacer(modifier = Modifier.height(20.dp))
@@ -624,19 +857,25 @@ fun ShowIdentificationResult(
 fun ShowDrivingPrivilegesResult(
     query: DrivingPrivilegesQuery,
     result: DrivingPrivilegesDocumentQueryResult,
-    builtInIssuerTrustManager: TrustManagerInterface,
-    userIssuerTrustManagerManager: TrustManagerInterface,
+    builtInIssuerTrustManagerModel: TrustManagerModel,
+    userIssuerTrustManagerModel: TrustManagerModel,
     imageLoader: ImageLoader,
     verificationLocation: Location?,
-    verificationTime: Instant?
+    verificationTime: Instant?,
+    revocationChecker: RevocationChecker? = null,
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
 ) {
+    val atTime = verificationTime ?: Clock.System.now()
+    val revocationCheckResult = rememberRevocationCheckResult(result, revocationChecker, atTime)
+
     ShowPortrait(result.portrait)
 
 
     ShowStatement(
         result = result,
         success = true,
-        message = stringResource(R.string.request_verification_driving_privileges_verified)
+        message = stringResource(R.string.request_verification_driving_privileges_verified),
+        revocationCheckResult = revocationCheckResult
     )
 
     Spacer(modifier = Modifier.height(20.dp))
@@ -659,9 +898,12 @@ fun ShowDrivingPrivilegesResult(
     Spacer(modifier = Modifier.height(20.dp))
     ShowSource(
         result = result,
-        builtInIssuerTrustManager = builtInIssuerTrustManager,
-        userIssuerTrustManagerManager = userIssuerTrustManagerManager,
-        imageLoader = imageLoader
+        builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+        userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+        imageLoader = imageLoader,
+        revocationChecker = revocationChecker,
+        revocationCheckResult = revocationCheckResult,
+        onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
     Spacer(modifier = Modifier.height(20.dp))

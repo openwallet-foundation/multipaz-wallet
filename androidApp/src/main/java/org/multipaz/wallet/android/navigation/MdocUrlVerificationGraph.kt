@@ -37,6 +37,7 @@ import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScree
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.RevocationChecker
 import org.multipaz.wallet.client.verification.toCbor
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -61,6 +62,7 @@ fun mdocUrlVerificationGraph(
     userIssuerTrustManagerModel: TrustManagerModel,
     readerTrustManager: CompositeTrustManager,
     issuerTrustManager: CompositeTrustManager,
+    revocationChecker: RevocationChecker,
     onFinish: () -> Unit
 ): (NavKey) -> NavEntry<NavKey>? {
     return { key ->
@@ -163,13 +165,22 @@ fun mdocUrlVerificationGraph(
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
-                    builtInIssuerTrustManager = backendIssuerTrustManagerModel.trustManager,
-                    userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
+                    builtInIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+                    userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
                     promptModel = promptModel,
                     eventLogger = eventLogger,
                     eventIdentifier = key.eventIdentifier,
+                    revocationChecker = revocationChecker,
+                    onTrustEntryClicked = { trustManagerId, trustEntryId ->
+                        backStack.add(
+                            TrustEntryDestination(
+                                trustManagerId = trustManagerId,
+                                trustEntryId = trustEntryId
+                            )
+                        )
+                    },
                     onDeveloperExtrasClicked = {
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
@@ -191,6 +202,7 @@ fun mdocUrlVerificationGraph(
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
+                    revocationChecker = revocationChecker,
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },

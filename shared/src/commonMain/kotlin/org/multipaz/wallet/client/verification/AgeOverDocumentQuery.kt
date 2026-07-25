@@ -62,7 +62,8 @@ data class AgeOverDocumentQuery(
                     documentType = DocumentType.MOBILE_DRIVING_LICENSE,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null, // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
@@ -99,7 +100,8 @@ data class AgeOverDocumentQuery(
                         ?: ns["issuing_authority_latin1"]?.value?.asTstr
                         ?: throw IllegalStateException("No issuing_authority found"),
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
@@ -127,7 +129,8 @@ data class AgeOverDocumentQuery(
                     documentType = DocumentType.EU_PID,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )
@@ -158,7 +161,8 @@ data class AgeOverDocumentQuery(
                     documentType = DocumentType.EU_PID,
                     issuingAuthority = claims["issuing_authority"]!!.value.jsonPrimitive.content,
                     issuingCountryCode = claims["issuing_country"]!!.value.jsonPrimitive.content,
-                    revocationStatus = null, // TODO sdJwtKb.sdJwt.revocationStatus,
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(claims["picture"]!!.value.jsonPrimitive.content.fromBase64Url()),
                     isAgeOver = processAgeOverSdJwtVc(
                         claims = claims,
@@ -188,7 +192,8 @@ data class AgeOverDocumentQuery(
                     documentType = DocumentType.AADHAAR,
                     issuingAuthority = "UIDAI",
                     issuingCountryCode = "IN",
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["ResidentImage"]!!.value.asBstr),
                     isAgeOver = processAgeOver(
                         dataElements = ns,
@@ -223,7 +228,8 @@ data class AgeOverDocumentQuery(
                     documentType = DocumentType.GOOGLE_WALLET_IDPASS,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     isAgeOver = processAgeOver(dataElements = ns, atTime = atTime, targetAge = ageOver),
                 )

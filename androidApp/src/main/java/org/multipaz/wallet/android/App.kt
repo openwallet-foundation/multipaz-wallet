@@ -88,6 +88,9 @@ import org.multipaz.wallet.shared.fromAndroidLocation
 import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 
+import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.wallet.client.verification.StorageRevocationChecker
+
 class App private constructor() {
 
     private lateinit var storage: Storage
@@ -114,6 +117,7 @@ class App private constructor() {
     private lateinit var backendReaderTrustManagerModel: TrustManagerModel
     private lateinit var settingsModel: SettingsModel
     private lateinit var proximityReaderModel: ProximityReaderModel
+    private lateinit var revocationChecker: RevocationChecker
     private val promptModel = Platform.promptModel
 
     private val credentialOffers = Channel<String>()
@@ -259,6 +263,11 @@ class App private constructor() {
         backendReaderTrustManagerModel = TrustManagerModel(walletClient.readerTrustManager, coroutineScope)
 
         proximityReaderModel = ProximityReaderModel()
+        revocationChecker = StorageRevocationChecker(
+            storage = storage,
+            httpClient = HttpClient(Android)
+        )
+        revocationChecker.purgeExpired()
     }
 
     // Called by SimplePresentmentSource for consent prompt, including handling
@@ -401,6 +410,7 @@ class App private constructor() {
                 backendReaderTrustManagerModel = backendReaderTrustManagerModel,
                 issuerTrustManager = issuerTrustManager,
                 readerTrustManager = readerTrustManager,
+                revocationChecker = revocationChecker,
                 showToast = ::showToast,
                 onFinish = { (context as? android.app.Activity)?.finish() }
             )
@@ -452,6 +462,7 @@ class App private constructor() {
                 backendReaderTrustManagerModel = backendReaderTrustManagerModel,
                 issuerTrustManager = issuerTrustManager,
                 readerTrustManager = readerTrustManager,
+                revocationChecker = revocationChecker,
                 mpzPassesToImportChannel = mpzPassesToImportChannel,
                 credentialOffers = credentialOffers,
                 documentIdToViewChannel = documentIdToViewChannel,

@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.DataItem
 import org.multipaz.cbor.Tstr
+import org.multipaz.crypto.X509CertChain
 import org.multipaz.revocation.RevocationStatus
 import org.multipaz.trustmanagement.TrustResult
 
@@ -26,12 +27,13 @@ data class DrivingPrivilegesDocumentQueryResult(
     override val issuingAuthority: String,
     override val issuingCountryCode: String,
     override val revocationStatus: RevocationStatus?,
+    override val certificateChain: X509CertChain? = null,
 
     val portrait: ByteString,
     val name: String,
     val birthDate: LocalDate,
     val drivingPrivileges: DataItem,
-): DocumentQueryResult(trustResult, documentType, issuingAuthority, issuingCountryCode, revocationStatus) {
+): DocumentQueryResult(trustResult, documentType, issuingAuthority, issuingCountryCode, revocationStatus, certificateChain) {
 
     val drivingPrivilegesList: List<DrivingPrivilege> by lazy {
         parseDrivingPrivileges(drivingPrivileges)

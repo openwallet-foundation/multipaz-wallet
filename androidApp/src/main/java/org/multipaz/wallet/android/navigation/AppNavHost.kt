@@ -49,6 +49,7 @@ import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.RevocationChecker
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
@@ -80,6 +81,7 @@ fun AppNavHost(
     backendReaderTrustManagerModel: TrustManagerModel,
     issuerTrustManager: CompositeTrustManager,
     readerTrustManager: CompositeTrustManager,
+    revocationChecker: RevocationChecker,
     mpzPassesToImportChannel: Channel<ByteString>,
     credentialOffers: Channel<String>,
     documentIdToViewChannel: Channel<String>,
@@ -232,6 +234,7 @@ fun AppNavHost(
         userReaderTrustManagerModel = userReaderTrustManagerModel,
         readerTrustManager = readerTrustManager,
         issuerTrustManager = issuerTrustManager,
+        revocationChecker = revocationChecker,
         isSigningIn = isSigningIn,
         isSigningOut = isSigningOut,
         onSignIn = ::signIn,

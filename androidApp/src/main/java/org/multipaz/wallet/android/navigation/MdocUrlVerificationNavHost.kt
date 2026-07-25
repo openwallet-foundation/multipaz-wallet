@@ -21,11 +21,12 @@ import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
+import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
-import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.wallet.client.verification.RevocationChecker
 
 @Composable
 fun MdocUrlVerificationNavHost(
@@ -48,6 +49,7 @@ fun MdocUrlVerificationNavHost(
     backendReaderTrustManagerModel: TrustManagerModel,
     issuerTrustManager: CompositeTrustManager,
     readerTrustManager: CompositeTrustManager,
+    revocationChecker: RevocationChecker,
     showToast: (message: String) -> Unit,
     onFinish: () -> Unit
 ) {
@@ -73,6 +75,7 @@ fun MdocUrlVerificationNavHost(
         userIssuerTrustManagerModel = userIssuerTrustManagerModel,
         readerTrustManager = readerTrustManager,
         issuerTrustManager = issuerTrustManager,
+        revocationChecker = revocationChecker,
         onFinish = onFinish
     )
 

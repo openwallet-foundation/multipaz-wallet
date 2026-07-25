@@ -69,6 +69,7 @@ fun DeveloperSettingsScreen(
     onRunFirstTimeSetupClicked: () -> Unit,
     onClearAppDataClicked: () -> Unit,
     onClearReaderKeys: () -> Unit,
+    onClearRevocationCache: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -258,6 +259,20 @@ fun DeveloperSettingsScreen(
                     },
                     heading = stringResource(R.string.dev_settings_refresh_reader_keys),
                     text = stringResource(R.string.dev_settings_refresh_reader_keys_text)
+                )
+
+                FloatingItemHeadingAndText(
+                    modifier = Modifier.clickable {
+                        onClearRevocationCache()
+                    },
+                    image = {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = null
+                        )
+                    },
+                    heading = stringResource(R.string.dev_settings_clear_revocation_cache_title),
+                    text = stringResource(R.string.dev_settings_clear_revocation_cache_text)
                 )
 
                 FloatingItemHeadingAndText(

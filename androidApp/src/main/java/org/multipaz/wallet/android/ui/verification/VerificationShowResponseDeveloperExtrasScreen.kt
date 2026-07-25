@@ -57,6 +57,7 @@ import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
+import org.multipaz.util.toHex
 import org.multipaz.verification.JsonVerifiedPresentation
 import org.multipaz.verification.MdocVerifiedPresentation
 import org.multipaz.verification.PresentmentRecord
@@ -73,7 +74,20 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
+import androidx.compose.runtime.mutableStateMapOf
+import org.multipaz.revocation.RevocationStatus
+import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.wallet.client.verification.RevocationCheckResult
+import org.multipaz.wallet.client.verification.RevocationCheckState
+import kotlinx.coroutines.launch
+
 private const val TAG = "VerificationShowResponseScreen"
+
+private sealed class RevocationCheckStatus {
+    object Idle : RevocationCheckStatus()
+    object Checking : RevocationCheckStatus()
+    data class Completed(val result: RevocationCheckResult) : RevocationCheckStatus()
+}
 
 private sealed class Value
 
@@ -105,7 +119,8 @@ private data class ValueCertChain(
 private data class Line(
     val header: String,
     val value: Value,
-    val onClick: (() -> Unit)? = null
+    val onClick: (() -> Unit)? = null,
+    val showChevron: Boolean = true
 )
 
 private data class Section(
@@ -128,7 +143,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     onBackClicked: () -> Unit,
-    onViewCertChain: ((certChain: X509CertChain) -> Unit)?
+    onViewCertChain: ((certChain: X509CertChain) -> Unit)?,
+    revocationChecker: RevocationChecker? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -138,34 +154,51 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 
     val verificationError = remember { mutableStateOf<Throwable?>(null) }
     val verficationResult = remember { mutableStateOf<VerificationResult?>(null) }
+    val revocationCheckStatuses = remember { mutableStateMapOf<Int, RevocationCheckStatus>() }
+
+    val onTriggerRevocationCheck: (vpNum: Int, revocationStatus: RevocationStatus, certChain: X509CertChain) -> Unit = { vpNum, revStatus, certChain ->
+        revocationCheckStatuses[vpNum] = RevocationCheckStatus.Checking
+        coroutineScope.launch {
+            val result = if (revocationChecker != null && revStatus !is RevocationStatus.Unknown) {
+                revocationChecker.check(
+                    revocationStatus = revStatus,
+                    issuerCertChain = certChain,
+                    atTime = atTime,
+                    bypassCache = true
+                )
+            } else {
+                RevocationCheckResult(RevocationCheckState.UNKNOWN, IllegalStateException("No revocation checker available"))
+            }
+            revocationCheckStatuses[vpNum] = RevocationCheckStatus.Completed(result)
+        }
+    }
+
+    val verifiedPresentationsState = remember { mutableStateOf<List<VerifiedPresentation>?>(null) }
 
     LaunchedEffect(Unit) {
-        val now = Clock.System.now()
         try {
-            /*
-            val result = proximityReaderModel.result!!
-            verficationResult.value = parseResponse(
-                now = now,
-                deviceResponse = result.deviceResponse!!.toDataItem(),
-                sessionTranscript = result.sessionTranscript,
-                eReaderKey = result.eReaderKey,
-                result = result,
-                documentTypeRepository = documentTypeRepository,
-                zkSystemRepository = zkSystemRepository,
-                issuerTrustManager = issuerTrustManager,
-                onViewCertChain = onViewCertChain
-            )
-
-             */
-            val verifiedPresentations = presentmentRecord.verify(
+            verifiedPresentationsState.value = presentmentRecord.verify(
                 atTime = atTime,
                 documentTypeRepository = documentTypeRepository,
                 zkSystemRepository = zkSystemRepository
             )
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.e(TAG, "Error verifying presentment record", e)
+            verificationError.value = e
+        }
+    }
+
+    LaunchedEffect(verifiedPresentationsState.value, revocationCheckStatuses.toMap()) {
+        val vps = verifiedPresentationsState.value ?: return@LaunchedEffect
+        try {
             verficationResult.value = parseResponse(
-                verifiedPresentations = verifiedPresentations,
+                verifiedPresentations = vps,
                 issuerTrustManager = issuerTrustManager,
-                onViewCertChain = onViewCertChain
+                onViewCertChain = onViewCertChain,
+                revocationChecker = revocationChecker,
+                revocationCheckStatuses = revocationCheckStatuses,
+                onTriggerRevocationCheck = onTriggerRevocationCheck
             )
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -216,6 +249,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                             when (line.value) {
                                 is ValueText -> {
                                     FloatingItemHeadingAndText(
+                                        modifier = if (line.onClick != null) Modifier.clickable { line.onClick.invoke() } else Modifier,
+                                        showChevron = line.onClick != null && line.showChevron,
                                         heading = line.header,
                                         text = line.value.text
                                     )
@@ -286,6 +321,9 @@ private suspend fun parseResponse(
     verifiedPresentations: List<VerifiedPresentation>,
     issuerTrustManager: TrustManagerInterface,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?,
+    revocationChecker: RevocationChecker?,
+    revocationCheckStatuses: Map<Int, RevocationCheckStatus>,
+    onTriggerRevocationCheck: (vpNum: Int, revocationStatus: RevocationStatus, certChain: X509CertChain) -> Unit,
     now: Instant = Clock.System.now(),
 ): VerificationResult {
     val sections = mutableListOf<Section>()
@@ -319,6 +357,52 @@ private suspend fun parseResponse(
                 lines.add(Line("Valid until", ValueDateTime(vp.validUntil)))
                 lines.add(Line("Signed at", ValueDateTime(vp.signedAt)))
                 lines.add(Line("Expected update", ValueDateTime(vp.expectedUpdate)))
+
+                val revStatus = vp.revocationStatus
+                if (revStatus != null && revStatus !is RevocationStatus.Unknown) {
+                    val revInfoText = buildString {
+                        when (revStatus) {
+                            is RevocationStatus.StatusList -> {
+                                append("Format: StatusList\n")
+                                append("URI: ${revStatus.uri}\n")
+                                append("Index: ${revStatus.idx}\n")
+                                append("Cert in payload: ${if (revStatus.certificate != null) "Yes" else "No (using issuer cert)"}")
+                            }
+                            is RevocationStatus.IdentifierList -> {
+                                append("Format: IdentifierList\n")
+                                append("URI: ${revStatus.uri}\n")
+                                append("Identifier: ${revStatus.id.toByteArray().toHex()}\n")
+                                append("Cert in payload: ${if (revStatus.certificate != null) "Yes" else "No (using issuer cert)"}")
+                            }
+                        }
+                    }
+                    lines.add(Line("Revocation info", ValueText(revInfoText)))
+
+                    val checkStatus = revocationCheckStatuses[vpNum] ?: RevocationCheckStatus.Idle
+                    val (statusText, isClickable) = when (checkStatus) {
+                        is RevocationCheckStatus.Idle -> Pair("Click to check status", true)
+                        is RevocationCheckStatus.Checking -> Pair("Checking status...", false)
+                        is RevocationCheckStatus.Completed -> Pair("${checkStatus.result.state}${checkStatus.result.error?.let { ": ${it.message}" } ?: ""}", true)
+                    }
+
+                    val onClickAction: (() -> Unit)? = if (revocationChecker != null && isClickable) {
+                        {
+                            onTriggerRevocationCheck(vpNum, revStatus, vp.documentSignerCertChain)
+                        }
+                    } else null
+
+                    lines.add(
+                        Line(
+                            header = "Revocation status check",
+                            value = ValueText(statusText),
+                            onClick = onClickAction,
+                            showChevron = false
+                        )
+                    )
+                } else {
+                    lines.add(Line("Revocation status", ValueText("Not present")))
+                }
+
                 sections.add(
                     Section(
                         header = "Document ${vpNum + 1} of ${verifiedPresentations.size}",
@@ -383,6 +467,52 @@ private suspend fun parseResponse(
                 lines.add(Line("Valid until", ValueDateTime(vp.validUntil)))
                 lines.add(Line("Signed at", ValueDateTime(vp.signedAt)))
                 lines.add(Line("Expected update", ValueDateTime(vp.expectedUpdate)))
+
+                val revStatus = vp.revocationStatus
+                if (revStatus != null && revStatus !is RevocationStatus.Unknown) {
+                    val revInfoText = buildString {
+                        when (revStatus) {
+                            is RevocationStatus.StatusList -> {
+                                append("Format: StatusList\n")
+                                append("URI: ${revStatus.uri}\n")
+                                append("Index: ${revStatus.idx}\n")
+                                append("Cert in payload: ${if (revStatus.certificate != null) "Yes" else "No (using issuer cert)"}")
+                            }
+                            is RevocationStatus.IdentifierList -> {
+                                append("Format: IdentifierList\n")
+                                append("URI: ${revStatus.uri}\n")
+                                append("Identifier: ${revStatus.id.toByteArray().toHex()}\n")
+                                append("Cert in payload: ${if (revStatus.certificate != null) "Yes" else "No (using issuer cert)"}")
+                            }
+                        }
+                    }
+                    lines.add(Line("Revocation info", ValueText(revInfoText)))
+
+                    val checkStatus = revocationCheckStatuses[vpNum] ?: RevocationCheckStatus.Idle
+                    val (statusText, isClickable) = when (checkStatus) {
+                        is RevocationCheckStatus.Idle -> Pair("Click to check status", true)
+                        is RevocationCheckStatus.Checking -> Pair("Checking status...", false)
+                        is RevocationCheckStatus.Completed -> Pair("${checkStatus.result.state}${checkStatus.result.error?.let { ": ${it.message}" } ?: ""}", true)
+                    }
+
+                    val onClickAction: (() -> Unit)? = if (revocationChecker != null && isClickable) {
+                        {
+                            onTriggerRevocationCheck(vpNum, revStatus, vp.documentSignerCertChain)
+                        }
+                    } else null
+
+                    lines.add(
+                        Line(
+                            header = "Revocation status check",
+                            value = ValueText(statusText),
+                            onClick = onClickAction,
+                            showChevron = false
+                        )
+                    )
+                } else {
+                    lines.add(Line("Revocation status", ValueText("Not present")))
+                }
+
                 sections.add(
                     Section(
                         header = "Document ${vpNum + 1} of ${verifiedPresentations.size}",
@@ -421,3 +551,4 @@ private suspend fun parseResponse(
     }
     return VerificationResult(sections)
 }
+

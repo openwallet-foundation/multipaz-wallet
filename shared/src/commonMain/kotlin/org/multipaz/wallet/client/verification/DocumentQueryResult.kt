@@ -1,5 +1,6 @@
 package org.multipaz.wallet.client.verification
 
+import org.multipaz.crypto.X509CertChain
 import org.multipaz.revocation.RevocationStatus
 import org.multipaz.trustmanagement.TrustResult
 
@@ -11,12 +12,13 @@ import org.multipaz.trustmanagement.TrustResult
  * @property issuingAuthority The issuing authority of the document, if known.
  * @property issuingCountryCode The issuing country code of the issuer, if known.
  * @property revocationStatus The revocation status of the document, if known.
+ * @property certificateChain The certificate chain of the document signer, if known.
  */
 sealed class DocumentQueryResult(
     open val trustResult: TrustResult,
     open val documentType: DocumentType?,
     open val issuingAuthority: String?,
     open val issuingCountryCode: String?,
-    open val revocationStatus: RevocationStatus?
+    open val revocationStatus: RevocationStatus?,
+    open val certificateChain: X509CertChain? = null
 )
-

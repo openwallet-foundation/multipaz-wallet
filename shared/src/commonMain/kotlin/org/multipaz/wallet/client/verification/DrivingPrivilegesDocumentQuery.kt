@@ -31,7 +31,8 @@ data class DrivingPrivilegesDocumentQuery(
                     documentType = DocumentType.MOBILE_DRIVING_LICENSE,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null, // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     name = ns["given_name"]!!.value.asTstr + " " +
                             ns["family_name"]!!.value.asTstr,

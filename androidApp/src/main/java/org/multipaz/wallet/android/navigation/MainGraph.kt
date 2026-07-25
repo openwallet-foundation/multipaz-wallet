@@ -118,6 +118,8 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
+import org.multipaz.wallet.client.verification.RevocationChecker
+
 private const val TAG = "MainGraph"
 
 @SuppressLint("LocalContextGetResourceValueCall")
@@ -149,6 +151,7 @@ fun mainGraph(
     userReaderTrustManagerModel: TrustManagerModel,
     readerTrustManager: CompositeTrustManager,
     issuerTrustManager: CompositeTrustManager,
+    revocationChecker: RevocationChecker,
     isSigningIn: MutableState<Boolean>,
     isSigningOut: MutableState<Boolean>,
     onSignIn: suspend (Context, WalletClient, SignInWithGoogle, MutableList<NavKey>, Boolean, Boolean) -> Unit,
@@ -899,6 +902,12 @@ fun mainGraph(
                             walletClient.refreshReaderKeys()
                         }
                     },
+                    onClearRevocationCache = {
+                        coroutineScope.launch {
+                            revocationChecker.clearCache()
+                            showToast(context.getString(R.string.dev_settings_clear_revocation_cache_success))
+                        }
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
                 )
@@ -1457,13 +1466,22 @@ fun mainGraph(
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
-                    builtInIssuerTrustManager = backendIssuerTrustManagerModel.trustManager,
-                    userIssuerTrustManagerManager = userIssuerTrustManagerModel.trustManager,
+                    builtInIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+                    userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                     settingsModel = settingsModel,
                     imageLoader = imageLoader,
                     promptModel = promptModel,
                     eventLogger = eventLogger,
                     eventIdentifier = key.eventIdentifier,
+                    revocationChecker = revocationChecker,
+                    onTrustEntryClicked = { trustManagerId, trustEntryId ->
+                        backStack.add(
+                            TrustEntryDestination(
+                                trustManagerId = trustManagerId,
+                                trustEntryId = trustEntryId
+                            )
+                        )
+                    },
                     onDeveloperExtrasClicked = {
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
@@ -1490,6 +1508,7 @@ fun mainGraph(
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,
                     zkSystemRepository = zkSystemRepository,
+                    revocationChecker = revocationChecker,
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },

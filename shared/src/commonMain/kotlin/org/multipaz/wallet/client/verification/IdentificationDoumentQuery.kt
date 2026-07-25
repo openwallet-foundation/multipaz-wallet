@@ -50,7 +50,8 @@ data class IdentificationDocumentQuery(
                     documentType = DocumentType.MOBILE_DRIVING_LICENSE,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     name = ns["given_name"]!!.value.asTstr + " " +
                             ns["family_name"]!!.value.asTstr,
@@ -116,7 +117,8 @@ data class IdentificationDocumentQuery(
                         ?: ns["issuing_authority_latin1"]?.value?.asTstr
                         ?: throw IllegalStateException("No issuing_authority found"),
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     name = "$givenName $familyName",
                     birthDate = ns["birth_date"]!!.value.asMap[Tstr("birth_date")]!!.asDateString,
@@ -155,7 +157,8 @@ data class IdentificationDocumentQuery(
                     documentType = DocumentType.EU_PID,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     name = ns["given_name"]!!.value.asTstr + " " +
                             ns["family_name"]!!.value.asTstr,
@@ -191,7 +194,8 @@ data class IdentificationDocumentQuery(
                     documentType = DocumentType.EU_PID,
                     issuingAuthority = claims["issuing_authority"]!!.value.jsonPrimitive.content,
                     issuingCountryCode = claims["issuing_country"]!!.value.jsonPrimitive.content,
-                    revocationStatus = null, // TODO sdJwtKb.sdJwt.revocationStatus,
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(claims["picture"]!!.value.jsonPrimitive.content.fromBase64Url()),
                     name = claims["given_name"]!!.value.jsonPrimitive.content + " " +
                             claims["family_name"]!!.value.jsonPrimitive.content,
@@ -227,7 +231,8 @@ data class IdentificationDocumentQuery(
                     documentType = DocumentType.AADHAAR,
                     issuingAuthority = "UIDAI",
                     issuingCountryCode = "IN",
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["ResidentImage"]!!.value.asBstr),
                     name = ns["ResidentName"]!!.value.asTstr,
                     birthDate = ns["Dob"]!!.value.asDateString,
@@ -265,7 +270,8 @@ data class IdentificationDocumentQuery(
                     documentType = DocumentType.GOOGLE_WALLET_IDPASS,
                     issuingAuthority = ns["issuing_authority"]!!.value.asTstr,
                     issuingCountryCode = ns["issuing_country"]!!.value.asTstr,
-                    revocationStatus = null,  // TODO
+                    revocationStatus = verifiedPresentation.revocationStatus,
+                    certificateChain = verifiedPresentation.documentSignerCertChain,
                     portrait = ByteString(ns["portrait"]!!.value.asBstr),
                     name = ns["given_name"]!!.value.asTstr + " " +
                             ns["family_name"]!!.value.asTstr,

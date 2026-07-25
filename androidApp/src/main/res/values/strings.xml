@@ -142,6 +142,9 @@
     <string name="dev_settings_run_setup_text">Reset the first-time setup flag and restart the setup flow. Data will not be cleared.</string>
     <string name="dev_settings_refresh_reader_keys">Refresh reader keys</string>
     <string name="dev_settings_refresh_reader_keys_text">Clears all reader keys and gets new ones from the server.</string>
+    <string name="dev_settings_clear_revocation_cache_title">Clear revocation cache</string>
+    <string name="dev_settings_clear_revocation_cache_text">Delete all cached revocation status and identifier lists.</string>
+    <string name="dev_settings_clear_revocation_cache_success">Revocation cache cleared</string>
     <string name="dev_settings_delete_app_data_title">Delete app data</string>
     <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed.</string>
 
@@ -521,7 +524,16 @@
     <string name="verification_show_response_issuer_user_trust">Issuer is on the user-defined trust list</string>
     <string name="verification_show_response_no_trust_anchor">No trust anchor found for this issuer</string>
     <string name="verification_show_response_trust_anchor_heading">Trust anchor</string>
-    <string name="verification_show_response_test_only_text">The returned document is for testing purposes only</string>
+    <string name="verification_show_response_revocation_status_heading">Revocation status</string>
+    <string name="verification_show_response_revocation_status_checking">Checking revocation status…</string>
+    <string name="verification_show_response_revocation_status_valid">Not revoked</string>
+    <string name="verification_show_response_revocation_status_invalid">Revoked</string>
+    <string name="verification_show_response_revocation_status_suspended">Suspended</string>
+    <string name="verification_show_response_revocation_status_unavailable">Status check unavailable</string>
+    <string name="verification_show_response_revocation_status_unknown">No revocation list found</string>
+    <string name="verification_show_response_revocation_status_error">Error checking revocation</string>
+    <string name="verification_show_response_test_only_heading">Test document</string>
+    <string name="verification_show_response_test_only_text">The document is for testing only. Do not rely on this verification</string>
     <string name="verification_show_response_age_over_success">This person is older than %1$d</string>
     <string name="verification_show_response_age_over_failure">This person is NOT older than %1$d</string>
     <string name="verification_show_response_verified">This person has been verified</string>
@@ -529,6 +541,8 @@
     <string name="verification_show_response_birth_date_heading">Birth date</string>
     <string name="verification_show_response_street_address_heading">Street address</string>
     <string name="verification_show_response_driving_privileges_heading">Driving privileges</string>
+    <string name="verification_show_response_credential_revoked">Document has been revoked</string>
+    <string name="verification_show_response_credential_suspended">Document has been suspended</string>
 
 
     <string name="wallet_screen_backend_url_format">@ %1$s</string>
