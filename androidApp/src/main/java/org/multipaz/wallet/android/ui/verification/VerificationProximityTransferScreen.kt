@@ -1,14 +1,27 @@
 package org.multipaz.wallet.android.ui.verification
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,19 +35,55 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.rememberLottiePainter
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.bytestring.ByteString
+import org.multipaz.compose.camera.CameraCaptureResolution
+import org.multipaz.compose.camera.CameraSelection
+import org.multipaz.compose.permissions.rememberCameraPermissionState
+import org.multipaz.compose.qrcode.QrCodeScanner
+import org.multipaz.crypto.AsymmetricKey
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
+import org.multipaz.mdoc.nfc.MdocReaderNfcHandoverOptions
+import org.multipaz.mdoc.nfc.ScanMdocReaderResult
+import org.multipaz.mdoc.nfc.scanMdocReader
+import org.multipaz.mdoc.transport.MdocTransportFactory
+import org.multipaz.mdoc.transport.MdocTransportOptions
+import org.multipaz.nfc.NfcScanOptions
+import org.multipaz.nfc.NfcTagReader
+import org.multipaz.prompt.PromptModel
+import org.multipaz.securearea.SecureArea
 import org.multipaz.util.Logger
+import org.multipaz.util.UUID
+import org.multipaz.util.fromHex
 import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.navigation.ProximityScanMode
+import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.ProximityReaderModel
-import org.multipaz.wallet.client.verification.Query
 
 private const val TAG = "VerificationProximityTransferScreen"
 
@@ -42,16 +91,62 @@ private const val TAG = "VerificationProximityTransferScreen"
 @Composable
 fun VerificationProximityTransferScreen(
     proximityReaderModel: ProximityReaderModel,
+    walletClient: WalletClient,
+    secureArea: SecureArea,
+    settingsModel: SettingsModel,
+    promptModel: PromptModel,
+    initialScanMode: ProximityScanMode = ProximityScanMode.NONE,
+    onNfcHandover: (suspend (ScanMdocReaderResult) -> Unit)? = null,
+    onQrCodeScanned: (suspend (String) -> Unit)? = null,
     onBackClicked: () -> Unit,
     onTransferComplete: (presentmentRecord: PresentmentRecord) -> Unit,
     onTransferError: (error: Throwable) -> Unit,
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope { promptModel }
     val scrollState = rememberScrollState()
+    val isDarkTheme = isSystemInDarkTheme()
 
     val state = proximityReaderModel.state.collectAsState().value
+
     LaunchedEffect(state) {
         when (state) {
+            ProximityReaderModel.State.WAITING_FOR_DEVICE_REQUEST -> {
+                try {
+                    val keyInfoAndCertification = try {
+                        walletClient.getReaderKey()
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.w(TAG, "Error getting reader key", e)
+                        null
+                    }
+                    val query = settingsModel.readerQuery.value
+                    val deviceRequest = query.generateDeviceRequest(
+                        deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
+                        sessionTranscript = proximityReaderModel.sessionTranscript,
+                        readerAuthKey = keyInfoAndCertification?.let {
+                            AsymmetricKey.X509CertifiedSecureAreaBased(
+                                certChain = keyInfoAndCertification.second,
+                                secureArea = secureArea,
+                                keyInfo = keyInfoAndCertification.first,
+                            )
+                        },
+                        intentToRetain = settingsModel.verificationStoreResponse.value
+                    )
+                    proximityReaderModel.setDeviceRequest(
+                        query = query,
+                        deviceRequest = deviceRequest
+                    )
+                    if (keyInfoAndCertification != null) {
+                        walletClient.markReaderKeyAsUsed(
+                            keyInfo = keyInfoAndCertification.first
+                        )
+                    }
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Logger.e(TAG, "Error creating device request", e)
+                    onTransferError(e)
+                }
+            }
             ProximityReaderModel.State.WAITING_FOR_START -> {
                 proximityReaderModel.start(coroutineScope)
             }
@@ -81,6 +176,64 @@ fun VerificationProximityTransferScreen(
         }
     }
 
+    val nfcTagReader = remember { NfcTagReader.getReaders().firstOrNull() }
+    val nfcScanOptions = remember {
+        if (nfcPollingFramesInsertionSupported) {
+            NfcScanOptions(
+                pollingFrameData = ByteString("6a0281030000".fromHex())
+            )
+        } else {
+            NfcScanOptions()
+        }
+    }
+
+    LaunchedEffect(state, initialScanMode) {
+        if (state == ProximityReaderModel.State.IDLE && initialScanMode == ProximityScanMode.NFC && onNfcHandover != null) {
+            if (nfcTagReader != null && !nfcTagReader.dialogAlwaysShown) {
+                withContext(promptModel) {
+                    while (isActive) {
+                        try {
+                            val scanResult = nfcTagReader.scanMdocReader(
+                                message = null,
+                                options = MdocTransportOptions(
+                                    bleUseL2CAP = false,               // Doesn't work with Apple Wallet
+                                    bleUseL2CAPInEngagement = true
+                                ),
+                                handoverOptions = MdocReaderNfcHandoverOptions(
+                                    useNfcV2 = true
+                                ),
+                                transportFactory = MdocTransportFactory.Default,
+                                selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
+                                negotiatedHandoverConnectionMethods = listOf(
+                                    MdocConnectionMethodBle(
+                                        supportsPeripheralServerMode = false,
+                                        supportsCentralClientMode = true,
+                                        peripheralServerModeUuid = null,
+                                        centralClientModeUuid = UUID.randomUUID(),
+                                    )
+                                ),
+                                nfcScanOptions = nfcScanOptions
+                            )
+                            if (scanResult != null) {
+                                onNfcHandover(scanResult)
+                            }
+                            break
+                        } catch (e: Throwable) {
+                            if (!isActive) {
+                                Logger.e(TAG, "Caught exception while scanning and scope isn't active", e)
+                                break
+                            } else {
+                                Logger.e(TAG, "Caught exception while scanning. Retrying", e)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val isScanning = state == ProximityReaderModel.State.IDLE && initialScanMode != ProximityScanMode.NONE
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
         modifier = Modifier
@@ -88,7 +241,13 @@ fun VerificationProximityTransferScreen(
             .fillMaxSize(),
         topBar = {
             MediumTopAppBar(
-                title = {},
+                title = {
+                    if (isScanning && initialScanMode == ProximityScanMode.QR) {
+                        Text(stringResource(R.string.request_verification_scan_qr_code_to_verify))
+                    } else if (isScanning && initialScanMode == ProximityScanMode.NFC) {
+                        Text(stringResource(R.string.request_verification_scan_nfc_to_verify))
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
                         Icon(
@@ -101,21 +260,142 @@ fun VerificationProximityTransferScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        AnimatedContent(
+            targetState = isScanning,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(400))) togetherWith (fadeOut(animationSpec = tween(400)))
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(space = 16.dp, alignment = Alignment.CenterVertically)
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(48.dp))
-            Text(
-                text = stringResource(R.string.verification_proximity_transfer_waiting_for_response),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                .padding(16.dp),
+            label = "scanningToTransferTransition"
+        ) { scanning ->
+            if (scanning) {
+                if (initialScanMode == ProximityScanMode.NFC) {
+                    InPersonNfcView(isDarkTheme = isDarkTheme)
+                } else if (initialScanMode == ProximityScanMode.QR) {
+                    InPersonQrScannerView(
+                        onQrCodeScanned = { qrCode ->
+                            if (qrCode?.startsWith("mdoc:") == true && onQrCodeScanned != null) {
+                                if (proximityReaderModel.state.value == ProximityReaderModel.State.IDLE) {
+                                    coroutineScope.launch {
+                                        onQrCodeScanned(qrCode)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(space = 16.dp, alignment = Alignment.CenterVertically)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(48.dp))
+                    Text(
+                        text = stringResource(R.string.verification_proximity_transfer_waiting_for_response),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InPersonNfcView(
+    isDarkTheme: Boolean
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        val composition by rememberLottieComposition(
+            spec = LottieCompositionSpec.RawRes(
+                resId = if (isDarkTheme) R.raw.nfc_animation_dark else R.raw.nfc_animation
             )
+        )
+        val progressState = animateLottieCompositionAsState(
+            composition = composition,
+            iterations = LottieConstants.IterateForever
+        )
+        Image(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(16.dp),
+            painter = rememberLottiePainter(
+                composition = composition,
+                progress = progressState.value,
+            ),
+            contentDescription = null,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.request_verification_hold_to_wallet),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun InPersonQrScannerView(
+    onQrCodeScanned: (qrCode: String?) -> Unit
+) {
+    val permissionScope = rememberCoroutineScope()
+    val permissionState = rememberCameraPermissionState()
+
+    if (permissionState.isGranted) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .dropShadow(
+                    shape = RoundedCornerShape(16.dp),
+                    shadow = Shadow(
+                        radius = 10.dp,
+                        spread = 7.5.dp,
+                        color = Color.Black.copy(alpha = 0.15f),
+                        offset = DpOffset(x = 0.dp, 2.dp)
+                    )
+                )
+                .clip(RoundedCornerShape(16.dp))
+        ) {
+            QrCodeScanner(
+                modifier = Modifier.fillMaxSize(),
+                cameraSelection = CameraSelection.DEFAULT_BACK_CAMERA,
+                captureResolution = CameraCaptureResolution.HIGH,
+                showCameraPreview = true,
+                onCodeScanned = { qrCode ->
+                    onQrCodeScanned(qrCode)
+                }
+            )
+        }
+    } else {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = stringResource(R.string.request_verification_camera_permission_required),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = {
+                permissionScope.launch {
+                    permissionState.launchPermissionRequest()
+                }
+            }) {
+                Text(text = stringResource(R.string.request_verification_grant_permission))
+            }
         }
     }
 }

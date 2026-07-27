@@ -93,6 +93,8 @@ import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
 import org.multipaz.wallet.android.ui.verification.SelectVerificationTypeScreen
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferErrorScreen
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferScreen
+import org.multipaz.wallet.android.ui.verification.handleNfcHandover
+import org.multipaz.wallet.android.ui.verification.handleQrCodeScanned
 import org.multipaz.wallet.android.ui.verification.VerificationShowResponseDeveloperExtrasScreen
 import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScreen
 import org.multipaz.wallet.android.ui.verification.VerificationEventListScreen
@@ -1222,82 +1224,13 @@ fun mainGraph(
                     issuerTrustManager = issuerTrustManager,
                     eventLogger = eventLogger,
                     onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
-                    onNfcHandover = { scanResult ->
-                        coroutineScope.launch {
-                            try {
-                                proximityReaderModel.reset()
-                                proximityReaderModel.setMdocTransportOptions(
-                                    MdocTransportOptions(
-                                        bleUseL2CAP = false,             // Doesn't work with Apple Wallet
-                                        bleUseL2CAPInEngagement = true
-                                    )
-                                )
-                                proximityReaderModel.setConnectionEndpoint(
-                                    // TODO: Update Multipaz to use a DataItem for DeviceEngagement
-                                    deviceEngagement = Cbor.decode(scanResult.encodedDeviceEngagement.toByteArray()),
-                                    handover = scanResult.handover,
-                                    existingTransport = scanResult.transport,
-                                    nfcHandoverType = scanResult.type,
-                                    durationNfcTapToEngagement = scanResult.processingDuration
-                                )
-                                val keyInfoAndCertification = try {
-                                    walletClient.getReaderKey()
-                                } catch (e: Exception) {
-                                    if (e is CancellationException) throw e
-                                    Logger.w(TAG, "Error getting reader key", e)
-                                    null
-                                }
-                                val query = settingsModel.readerQuery.value
-                                proximityReaderModel.setDeviceRequest(
-                                    query = query,
-                                    deviceRequest = query.generateDeviceRequest(
-                                        deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
-                                        sessionTranscript = proximityReaderModel.sessionTranscript,
-                                        readerAuthKey = keyInfoAndCertification?.let {
-                                            AsymmetricKey.X509CertifiedSecureAreaBased(
-                                                certChain = keyInfoAndCertification.second,
-                                                secureArea = secureArea,
-                                                keyInfo = keyInfoAndCertification.first,
-                                            )
-                                        },
-                                        intentToRetain = settingsModel.verificationStoreResponse.value
-                                    )
-                                )
-                                if (keyInfoAndCertification != null) {
-                                    walletClient.markReaderKeyAsUsed(
-                                        keyInfo = keyInfoAndCertification.first
-                                    )
-                                }
-                                backStack.add(VerificationProximityTransferDestination)
-                            } catch (e: Exception) {
-                                if (e is CancellationException) throw e
-                                Logger.w(TAG, "Error handling NFC handover", e)
-                            }
-                        }
+                    onScanQrClicked = {
+                        proximityReaderModel.reset()
+                        backStack.add(VerificationProximityTransferDestination(ProximityScanMode.QR))
                     },
-                    onQrCodeScanned = { qrCode ->
-                        coroutineScope.launch {
-                            if (qrCode?.startsWith("mdoc:") == true) {
-                                // It's entirely possible the QR code can bounce like this
-                                //
-                                //  QR, null, QR, null, QR, null
-                                //
-                                // Deal this with by just ignoring subsequent QR codes.
-                                //
-                                if (proximityReaderModel.state.value == ProximityReaderModel.State.WAITING_FOR_DEVICE_REQUEST) {
-                                    Logger.i(TAG, "Debouncing QR code scan")
-                                    return@launch
-                                }
-                                handleQrCodeScanned(
-                                    backStack = backStack,
-                                    mdocUrl = qrCode,
-                                    walletClient = walletClient,
-                                    secureArea = secureArea,
-                                    settingsModel = settingsModel,
-                                    proximityReaderModel = proximityReaderModel
-                                )
-                            }
-                        }
+                    onScanNfcClicked = {
+                        proximityReaderModel.reset()
+                        backStack.add(VerificationProximityTransferDestination(ProximityScanMode.NFC))
                     },
                     onGenerateVerificationLinkClicked = {
                         coroutineScope.launch {
@@ -1367,13 +1300,10 @@ fun mainGraph(
                     onContinueClicked = {
                         coroutineScope.launch {
                             handleQrCodeScanned(
-                                backStack = backStack,
                                 mdocUrl = key.mdocUrl,
-                                walletClient = walletClient,
-                                secureArea = secureArea,
-                                settingsModel = settingsModel,
                                 proximityReaderModel = proximityReaderModel
                             )
+                            backStack.add(VerificationProximityTransferDestination(ProximityScanMode.NONE))
                             if (backStack.size >= 3) {
                                 // We were at [Wallet, MdocUrl, Transfer]. Remove MdocUrl.
                                 backStack.removeAt(backStack.size - 2)
@@ -1418,6 +1348,23 @@ fun mainGraph(
             is VerificationProximityTransferDestination -> NavEntry(key) {
                 VerificationProximityTransferScreen(
                     proximityReaderModel = proximityReaderModel,
+                    walletClient = walletClient,
+                    secureArea = secureArea,
+                    settingsModel = settingsModel,
+                    promptModel = promptModel,
+                    initialScanMode = key.initialScanMode,
+                    onNfcHandover = { scanResult ->
+                        handleNfcHandover(
+                            scanResult = scanResult,
+                            proximityReaderModel = proximityReaderModel
+                        )
+                    },
+                    onQrCodeScanned = { qrCode ->
+                        handleQrCodeScanned(
+                            mdocUrl = qrCode,
+                            proximityReaderModel = proximityReaderModel
+                        )
+                    },
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },

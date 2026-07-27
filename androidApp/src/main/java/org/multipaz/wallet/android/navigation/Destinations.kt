@@ -274,7 +274,16 @@ data object SelectVerificationTypeDestination: Destination()
 data object SelectCustomAgeDestination: Destination()
 
 @Serializable
-data object VerificationProximityTransferDestination: Destination()
+enum class ProximityScanMode {
+    NONE,
+    QR,
+    NFC
+}
+
+@Serializable
+data class VerificationProximityTransferDestination(
+    val initialScanMode: ProximityScanMode = ProximityScanMode.NONE
+): Destination()
 
 @Serializable
 data object VerificationProximityTransferErrorDestination: Destination()

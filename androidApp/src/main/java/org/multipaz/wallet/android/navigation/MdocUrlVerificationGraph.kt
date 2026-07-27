@@ -34,6 +34,7 @@ import org.multipaz.wallet.android.ui.verification.VerificationProximityTransfer
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferScreen
 import org.multipaz.wallet.android.ui.verification.VerificationShowResponseDeveloperExtrasScreen
 import org.multipaz.wallet.android.ui.verification.VerificationShowResponseScreen
+import org.multipaz.wallet.android.ui.verification.handleQrCodeScanned
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
@@ -76,13 +77,10 @@ fun mdocUrlVerificationGraph(
                     onContinueClicked = {
                         coroutineScope.launch {
                             handleQrCodeScanned(
-                                backStack = backStack,
                                 mdocUrl = key.mdocUrl,
-                                walletClient = walletClient,
-                                secureArea = secureArea,
-                                settingsModel = settingsModel,
                                 proximityReaderModel = proximityReaderModel
                             )
+                            backStack.add(VerificationProximityTransferDestination(ProximityScanMode.NONE))
                             // In verification graph, we just remove the URL screen.
                             // There is no WalletDestination to replace it with.
                             backStack.removeAll { it is RequestVerificationFromMdocUrlDestination }
@@ -117,6 +115,11 @@ fun mdocUrlVerificationGraph(
             is VerificationProximityTransferDestination -> NavEntry(key) {
                 VerificationProximityTransferScreen(
                     proximityReaderModel = proximityReaderModel,
+                    walletClient = walletClient,
+                    secureArea = secureArea,
+                    settingsModel = settingsModel,
+                    promptModel = promptModel,
+                    initialScanMode = key.initialScanMode,
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },
@@ -228,62 +231,4 @@ fun mdocUrlVerificationGraph(
     }
 }
 
-internal suspend fun handleQrCodeScanned(
-    backStack: MutableList<NavKey>,
-    mdocUrl: String,
-    walletClient: WalletClient,
-    secureArea: SecureArea,
-    settingsModel: SettingsModel,
-    proximityReaderModel: ProximityReaderModel,
-) {
-    check(mdocUrl.startsWith("mdoc:"))
-    try {
-        val deviceEngagement = Cbor.decode(mdocUrl.substringAfter("mdoc:").fromBase64Url())
-        proximityReaderModel.reset()
-        proximityReaderModel.setMdocTransportOptions(
-            MdocTransportOptions(
-                bleUseL2CAP = true,
-                bleUseL2CAPInEngagement = true
-            )
-        )
-        proximityReaderModel.setConnectionEndpoint(
-            deviceEngagement = deviceEngagement,
-            handover = Simple.NULL,
-            existingTransport = null,
-            nfcHandoverType = null,
-            durationNfcTapToEngagement = null
-        )
-        val keyInfoAndCertification = try {
-            walletClient.getReaderKey()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Logger.w(TAG, "Error getting reader key", e)
-            null
-        }
-        val query = settingsModel.readerQuery.value
-        proximityReaderModel.setDeviceRequest(
-            query = query,
-            deviceRequest = query.generateDeviceRequest(
-                deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
-                sessionTranscript = proximityReaderModel.sessionTranscript,
-                readerAuthKey = keyInfoAndCertification?.let {
-                    AsymmetricKey.X509CertifiedSecureAreaBased(
-                        certChain = keyInfoAndCertification.second,
-                        secureArea = secureArea,
-                        keyInfo = keyInfoAndCertification.first,
-                    )
-                },
-                intentToRetain = settingsModel.verificationStoreResponse.value
-            )
-        )
-        if (keyInfoAndCertification != null) {
-            walletClient.markReaderKeyAsUsed(
-                keyInfo = keyInfoAndCertification.first
-            )
-        }
-        backStack.add(VerificationProximityTransferDestination)
-    } catch (e: Exception) {
-        if (e is CancellationException) throw e
-        Logger.w(TAG, "Error parsing QR code", e)
-    }
-}
+
