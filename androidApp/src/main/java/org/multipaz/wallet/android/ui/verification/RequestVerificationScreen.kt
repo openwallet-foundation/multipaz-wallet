@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.verification
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -107,6 +108,7 @@ private data class CompletedVerificationData(
 
 private const val TAG = "RequestVerificationScreen"
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun RequestVerificationScreen(
