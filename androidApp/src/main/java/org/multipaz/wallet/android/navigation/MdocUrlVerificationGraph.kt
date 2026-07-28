@@ -1,6 +1,9 @@
 package org.multipaz.wallet.android.navigation
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation3.runtime.NavEntry
+
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.DialogSceneStrategy
 import coil3.ImageLoader
@@ -99,6 +102,9 @@ fun mdocUrlVerificationGraph(
                     onCustomAgeClicked = {
                         backStack.add(SelectCustomAgeDestination)
                     },
+                    onUserDefinedClicked = {
+                        backStack.add(SelectUserDefinedQueryDestination)
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
@@ -114,6 +120,17 @@ fun mdocUrlVerificationGraph(
                     }
                 )
             }
+            is SelectUserDefinedQueryDestination -> NavEntry(key) {
+                val readerQuery by settingsModel.readerQuery.collectAsState()
+                org.multipaz.wallet.android.ui.verification.SelectUserDefinedQueryScreen(
+                    initialQuery = readerQuery as? org.multipaz.wallet.client.verification.UserDefinedQuery,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmed = { userDefinedQuery ->
+                        settingsModel.readerQuery.value = userDefinedQuery
+                    }
+                )
+            }
+
             is VerificationProximityTransferDestination -> NavEntry(key) {
                 VerificationProximityTransferScreen(
                     proximityReaderModel = proximityReaderModel,

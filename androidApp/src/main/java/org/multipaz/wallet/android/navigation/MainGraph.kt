@@ -9,7 +9,9 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -1419,6 +1421,9 @@ fun mainGraph(
                     onCustomAgeClicked = {
                         backStack.add(SelectCustomAgeDestination)
                     },
+                    onUserDefinedClicked = {
+                        backStack.add(SelectUserDefinedQueryDestination)
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
@@ -1441,6 +1446,17 @@ fun mainGraph(
                     }
                 )
             }
+            is SelectUserDefinedQueryDestination -> NavEntry(key) {
+                val readerQuery by settingsModel.readerQuery.collectAsState()
+                org.multipaz.wallet.android.ui.verification.SelectUserDefinedQueryScreen(
+                    initialQuery = readerQuery as? org.multipaz.wallet.client.verification.UserDefinedQuery,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmed = { userDefinedQuery ->
+                        settingsModel.readerQuery.value = userDefinedQuery
+                    }
+                )
+            }
+
             is VerificationProximityTransferDestination -> NavEntry(key) {
                 VerificationProximityTransferScreen(
                     proximityReaderModel = proximityReaderModel,

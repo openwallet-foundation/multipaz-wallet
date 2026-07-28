@@ -290,6 +290,10 @@ data object SelectExternalNfcReaderDestination: Destination()
 data object SelectCustomAgeDestination: Destination()
 
 @Serializable
+data object SelectUserDefinedQueryDestination: Destination()
+
+
+@Serializable
 enum class ProximityScanMode {
     NONE,
     QR,

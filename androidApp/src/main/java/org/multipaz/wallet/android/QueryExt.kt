@@ -6,6 +6,7 @@ import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.UserDefinedQuery
 
 @Composable
 fun Query.getDisplayName(): String = when (this) {
@@ -21,6 +22,9 @@ fun Query.getDisplayName(): String = when (this) {
     }
     is DrivingPrivilegesQuery -> {
         stringResource(R.string.reader_query_driving_privileges)
+    }
+    is UserDefinedQuery -> {
+        stringResource(R.string.reader_query_user_defined)
     }
 }
 
@@ -38,5 +42,12 @@ fun Query.getDescription(): String = when (this) {
     }
     is DrivingPrivilegesQuery -> {
         stringResource(R.string.reader_query_driving_privileges_description)
+    }
+    is UserDefinedQuery -> {
+        if (docType.isBlank()) {
+            stringResource(R.string.reader_query_user_defined_description_default)
+        } else {
+            stringResource(R.string.reader_query_user_defined_description, docType)
+        }
     }
 }

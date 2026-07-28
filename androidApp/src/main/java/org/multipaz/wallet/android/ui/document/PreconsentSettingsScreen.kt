@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -165,9 +166,11 @@ fun PreconsentSettingsScreen(
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Button(onClick = onManageTrustedReaders) {
-                                    Text(stringResource(R.string.preconsent_trusted_readers_manage))
-                                }
+                                FilterChip(
+                                    selected = true,
+                                    onClick = onManageTrustedReaders,
+                                    label = { Text(stringResource(R.string.preconsent_trusted_readers_manage)) }
+                                )
                             }
                         }
                     }

@@ -490,6 +490,21 @@
     <string name="reader_query_identification_description">Requests name, birth date, and portrait image.</string>
     <string name="reader_query_driving_privileges">Driving privileges</string>
     <string name="reader_query_driving_privileges_description">Requests name, birth date, driving privileges, and portrait image.</string>
+    <string name="reader_query_user_defined">User defined</string>
+    <string name="reader_query_user_defined_description">Requests document type %1$s.</string>
+    <string name="reader_query_user_defined_description_default">Requests custom document type, namespaces, and data elements.</string>
+
+    <string name="select_user_defined_query_dialog_title">Configure user defined query</string>
+    <string name="select_user_defined_query_dialog_doc_type">Document type</string>
+    <string name="select_user_defined_query_dialog_namespaces">Namespaces</string>
+    <string name="select_user_defined_query_dialog_namespace">Namespace name</string>
+
+    <string name="select_user_defined_query_dialog_add_namespace">Add namespace</string>
+    <string name="select_user_defined_query_dialog_add_data_element">Add element</string>
+    <string name="select_user_defined_query_dialog_data_element">Data element name</string>
+    <string name="select_verification_type_edit_user_defined">Edit query</string>
+    <string name="select_user_defined_query_note">This advanced feature allows requesting a document given the ISO mdoc document type, namespace names, and data element names. Use with caution.</string>
+
 
 
     <!-- Document Types -->

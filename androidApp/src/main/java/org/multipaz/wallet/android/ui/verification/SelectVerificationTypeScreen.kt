@@ -41,6 +41,7 @@ import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
+import org.multipaz.wallet.client.verification.UserDefinedQuery
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +49,7 @@ import org.multipaz.wallet.client.verification.IdentificationQuery
 fun SelectVerificationTypeScreen(
     settingsModel: SettingsModel,
     onCustomAgeClicked: () -> Unit,
+    onUserDefinedClicked: () -> Unit,
     onBackClicked: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -149,7 +151,28 @@ fun SelectVerificationTypeScreen(
                         settingsModel.readerQuery.value = DrivingPrivilegesQuery()
                     },
                 )
-
+                val userDefinedSelected = selectedQuery is UserDefinedQuery
+                RequestOption(
+                    title = stringResource(R.string.reader_query_user_defined),
+                    description = if (userDefinedSelected) {
+                        selectedQuery.getDescription()
+                    } else {
+                        stringResource(R.string.reader_query_user_defined_description_default)
+                    },
+                    selected = userDefinedSelected,
+                    onClick = {
+                        onUserDefinedClicked()
+                    },
+                    extraContent = {
+                        if (userDefinedSelected) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { onUserDefinedClicked() },
+                                label = { Text(stringResource(R.string.select_verification_type_edit_user_defined)) }
+                            )
+                        }
+                    }
+                )
             }
             Spacer(modifier = Modifier.height(20.dp))
         }

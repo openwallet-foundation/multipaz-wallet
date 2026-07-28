@@ -94,7 +94,9 @@ import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.trustmanagement.TrustPoint
 import org.multipaz.util.Logger
 import org.multipaz.verification.PresentmentRecord
+import org.multipaz.cbor.toCdn
 import org.multipaz.wallet.android.R
+
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.shareEvent
 import org.multipaz.wallet.android.ui.MapView
@@ -119,6 +121,7 @@ import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Instant
 
 import androidx.compose.foundation.clickable
+import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.trustmanagement.TrustEntryRical
 import org.multipaz.trustmanagement.TrustEntryVical
@@ -293,6 +296,21 @@ fun VerificationShowResponseScreen(
                         ShowDrivingPrivilegesResult(
                             query = queryResult.value!!.query as DrivingPrivilegesQuery,
                             result = result as DrivingPrivilegesDocumentQueryResult,
+                            builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+                            userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+                            imageLoader = imageLoader,
+                            verificationLocation = verificationLocation,
+                            verificationTime = verificationTime,
+                            revocationChecker = revocationChecker,
+                            onTrustEntryClicked = onTrustEntryClicked
+                        )
+                    }
+
+                    is org.multipaz.wallet.client.verification.UserDefinedQuery -> {
+                        val result = queryResult.value!!.documents.first()
+                        ShowUserDefinedResult(
+                            query = queryResult.value!!.query as org.multipaz.wallet.client.verification.UserDefinedQuery,
+                            result = result as org.multipaz.wallet.client.verification.UserDefinedDocumentQueryResult,
                             builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
                             userIssuerTrustManagerModel = userIssuerTrustManagerModel,
                             imageLoader = imageLoader,
@@ -1012,4 +1030,118 @@ private fun ShowEventDetails(
             }
         }
     }
+}
+
+@Composable
+fun ShowUserDefinedResult(
+    query: org.multipaz.wallet.client.verification.UserDefinedQuery,
+    result: org.multipaz.wallet.client.verification.UserDefinedDocumentQueryResult,
+    builtInIssuerTrustManagerModel: TrustManagerModel,
+    userIssuerTrustManagerModel: TrustManagerModel,
+    imageLoader: ImageLoader,
+    verificationLocation: Location?,
+    verificationTime: Instant?,
+    revocationChecker: RevocationChecker? = null,
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
+) {
+    val atTime = verificationTime ?: Clock.System.now()
+    val revocationCheckResult = rememberRevocationCheckResult(result, revocationChecker, atTime)
+
+    val portrait = remember(result) { extractPortraitImage(result) }
+    if (portrait != null) {
+        ShowPortrait(portrait)
+    }
+
+    ShowStatement(
+        result = result,
+        success = true,
+        message = stringResource(R.string.reader_query_user_defined),
+        revocationCheckResult = revocationCheckResult
+    )
+
+    Spacer(modifier = Modifier.height(20.dp))
+    FloatingItemList(
+        title = stringResource(R.string.select_user_defined_query_dialog_doc_type)
+    ) {
+        FloatingItemText(
+            text = result.docType
+        )
+    }
+
+    result.elements.forEach { (namespace, elements) ->
+        Spacer(modifier = Modifier.height(20.dp))
+        FloatingItemList(
+            title = stringResource(R.string.verification_show_response_developer_extras_namespace, namespace)
+        ) {
+            elements.forEach { (dataElement, value) ->
+                val displayValue = try {
+                    val bstr = value.asBstr
+                    if (isJpegOrPng(bstr)) {
+                        "Image (${bstr.size} bytes)"
+                    } else {
+                        try {
+                            value.toCdn()
+                        } catch (_: Throwable) {
+                            value.toString()
+                        }
+                    }
+                } catch (_: Throwable) {
+                    try {
+                        value.toCdn()
+                    } catch (_: Throwable) {
+                        value.toString()
+                    }
+                }
+                FloatingItemHeadingAndText(
+                    heading = dataElement,
+                    text = displayValue
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(20.dp))
+    ShowSource(
+        result = result,
+        builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
+        userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+        imageLoader = imageLoader,
+        onTrustEntryClicked = onTrustEntryClicked
+    )
+    ShowEventDetails(verificationTime, verificationLocation)
+    Spacer(modifier = Modifier.height(20.dp))
+}
+
+private fun isJpegOrPng(bytes: ByteArray): Boolean {
+    if (bytes.size < 500) return false
+    val isJpeg = bytes.size >= 3 &&
+            (bytes[0].toInt() and 0xFF == 0xFF) &&
+            (bytes[1].toInt() and 0xFF == 0xD8) &&
+            (bytes[2].toInt() and 0xFF == 0xFF)
+    val isPng = bytes.size >= 8 &&
+            (bytes[0].toInt() and 0xFF == 0x89) &&
+            (bytes[1].toInt() and 0xFF == 0x50) &&
+            (bytes[2].toInt() and 0xFF == 0x4E) &&
+            (bytes[3].toInt() and 0xFF == 0x47) &&
+            (bytes[4].toInt() and 0xFF == 0x0D) &&
+            (bytes[5].toInt() and 0xFF == 0x0A) &&
+            (bytes[6].toInt() and 0xFF == 0x1A) &&
+            (bytes[7].toInt() and 0xFF == 0x0A)
+    return isJpeg || isPng
+}
+
+private fun extractPortraitImage(result: org.multipaz.wallet.client.verification.UserDefinedDocumentQueryResult): ByteString? {
+    for ((_, elements) in result.elements) {
+        for ((dataElement, value) in elements) {
+            if (dataElement.equals("portrait", ignoreCase = true)) {
+                try {
+                    val bytes = value.asBstr
+                    if (isJpegOrPng(bytes)) {
+                        return ByteString(bytes)
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+    return null
 }
