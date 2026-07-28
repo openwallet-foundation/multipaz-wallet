@@ -514,10 +514,10 @@
     <string name="request_verification_camera_permission_required">Camera permission is required</string>
     <string name="request_verification_grant_permission">Grant Permission</string>
     <string name="request_verification_scan_nfc">Scan NFC</string>
-    <string name="request_verification_scan_qr_code">Scan QR code</string>
+    <string name="request_verification_scan_qr_code">Scan QR</string>
     <string name="request_verification_scan_nfc_to_verify">Scan NFC to verify</string>
     <string name="request_verification_scan_qr_code_to_verify">Scan QR code to verify</string>
-    <string name="request_verification_scan_qr_code_title">Scan QR Code</string>
+    <string name="request_verification_scan_qr_code_title">Scan QR code</string>
     <string name="request_verification_delete_pending_title">Delete pending verification</string>
     <string name="request_verification_delete_pending_text">Are you sure you want to delete this pending link? Anyone you shared it with will no longer be able to use it.</string>
     <string name="request_verification_delete_confirm">Delete</string>
