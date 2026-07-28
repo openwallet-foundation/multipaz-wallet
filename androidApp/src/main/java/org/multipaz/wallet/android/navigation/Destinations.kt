@@ -102,6 +102,19 @@ data object AboutDestination: Destination()
 data object SettingsDestination: Destination()
 
 @Serializable
+data object ExternalNfcReadersDestination: Destination()
+
+@Serializable
+data class ExternalNfcReaderDestination(
+    val readerId: String
+): Destination()
+
+@Serializable
+data class EditExternalNfcReaderNameDialogDestination(
+    val readerId: String
+): Destination()
+
+@Serializable
 data object DeviceSessionsDestination: Destination()
 
 @Serializable
@@ -269,6 +282,9 @@ data object VerificationEventListDestination: Destination()
 
 @Serializable
 data object SelectVerificationTypeDestination: Destination()
+
+@Serializable
+data object SelectExternalNfcReaderDestination: Destination()
 
 @Serializable
 data object SelectCustomAgeDestination: Destination()

@@ -9,6 +9,10 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavEntry
@@ -23,9 +27,11 @@ import io.ktor.client.engine.HttpClientEngineFactory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
+import org.multipaz.nfc.ExternalNfcReaderState
 import org.multipaz.cbor.CborArray
 import org.multipaz.compose.cards.VerticalCardListState
 import org.multipaz.compose.document.DocumentModel
@@ -80,6 +86,11 @@ import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletS
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
 import org.multipaz.wallet.android.ui.settings.EventListScreen
 import org.multipaz.wallet.android.ui.settings.EventViewerScreen
+import org.multipaz.nfc.ExternalNfcReaderStore
+import org.multipaz.wallet.android.ui.settings.EditExternalNfcReaderNameDialog
+import org.multipaz.wallet.android.ui.settings.ExternalNfcReaderScreen
+import org.multipaz.wallet.android.ui.settings.ExternalNfcReadersScreen
+import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.wallet.android.ui.settings.SettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeviceSessionsScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryEditScreen
@@ -90,6 +101,7 @@ import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUrlScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationScreen
 import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
+import org.multipaz.wallet.android.ui.verification.SelectExternalNfcReaderScreen
 import org.multipaz.wallet.android.ui.verification.SelectVerificationTypeScreen
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferErrorScreen
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferScreen
@@ -135,6 +147,7 @@ fun mainGraph(
     documentStore: DocumentStore,
     documentModel: DocumentModel,
     settingsModel: SettingsModel,
+    externalNfcReaderStore: ExternalNfcReaderStore,
     eventLogger: SimpleEventLogger,
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
@@ -576,6 +589,9 @@ fun mainGraph(
                     onTrustedReadersClicked = {
                         backStack.add(TrustedVerifiersDestination)
                     },
+                    onExternalNfcReadersClicked = {
+                        backStack.add(ExternalNfcReadersDestination)
+                    },
                     onActivityLoggingClicked = {
                         backStack.add(ActivityLoggingSettingsDestination)
                     },
@@ -586,6 +602,61 @@ fun mainGraph(
                         backStack.add(AboutDestination)
                     },
                     showToast = showToast,
+                )
+            }
+            is ExternalNfcReadersDestination -> NavEntry(key) {
+                ExternalNfcReadersScreen(
+                    externalNfcReaderStore = externalNfcReaderStore,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onReaderClicked = { readerId ->
+                        backStack.add(ExternalNfcReaderDestination(readerId))
+                    }
+                )
+            }
+            is ExternalNfcReaderDestination -> NavEntry(key) {
+                val readerId = (key as ExternalNfcReaderDestination).readerId
+                var showRemoveConfirmationDialog by remember { mutableStateOf(false) }
+
+                if (showRemoveConfirmationDialog) {
+                    ConfirmationDialog(
+                        title = stringResource(R.string.external_nfc_reader_remove_dialog_title),
+                        textMarkdown = stringResource(R.string.external_nfc_reader_remove_dialog_text),
+                        confirmButtonText = stringResource(R.string.external_nfc_reader_remove_button),
+                        onDismissed = { showRemoveConfirmationDialog = false },
+                        onConfirmClicked = {
+                            showRemoveConfirmationDialog = false
+                            val reader = externalNfcReaderStore.readers.value.find { it.id == readerId }
+                            if (reader != null) {
+                                coroutineScope.launch {
+                                    externalNfcReaderStore.removeReader(reader)
+                                    backStack.removeAt(backStack.size - 1)
+                                }
+                            }
+                        }
+                    )
+                }
+
+                ExternalNfcReaderScreen(
+                    externalNfcReaderStore = externalNfcReaderStore,
+                    readerId = readerId,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onEditNameClicked = {
+                        backStack.add(EditExternalNfcReaderNameDialogDestination(readerId))
+                    },
+                    onRemoveReaderClicked = {
+                        showRemoveConfirmationDialog = true
+                    }
+                )
+            }
+            is EditExternalNfcReaderNameDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                val readerId = (key as EditExternalNfcReaderNameDialogDestination).readerId
+                EditExternalNfcReaderNameDialog(
+                    externalNfcReaderStore = externalNfcReaderStore,
+                    readerId = readerId,
+                    onDismiss = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is DeviceSessionsDestination -> NavEntry(key) {
@@ -1217,6 +1288,7 @@ fun mainGraph(
                     walletClient = walletClient,
                     storage = storage,
                     settingsModel = settingsModel,
+                    externalNfcReaderStore = externalNfcReaderStore,
                     documentModel = documentModel,
                     promptModel = promptModel,
                     documentTypeRepository = documentTypeRepository,
@@ -1224,13 +1296,30 @@ fun mainGraph(
                     issuerTrustManager = issuerTrustManager,
                     eventLogger = eventLogger,
                     onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
+                    onSelectNfcReaderClicked = { backStack.add(SelectExternalNfcReaderDestination) },
                     onScanQrClicked = {
                         proximityReaderModel.reset()
                         backStack.add(VerificationProximityTransferDestination(ProximityScanMode.QR))
                     },
                     onScanNfcClicked = {
-                        proximityReaderModel.reset()
-                        backStack.add(VerificationProximityTransferDestination(ProximityScanMode.NFC))
+                        coroutineScope.launch {
+                            val selectedReaderId = settingsModel.selectedExternalNfcReaderId.value
+                            if (selectedReaderId != null) {
+                                val reader = externalNfcReaderStore.readers.value.find { it.id == selectedReaderId }
+                                val state = reader?.observeState()?.first()
+                                if (reader == null || state == ExternalNfcReaderState.NOT_CONNECTED) {
+                                    backStack.add(
+                                        ErrorDialogDestination(
+                                            title = context.getString(R.string.request_verification_reader_not_connected_title),
+                                            textMarkdown = context.getString(R.string.request_verification_reader_not_connected_message)
+                                        )
+                                    )
+                                    return@launch
+                                }
+                            }
+                            proximityReaderModel.reset()
+                            backStack.add(VerificationProximityTransferDestination(ProximityScanMode.NFC))
+                        }
                     },
                     onGenerateVerificationLinkClicked = {
                         coroutineScope.launch {
@@ -1333,6 +1422,13 @@ fun mainGraph(
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
+            is SelectExternalNfcReaderDestination -> NavEntry(key) {
+                SelectExternalNfcReaderScreen(
+                    settingsModel = settingsModel,
+                    externalNfcReaderStore = externalNfcReaderStore,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
             is SelectCustomAgeDestination -> NavEntry(
                 key = key,
                 metadata = DialogSceneStrategy.dialog()
@@ -1351,6 +1447,7 @@ fun mainGraph(
                     walletClient = walletClient,
                     secureArea = secureArea,
                     settingsModel = settingsModel,
+                    externalNfcReaderStore = externalNfcReaderStore,
                     promptModel = promptModel,
                     initialScanMode = key.initialScanMode,
                     onNfcHandover = { scanResult ->

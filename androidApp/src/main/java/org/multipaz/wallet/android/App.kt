@@ -88,6 +88,7 @@ import org.multipaz.wallet.shared.fromAndroidLocation
 import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 
+import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.client.verification.RevocationChecker
 import org.multipaz.wallet.client.verification.StorageRevocationChecker
 
@@ -118,6 +119,7 @@ class App private constructor() {
     private lateinit var settingsModel: SettingsModel
     private lateinit var proximityReaderModel: ProximityReaderModel
     private lateinit var revocationChecker: RevocationChecker
+    lateinit var externalNfcReaderStore: ExternalNfcReaderStore
     private val promptModel = Platform.promptModel
 
     private val credentialOffers = Channel<String>()
@@ -262,6 +264,7 @@ class App private constructor() {
         userReaderTrustManagerModel = TrustManagerModel(userReaderTrustManager, coroutineScope)
         backendReaderTrustManagerModel = TrustManagerModel(walletClient.readerTrustManager, coroutineScope)
 
+        externalNfcReaderStore = ExternalNfcReaderStore.create(storage)
         proximityReaderModel = ProximityReaderModel()
         revocationChecker = StorageRevocationChecker(
             storage = storage,
@@ -400,6 +403,7 @@ class App private constructor() {
                 documentTypeRepository = documentTypeRepository,
                 zkSystemRepository = zkSystemRepository,
                 settingsModel = settingsModel,
+                externalNfcReaderStore = externalNfcReaderStore,
                 eventLogger = eventLogger,
                 provisioningModel = provisioningModel,
                 proximityReaderModel = proximityReaderModel,
@@ -452,6 +456,7 @@ class App private constructor() {
                 documentTypeRepository = documentTypeRepository,
                 zkSystemRepository = zkSystemRepository,
                 settingsModel = settingsModel,
+                externalNfcReaderStore = externalNfcReaderStore,
                 eventLogger = eventLogger,
                 provisioningModel = provisioningModel,
                 proximityReaderModel = proximityReaderModel,

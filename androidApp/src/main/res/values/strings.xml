@@ -100,9 +100,46 @@
     <string name="settings_screen_sync_info_signed_out">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You\'ll also be able manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="settings_screen_trusted_issuers">Trusted issuers</string>
     <string name="settings_screen_trusted_verifiers">Trusted verifiers</string>
+    <string name="settings_screen_external_nfc_readers">External NFC readers</string>
     <string name="settings_screen_developer_settings">Developer settings</string>
     <string name="settings_screen_about">About %1$s</string>
     <string name="settings_screen_activity_logging_button_text">Activity logging</string>
+
+    <string name="external_nfc_readers_screen_title">External NFC readers</string>
+    <string name="external_nfc_readers_configured_heading">Configured readers</string>
+    <string name="external_nfc_readers_screen_none">No external NFC readers configured</string>
+    <string name="external_nfc_readers_screen_info">To use an external NFC reader connected via USB, simply plug it in. Any USB smart card reader supporting the standard CCID protocol (USB Class 11) will prompt for permission and be detected automatically.</string>
+    <string name="external_nfc_reader_screen_title">External NFC reader</string>
+    <string name="external_nfc_reader_edit_name">Edit reader name</string>
+    <string name="external_nfc_reader_hardware_name">Hardware name: %1$s</string>
+    <string name="external_nfc_reader_custom_name">Custom name</string>
+    <string name="external_nfc_reader_edit_name_button">Edit name</string>
+    <string name="external_nfc_reader_remove_button">Remove</string>
+    <string name="external_nfc_reader_remove_dialog_title">Remove reader</string>
+    <string name="external_nfc_reader_remove_dialog_text">Are you sure you want to remove this external NFC reader?</string>
+    <string name="external_nfc_reader_status_connected">Connected</string>
+    <string name="external_nfc_reader_status_not_connected">Not connected</string>
+    <string name="request_verification_nfc_reader_heading">NFC reader</string>
+    <string name="request_verification_internal_nfc_reader">Internal NFC reader</string>
+    <string name="request_verification_tap_on_external_nfc_reader">Tap on external NFC reader</string>
+    <string name="request_verification_reader_not_connected_title">Reader not connected</string>
+    <string name="request_verification_reader_not_connected_message">The selected external NFC reader is not connected. Please connect the reader to your device and try again.</string>
+    <string name="request_verification_nfc_reader_info">To use an external NFC reader, connect it to your device via USB and follow the on-screen prompts.</string>
+    <string name="select_external_nfc_reader_screen_title">Select NFC reader</string>
+    <string name="select_external_nfc_reader_note">Select which NFC reader to use for in-person credential verification.</string>
+
+    <string name="external_nfc_reader_field_name">Name</string>
+    <string name="external_nfc_reader_field_original_name">Original name</string>
+    <string name="external_nfc_reader_field_connection">Connection</string>
+    <string name="external_nfc_reader_connection_usb">USB</string>
+    <string name="external_nfc_reader_field_vendor_id">Vendor ID</string>
+    <string name="external_nfc_reader_field_product_id">Product ID</string>
+    <string name="external_nfc_reader_field_interface_index">Interface index</string>
+    <string name="external_nfc_reader_field_state">State</string>
+    <string name="external_nfc_reader_type_builtin">Built-in NFC reader</string>
+    <string name="external_nfc_reader_type_external">External NFC reader</string>
+    <string name="external_nfc_reader_type_external_status">External NFC reader • %1$s</string>
+    <string name="edit_external_nfc_reader_name_save_button">Save</string>
 
     <string name="device_sessions_screen_title">Device sessions</string>
     <string name="device_sessions_screen_blurb">Devices signed in to %1$s have access to your synced wallet data. You can review active sessions and sign out of any device at any time.</string>

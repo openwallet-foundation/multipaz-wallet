@@ -18,6 +18,7 @@ import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
@@ -39,6 +40,7 @@ fun MdocUrlVerificationNavHost(
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     settingsModel: SettingsModel,
+    externalNfcReaderStore: ExternalNfcReaderStore,
     eventLogger: SimpleEventLogger,
     provisioningModel: ProvisioningModel,
     proximityReaderModel: ProximityReaderModel,
@@ -63,6 +65,7 @@ fun MdocUrlVerificationNavHost(
         secureArea = secureArea,
         documentModel = documentModel,
         settingsModel = settingsModel,
+        externalNfcReaderStore = externalNfcReaderStore,
         documentTypeRepository = documentTypeRepository,
         zkSystemRepository = zkSystemRepository,
         proximityReaderModel = proximityReaderModel,

@@ -3,7 +3,6 @@ package org.multipaz.wallet.android.ui.verification
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -27,8 +26,8 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +39,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -58,23 +58,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
-import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.datetime.durationFromNowText
-import org.multipaz.compose.items.FloatingItemContainer
+import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.nfc.ExternalNfcReaderState
+import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.prompt.PromptModel
 import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
@@ -87,14 +88,15 @@ import org.multipaz.wallet.android.VERIFICATION_LINK_EXPIRATION
 import org.multipaz.wallet.android.checkVerificationResults
 import org.multipaz.wallet.android.decryptResponse
 import org.multipaz.wallet.android.deleteVerification
+import org.multipaz.wallet.android.getCompletedVerifications
 import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.getPendingVerifications
-import org.multipaz.wallet.android.getCompletedVerifications
 import org.multipaz.wallet.android.postNotification
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.shareVerificationLink
 import org.multipaz.wallet.android.ui.ConfirmationDialog
+import org.multipaz.wallet.android.ui.InfoNote
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
@@ -115,6 +117,7 @@ fun RequestVerificationScreen(
     walletClient: WalletClient,
     storage: Storage,
     settingsModel: SettingsModel,
+    externalNfcReaderStore: ExternalNfcReaderStore,
     documentModel: DocumentModel,
     promptModel: PromptModel,
     documentTypeRepository: DocumentTypeRepository,
@@ -122,6 +125,7 @@ fun RequestVerificationScreen(
     issuerTrustManager: CompositeTrustManager,
     eventLogger: SimpleEventLogger,
     onSelectVerificationTypeClicked: () -> Unit,
+    onSelectNfcReaderClicked: () -> Unit,
     onScanQrClicked: () -> Unit,
     onScanNfcClicked: () -> Unit,
     onGenerateVerificationLinkClicked: () -> Unit,
@@ -138,6 +142,8 @@ fun RequestVerificationScreen(
     val notificationPermissionState = rememberNotificationPermissionState()
     var showPermissionDialog by remember { mutableStateOf(false) }
 
+    val externalReaders = externalNfcReaderStore.readers.collectAsState().value
+    val selectedReaderId = settingsModel.selectedExternalNfcReaderId.collectAsState().value
     if (showPermissionDialog) {
         ConfirmationDialog(
             title = stringResource(R.string.request_verification_notification_permission_title),
@@ -482,7 +488,32 @@ fun RequestVerificationScreen(
                     }
                 }
             } else {
-                Spacer(modifier = Modifier.height(10.dp))
+                val activeReaderDisplayName = if (selectedReaderId != null) {
+                    externalReaders.find { it.id == selectedReaderId }?.let { it.userDisplayName ?: it.displayName }
+                        ?: stringResource(R.string.request_verification_internal_nfc_reader)
+                } else {
+                    stringResource(R.string.request_verification_internal_nfc_reader)
+                }
+
+                FloatingItemList(title = stringResource(R.string.request_verification_nfc_reader_heading)) {
+                    FloatingItemHeadingAndContent(
+                        modifier = Modifier.clickable { onSelectNfcReaderClicked() },
+                        showChevron = true,
+                        heading = activeReaderDisplayName,
+                        content = {
+                            Text(
+                                text = if (selectedReaderId == null || externalReaders.none { it.id == selectedReaderId })
+                                    stringResource(R.string.external_nfc_reader_type_builtin)
+                                else
+                                    stringResource(R.string.external_nfc_reader_type_external),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
+                InfoNote(markdownString = stringResource(R.string.request_verification_nfc_reader_info))
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)

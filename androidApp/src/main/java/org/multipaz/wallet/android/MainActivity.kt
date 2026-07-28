@@ -14,6 +14,10 @@ import androidx.lifecycle.coroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import androidx.core.content.IntentCompat
+import org.multipaz.nfc.handleUsbDeviceAttached
 import org.multipaz.context.initializeApplication
 import org.multipaz.util.Logger
 import org.multipaz.wallet.shared.BuildConfig
@@ -100,6 +104,18 @@ class MainActivity : FragmentActivity() {
                 lifecycle.coroutineScope.launch {
                     val app = App.getInstance()
                     app.handleUrl(url)
+                }
+            }
+        } else if (intent.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
+            val device = IntentCompat.getParcelableExtra(
+                intent,
+                UsbManager.EXTRA_DEVICE,
+                UsbDevice::class.java
+            )
+            if (device != null) {
+                lifecycle.coroutineScope.launch {
+                    val app = App.getInstance()
+                    app.externalNfcReaderStore.handleUsbDeviceAttached(device)
                 }
             }
         }

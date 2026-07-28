@@ -38,6 +38,9 @@
     <!-- For posting notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- For USB-based NFC readers -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -59,6 +62,13 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- This is for when the user attaches a supported USB-based external NFC Reader -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/usb_nfc_readers" />
 
             <!-- AppLink used by provisioning backend, keep in sync with WalletClient.
                  The applinkHost parameter is defined in build.gradle.kts.

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.NoAccounts
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,6 +67,7 @@ fun SettingsScreen(
     onSignInToGoogleClicked: () -> Unit,
     onTrustedIssuersClicked: () -> Unit,
     onTrustedReadersClicked: () -> Unit,
+    onExternalNfcReadersClicked: () -> Unit,
     onActivityLoggingClicked: () -> Unit,
     onDeveloperSettingsClicked: () -> Unit,
     onAboutClicked: () -> Unit,
@@ -193,6 +195,16 @@ fun SettingsScreen(
                     text = stringResource(R.string.settings_screen_trusted_verifiers),
                     image = {
                         Icon(Icons.Outlined.Business, contentDescription = null)
+                    }
+                )
+                FloatingItemText(
+                    modifier = Modifier.clickable {
+                        onExternalNfcReadersClicked()
+                    },
+                    showChevron = true,
+                    text = stringResource(R.string.settings_screen_external_nfc_readers),
+                    image = {
+                        Icon(Icons.Outlined.Nfc, contentDescription = null)
                     }
                 )
                 FloatingItemText(

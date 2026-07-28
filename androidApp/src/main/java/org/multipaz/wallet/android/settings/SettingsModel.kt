@@ -148,6 +148,7 @@ class SettingsModel private constructor(
         bind(readerQuery, "readerQuery", IdentificationQuery(false))
         bind(verificationIsInPerson, "verificationIsInPerson", true)
         bind(verificationStoreResponse, "verificationStoreResponse", false)
+        bind(selectedExternalNfcReaderId, "selectedExternalNfcReaderId", null)
 
         Logger.isDebugEnabled = loggingDebugEnabled.value
         CoroutineScope(Dispatchers.Default).launch {
@@ -168,4 +169,5 @@ class SettingsModel private constructor(
     val readerQuery = MutableStateFlow<Query>(IdentificationQuery(false))
     val verificationIsInPerson = MutableStateFlow<Boolean>(true)
     val verificationStoreResponse = MutableStateFlow<Boolean>(false)
+    val selectedExternalNfcReaderId = MutableStateFlow<String?>(null)
 }

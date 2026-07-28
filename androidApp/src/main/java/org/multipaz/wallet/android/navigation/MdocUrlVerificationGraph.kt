@@ -25,6 +25,7 @@ import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.prompt.PromptModel
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
+import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.CertificateViewerScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUrlScreen
@@ -51,6 +52,7 @@ fun mdocUrlVerificationGraph(
     secureArea: SecureArea,
     documentModel: DocumentModel,
     settingsModel: SettingsModel,
+    externalNfcReaderStore: ExternalNfcReaderStore,
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     proximityReaderModel: ProximityReaderModel,
@@ -118,6 +120,7 @@ fun mdocUrlVerificationGraph(
                     walletClient = walletClient,
                     secureArea = secureArea,
                     settingsModel = settingsModel,
+                    externalNfcReaderStore = externalNfcReaderStore,
                     promptModel = promptModel,
                     initialScanMode = key.initialScanMode,
                     onBackClicked = {

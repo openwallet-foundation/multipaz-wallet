@@ -27,6 +27,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.flow.first
+import org.multipaz.nfc.ExternalNfcReaderState
+import org.multipaz.nfc.ExternalNfcReaderStore
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -94,6 +98,7 @@ fun VerificationProximityTransferScreen(
     walletClient: WalletClient,
     secureArea: SecureArea,
     settingsModel: SettingsModel,
+    externalNfcReaderStore: ExternalNfcReaderStore,
     promptModel: PromptModel,
     initialScanMode: ProximityScanMode = ProximityScanMode.NONE,
     onNfcHandover: (suspend (ScanMdocReaderResult) -> Unit)? = null,
@@ -176,7 +181,44 @@ fun VerificationProximityTransferScreen(
         }
     }
 
-    val nfcTagReader = remember { NfcTagReader.getReaders().firstOrNull() }
+    val selectedReaderId = settingsModel.selectedExternalNfcReaderId.collectAsState().value
+    val externalReaders = externalNfcReaderStore.readers.collectAsState().value
+    val externalReader = remember(selectedReaderId, externalReaders) {
+        if (selectedReaderId != null) externalReaders.find { it.id == selectedReaderId } else null
+    }
+
+    val nfcTagReader = produceState<NfcTagReader?>(initialValue = null, key1 = externalReader) {
+        value = if (externalReader != null) {
+            try {
+                when (externalReader.observeState().first()) {
+                    ExternalNfcReaderState.NOT_CONNECTED -> {
+                        Logger.w(TAG, "External reader is not connected")
+                        NfcTagReader.getReaders().firstOrNull()
+                    }
+                    ExternalNfcReaderState.CONNECTED_NO_PERMISSION -> {
+                        if (externalReader.requestPermission()) {
+                            externalReader.getNfcTagReader()
+                        } else {
+                            Logger.w(TAG, "Permission denied for external reader")
+                            NfcTagReader.getReaders().firstOrNull()
+                        }
+                    }
+                    ExternalNfcReaderState.CONNECTED -> {
+                        externalReader.getNfcTagReader()
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.e(TAG, "Error getting external NFC tag reader", e)
+                NfcTagReader.getReaders().firstOrNull()
+            }
+        } else {
+            NfcTagReader.getReaders().firstOrNull()
+        }
+    }.value
+
+    val isExternalReader = (externalReader != null) || (nfcTagReader?.external == true)
+
     val nfcScanOptions = remember {
         if (nfcPollingFramesInsertionSupported) {
             NfcScanOptions(
@@ -187,7 +229,7 @@ fun VerificationProximityTransferScreen(
         }
     }
 
-    LaunchedEffect(state, initialScanMode) {
+    LaunchedEffect(state, initialScanMode, nfcTagReader) {
         if (state == ProximityReaderModel.State.IDLE && initialScanMode == ProximityScanMode.NFC && onNfcHandover != null) {
             if (nfcTagReader != null && !nfcTagReader.dialogAlwaysShown) {
                 withContext(promptModel) {
@@ -221,6 +263,9 @@ fun VerificationProximityTransferScreen(
                         } catch (e: Throwable) {
                             if (!isActive) {
                                 Logger.e(TAG, "Caught exception while scanning and scope isn't active", e)
+                                break
+                            } else if (e is SecurityException) {
+                                Logger.e(TAG, "SecurityException while scanning, stopping scan", e)
                                 break
                             } else {
                                 Logger.e(TAG, "Caught exception while scanning. Retrying", e)
@@ -273,7 +318,10 @@ fun VerificationProximityTransferScreen(
         ) { scanning ->
             if (scanning) {
                 if (initialScanMode == ProximityScanMode.NFC) {
-                    InPersonNfcView(isDarkTheme = isDarkTheme)
+                    InPersonNfcView(
+                        isDarkTheme = isDarkTheme,
+                        isExternal = isExternalReader
+                    )
                 } else if (initialScanMode == ProximityScanMode.QR) {
                     InPersonQrScannerView(
                         onQrCodeScanned = { qrCode ->
@@ -309,7 +357,8 @@ fun VerificationProximityTransferScreen(
 
 @Composable
 private fun InPersonNfcView(
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    isExternal: Boolean = false
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -338,7 +387,10 @@ private fun InPersonNfcView(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(R.string.request_verification_hold_to_wallet),
+            text = stringResource(
+                if (isExternal) R.string.request_verification_tap_on_external_nfc_reader
+                else R.string.request_verification_hold_to_wallet
+            ),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )

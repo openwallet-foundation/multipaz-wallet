@@ -37,6 +37,7 @@ import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
+import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -71,6 +72,7 @@ fun AppNavHost(
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
     settingsModel: SettingsModel,
+    externalNfcReaderStore: ExternalNfcReaderStore,
     eventLogger: SimpleEventLogger,
     provisioningModel: ProvisioningModel,
     proximityReaderModel: ProximityReaderModel,
@@ -216,6 +218,7 @@ fun AppNavHost(
         documentStore = documentStore,
         documentModel = documentModel,
         settingsModel = settingsModel,
+        externalNfcReaderStore = externalNfcReaderStore,
         eventLogger = eventLogger,
         documentTypeRepository = documentTypeRepository,
         zkSystemRepository = zkSystemRepository,
