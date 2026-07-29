@@ -28,7 +28,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.produceState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.multipaz.nfc.ExternalNfcReaderState
 import org.multipaz.nfc.ExternalNfcReaderStore
 import androidx.compose.material3.MediumTopAppBar
@@ -137,15 +140,22 @@ fun VerificationProximityTransferScreen(
                         },
                         intentToRetain = settingsModel.verificationStoreResponse.value
                     )
+                    if (keyInfoAndCertification != null) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                walletClient.markReaderKeyAsUsed(
+                                    keyInfo = keyInfoAndCertification.first
+                                )
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.w(TAG, "Error marking reader key as used", e)
+                            }
+                        }
+                    }
                     proximityReaderModel.setDeviceRequest(
                         query = query,
                         deviceRequest = deviceRequest
                     )
-                    if (keyInfoAndCertification != null) {
-                        walletClient.markReaderKeyAsUsed(
-                            keyInfo = keyInfoAndCertification.first
-                        )
-                    }
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     Logger.e(TAG, "Error creating device request", e)

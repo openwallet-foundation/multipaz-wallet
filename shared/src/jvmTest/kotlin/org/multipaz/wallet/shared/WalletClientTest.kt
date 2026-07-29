@@ -1406,6 +1406,24 @@ class WalletClientTest {
         }
         assertEquals(20, seenAliases.size)
     }
+
+    @Test
+    fun testReaderKeysStaleKeyInSecureArea() = runTest {
+        val readerKeyTestData = ReaderKeyTestData()
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea, readerKeyTestData = readerKeyTestData)
+
+        // Get a key to ensure keys are created
+        val (keyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+
+        // Delete the key directly in SecureArea to simulate a missing key alias in SecureArea
+        clientSecureArea.deleteKey(keyInfo.alias)
+
+        // Calling getReaderKey() should clean up the stale key entry and return a valid key
+        val (newKeyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
+        assertNotEquals(keyInfo.alias, newKeyInfo.alias)
+    }
 }
 
 private class TestConfiguration(

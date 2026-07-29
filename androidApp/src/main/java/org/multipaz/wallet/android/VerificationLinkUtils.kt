@@ -28,6 +28,9 @@ import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.verification.VerifierIdentity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 import android.app.NotificationChannel
@@ -113,6 +116,18 @@ suspend fun generateVerificationLink(
         readerAuthKey = readerAuthKey,
         intentToRetain = settingsModel.verificationStoreResponse.value
     )
+    if (keyInfoAndCertification != null) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                walletClient.markReaderKeyAsUsed(
+                    keyInfo = keyInfoAndCertification.first
+                )
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Error marking reader key as used", e)
+            }
+        }
+    }
 
     val mdocApiRequest = VerificationSession.DcIso18013Request(
         origin = origin,

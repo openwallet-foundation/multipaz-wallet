@@ -3,6 +3,7 @@ package org.multipaz.wallet.client
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.http.Url
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1109,7 +1110,12 @@ class WalletClient private constructor(
             }
         }
         keysNotMatchingReaderIdentityId.forEach {
-            secureArea.deleteKey(it.second.alias)
+            try {
+                secureArea.deleteKey(it.second.alias)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Error deleting key from SecureArea", e)
+            }
             certifiedKeysTable.delete(it.first)
             certifiedKeys!!.remove(it.first)
         }
@@ -1131,7 +1137,12 @@ class WalletClient private constructor(
         // Only replenish if we are running below 50%...
         if (numGoodKeys > numReaderKeys / 2) {
             toDelete.forEach {
-                secureArea.deleteKey(it.second.alias)
+                try {
+                    secureArea.deleteKey(it.second.alias)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Logger.w(TAG, "Error deleting key from SecureArea", e)
+                }
                 certifiedKeysTable.delete(it.first)
                 certifiedKeys!!.remove(it.first)
             }
@@ -1185,7 +1196,12 @@ class WalletClient private constructor(
         }
 
         toDelete.forEach {
-            secureArea.deleteKey(it.second.alias)
+            try {
+                secureArea.deleteKey(it.second.alias)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Error deleting key from SecureArea", e)
+            }
             certifiedKeysTable.delete(it.first)
             certifiedKeys!!.remove(it.first)
         }
@@ -1220,22 +1236,38 @@ class WalletClient private constructor(
                 if (e is CancellationException) throw e
                 Logger.w(TAG, "Ignoring error replenishing keys", e)
             }
-            // Return the oldest certificate
+            // Return the oldest valid certificate whose key exists in SecureArea
             val sortedCertifiedKeys = certifiedKeys!!.values
                 .filter { it.validFrom < atTime && atTime < it.validUntil }
                 .sortedBy { it.validFrom }
-            if (sortedCertifiedKeys.isEmpty()) {
-                throw IllegalStateException("No currently valid keys available")
+            val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
+            for (certifiedKey in sortedCertifiedKeys) {
+                val keyInfo = try {
+                    secureArea!!.getKeyInfo(certifiedKey.alias)
+                } catch (e: IllegalArgumentException) {
+                    Logger.w(TAG, "Key ${certifiedKey.alias} missing from SecureArea, removing from certifiedKeys", e)
+                    val entry = certifiedKeys!!.entries.find { it.value.alias == certifiedKey.alias }
+                    if (entry != null) {
+                        certifiedKeysTable.delete(entry.key)
+                        certifiedKeys!!.remove(entry.key)
+                    }
+                    null
+                }
+                if (keyInfo != null) {
+                    return Pair(keyInfo, certifiedKey.certification)
+                }
             }
-            return Pair(
-                secureArea!!.getKeyInfo(sortedCertifiedKeys[0].alias),
-                sortedCertifiedKeys[0].certification
-            )
+            throw IllegalStateException("No currently valid keys available")
         }
     }
 
     /**
      * Marks a key retrieved with [getReaderKey] as used.
+     *
+     * Note that this function may perform synchronous network I/O to the wallet backend to replenish the key pool
+     * if the number of available fresh keys drops below the threshold. Callers in UI or composition coroutine scopes
+     * should launch this function in a separate job (or decoupled coroutine scope) to prevent blocking UI transitions
+     * or being prematurely canceled by recomposition/screen navigation.
      *
      * @param keyInfo the [KeyInfo] returned from the [getReaderKey] call.
      * @param atTime the current time, to take into consideration for purposing of evicting expired keys.
@@ -1244,28 +1276,35 @@ class WalletClient private constructor(
         keyInfo: KeyInfo,
         atTime: Instant = Clock.System.now()
     ) {
-        lock.withLock {
-            ensureCertifiedKeys()
-            val entry = certifiedKeys!!.entries.find { (key, certifiedKey) ->
-                certifiedKey.alias == keyInfo.alias
-            } ?: throw IllegalArgumentException("No such certified key to mark as used")
+        withContext(NonCancellable) {
+            lock.withLock {
+                ensureCertifiedKeys()
+                val entry = certifiedKeys!!.entries.find { (key, certifiedKey) ->
+                    certifiedKey.alias == keyInfo.alias
+                } ?: throw IllegalArgumentException("No such certified key to mark as used")
 
-            // If this was the last key, replenish immediately. If that fails (e.g. no Internet connectivity)
-            // leave the key around but mark that it's already been used
-            if (certifiedKeys!!.size == 1) {
+                // If this was the last key, replenish immediately. If that fails (e.g. no Internet connectivity)
+                // leave the key around but mark that it's already been used
+                if (certifiedKeys!!.size == 1) {
+                    try {
+                        ensureReplenished(readerIdentityId = null, atTime)
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.w(TAG, "Ignoring error replenishing keys so keeping around last key", e)
+                        return@withLock
+                    }
+                }
+
+                val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
                 try {
-                    ensureReplenished(readerIdentityId = null, atTime)
+                    secureArea!!.deleteKey(entry.value.alias)
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
-                    Logger.w(TAG, "Ignoring error replenishing keys so keeping around last key", e)
-                    return
+                    Logger.w(TAG, "Error deleting key from SecureArea", e)
                 }
+                certifiedKeysTable.delete(key = entry.key)
+                certifiedKeys!!.remove(entry.key)
             }
-
-            val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
-            secureArea!!.deleteKey(entry.value.alias)
-            certifiedKeysTable.delete(key = entry.key)
-            certifiedKeys!!.remove(entry.key)
         }
     }
 

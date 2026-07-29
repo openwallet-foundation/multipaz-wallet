@@ -148,7 +148,7 @@ class ProximityReaderModel {
             add(Tagged(24, Bstr(encodedEReaderKey)))
             add(handover)
         }
-        Logger.iCbor(TAG, "sessionTranscript", _sessionTranscript!!)
+        Logger.dCbor(TAG, "sessionTranscript", _sessionTranscript!!)
     }
 
     fun setDeviceRequest(
@@ -248,7 +248,7 @@ class ProximityReaderModel {
             transport
         }
 
-        Logger.iCbor(TAG, "handover", Cbor.encode(handover))
+        Logger.dCbor(TAG, "handover", Cbor.encode(handover))
 
         val sessionEncryption = SessionEncryption(
             role = MdocRole.MDOC_READER,
@@ -262,7 +262,7 @@ class ProximityReaderModel {
         val connectionMethod = transport.connectionMethod
         try {
             transport.open(deviceEngagement.eDeviceKey)
-            Logger.iCbor(TAG, "DeviceRequest", deviceRequest!!.toDataItem())
+            Logger.dCbor(TAG, "DeviceRequest", deviceRequest!!.toDataItem())
             transport.sendMessage(
                 sessionEncryption.encryptMessage(
                     messagePlaintext = Cbor.encode(deviceRequest!!.toDataItem()),
