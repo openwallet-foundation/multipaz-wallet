@@ -51,7 +51,7 @@ It is critical that all code you deliver compiles successfully and passes all re
 
 ### Shared Core (`shared/`)
 This is a Kotlin Multiplatform (KMP) module.
-*   **Compile:** `./gradlew :shared:assemble`
+*   **Compile:** `./gradlew :shared:assemble` *(Note: `:shared:assemble` is slow because it rebuilds the iOS XCFramework and should be avoided unless working on code in `iosApp/`)*
 *   **Test:** `./gradlew :shared:allTests`
 
 ### Backend (`backend/`)

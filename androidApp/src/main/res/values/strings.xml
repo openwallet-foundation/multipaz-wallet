@@ -503,7 +503,7 @@
     <string name="select_user_defined_query_dialog_add_data_element">Add element</string>
     <string name="select_user_defined_query_dialog_data_element">Data element name</string>
     <string name="select_verification_type_edit_user_defined">Edit query</string>
-    <string name="select_user_defined_query_note">This advanced feature allows requesting a document given the ISO mdoc document type, namespace names, and data element names. Use with caution.</string>
+    <string name="select_user_defined_query_note">This developer-mode feature allows requesting a document given the ISO mdoc document type, namespace names, and data element names.</string>
 
 
 

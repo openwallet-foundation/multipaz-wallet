@@ -84,6 +84,7 @@ fun SelectVerificationTypeScreen(
             Note(stringResource(R.string.select_verification_type_note))
             Spacer(modifier = Modifier.height(10.dp))
             val selectedQuery = settingsModel.readerQuery.collectAsState().value
+            val devMode = settingsModel.devMode.collectAsState().value
             FloatingItemList {
                 val builtInAges = listOf(18, 21, 65).map { AgeOverQuery(it) }
                 RequestOption(
@@ -151,28 +152,30 @@ fun SelectVerificationTypeScreen(
                         settingsModel.readerQuery.value = DrivingPrivilegesQuery()
                     },
                 )
-                val userDefinedSelected = selectedQuery is UserDefinedQuery
-                RequestOption(
-                    title = stringResource(R.string.reader_query_user_defined),
-                    description = if (userDefinedSelected) {
-                        selectedQuery.getDescription()
-                    } else {
-                        stringResource(R.string.reader_query_user_defined_description_default)
-                    },
-                    selected = userDefinedSelected,
-                    onClick = {
-                        onUserDefinedClicked()
-                    },
-                    extraContent = {
-                        if (userDefinedSelected) {
-                            FilterChip(
-                                selected = true,
-                                onClick = { onUserDefinedClicked() },
-                                label = { Text(stringResource(R.string.select_verification_type_edit_user_defined)) }
-                            )
+                if (devMode) {
+                    val userDefinedSelected = selectedQuery is UserDefinedQuery
+                    RequestOption(
+                        title = stringResource(R.string.reader_query_user_defined),
+                        description = if (userDefinedSelected) {
+                            selectedQuery.getDescription()
+                        } else {
+                            stringResource(R.string.reader_query_user_defined_description_default)
+                        },
+                        selected = userDefinedSelected,
+                        onClick = {
+                            onUserDefinedClicked()
+                        },
+                        extraContent = {
+                            if (userDefinedSelected) {
+                                FilterChip(
+                                    selected = true,
+                                    onClick = { onUserDefinedClicked() },
+                                    label = { Text(stringResource(R.string.select_verification_type_edit_user_defined)) }
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(20.dp))
         }

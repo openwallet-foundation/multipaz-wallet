@@ -21,6 +21,7 @@ import org.multipaz.storage.StorageTableSpec
 import org.multipaz.util.Logger
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.UserDefinedQuery
 import org.multipaz.wallet.client.verification.fromDataItem
 import org.multipaz.wallet.client.verification.toDataItem
 import kotlin.time.Instant
@@ -154,6 +155,13 @@ class SettingsModel private constructor(
         CoroutineScope(Dispatchers.Default).launch {
             loggingDebugEnabled.asStateFlow().collect { enabled ->
                 Logger.isDebugEnabled = enabled
+            }
+        }
+        CoroutineScope(Dispatchers.Default).launch {
+            devMode.asStateFlow().collect { enabled ->
+                if (!enabled && readerQuery.value is UserDefinedQuery) {
+                    readerQuery.value = IdentificationQuery(false)
+                }
             }
         }
     }
