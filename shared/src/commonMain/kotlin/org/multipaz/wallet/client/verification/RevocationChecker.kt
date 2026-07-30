@@ -2,7 +2,6 @@ package org.multipaz.wallet.client.verification
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.request.header
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -14,6 +13,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.Json
 import org.multipaz.crypto.X509CertChain
+import org.multipaz.revocation.CompressedStatusList
 import org.multipaz.revocation.IdentifierList
 import org.multipaz.revocation.RevocationStatus
 import org.multipaz.revocation.StatusList
@@ -24,7 +24,6 @@ import org.multipaz.storage.StorageTableSpec
 import org.multipaz.util.Logger
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -100,13 +99,11 @@ interface RevocationChecker {
  *
  * @param storage Storage instance used to persist revocation list caches.
  * @param httpClient Ktor [HttpClient] used to fetch revocation status and identifier lists over HTTP/HTTPS.
- * @param fallbackCacheTtl Fallback TTL used for cached revocation status and identifier lists if expiration is not present in the payload.
  * @param httpTimeout Timeout duration for network requests fetching revocation lists.
  */
 class StorageRevocationChecker(
     private val storage: Storage,
     private val httpClient: HttpClient = HttpClient(),
-    private val fallbackCacheTtl: Duration = 1.days,
     private val httpTimeout: Duration = 10.seconds
 ) : RevocationChecker {
 
@@ -164,7 +161,8 @@ class StorageRevocationChecker(
     private suspend fun fetchOrGetCached(
         uri: String,
         acceptHeader: String? = null,
-        bypassCache: Boolean = false
+        bypassCache: Boolean = false,
+        expirationExtractor: suspend (raw: ByteArray, ContentType?) -> Instant
     ): Pair<ByteArray, ContentType?> {
         val table = getCacheTable()
         if (!bypassCache) {
@@ -192,8 +190,7 @@ class StorageRevocationChecker(
             Pair(response.readRawBytes(), response.contentType())
         }
 
-        // TODO: Use exp or ttl in RevocationStatus when added to Multipaz
-        val expirationInstant = Clock.System.now() + fallbackCacheTtl
+        val expirationInstant = expirationExtractor.invoke(bytes, contentType)
         try {
             table.insert(key = uri, data = ByteString(bytes), expiration = expirationInstant)
         } catch (e: Exception) {
@@ -226,7 +223,20 @@ class StorageRevocationChecker(
                 uri = status.uri,
                 acceptHeader = "$STATUSLIST_CWT, $STATUSLIST_JWT;q=0.9",
                 bypassCache = bypassCache
-            )
+            ) { bytes, contentType ->
+                try {
+                    if (contentType == STATUSLIST_JWT) {
+                        CompressedStatusList.fromJwt(bytes.decodeToString()).expirationTime
+                    } else {
+                        CompressedStatusList.fromCwt(bytes).expirationTime
+                    }
+                } catch (err: CancellationException) {
+                    throw err
+                } catch (err: Exception) {
+                    // Could not parse; error will be logged below
+                    Clock.System.now() + 2.seconds
+                }
+            }
 
             val statusList = try {
                 if (contentType == STATUSLIST_JWT) {
@@ -312,7 +322,16 @@ class StorageRevocationChecker(
                     error = IllegalStateException("No certificate available for signature verification")
                 )
             }
-            val (bytes, _) = fetchOrGetCached(uri = status.uri, bypassCache = bypassCache)
+            val (bytes, _) = fetchOrGetCached(uri = status.uri, bypassCache = bypassCache) { bytes, contentType ->
+                try {
+                    IdentifierList.fromCwt(bytes).expirationTime
+                } catch (err: CancellationException) {
+                    throw err
+                } catch (err: Exception) {
+                    // Could not parse; error will be logged below
+                    Clock.System.now() + 2.seconds
+                }
+            }
             Logger.dCbor(TAG, "Identifier list (CWT) for ${status.uri}", bytes)
             val identifierList = IdentifierList.fromCwt(
                 cwt = bytes,
