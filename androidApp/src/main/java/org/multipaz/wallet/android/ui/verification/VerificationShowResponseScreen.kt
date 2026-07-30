@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -1078,6 +1079,8 @@ fun ShowUserDefinedResult(
                     val bstr = value.asBstr
                     if (isJpegOrPng(bstr)) {
                         "Image (${bstr.size} bytes)"
+                    } else if (bstr.size > 256) {
+                        "Binary (${bstr.size} bytes)"
                     } else {
                         try {
                             value.toCdn()
@@ -1112,6 +1115,28 @@ fun ShowUserDefinedResult(
     Spacer(modifier = Modifier.height(20.dp))
 }
 
+private fun isJpeg2000(bytes: ByteArray): Boolean {
+    val isJpeg2000Jp2 = bytes.size >= 12 &&
+            (bytes[0].toInt() and 0xFF == 0x00) &&
+            (bytes[1].toInt() and 0xFF == 0x00) &&
+            (bytes[2].toInt() and 0xFF == 0x00) &&
+            (bytes[3].toInt() and 0xFF == 0x0C) &&
+            (bytes[4].toInt() and 0xFF == 0x6A) &&
+            (bytes[5].toInt() and 0xFF == 0x50) &&
+            (bytes[6].toInt() and 0xFF == 0x20) &&
+            (bytes[7].toInt() and 0xFF == 0x20) &&
+            (bytes[8].toInt() and 0xFF == 0x0D) &&
+            (bytes[9].toInt() and 0xFF == 0x0A) &&
+            (bytes[10].toInt() and 0xFF == 0x87) &&
+            (bytes[11].toInt() and 0xFF == 0x0A)
+    val isJpeg2000J2k = bytes.size >= 4 &&
+            (bytes[0].toInt() and 0xFF == 0xFF) &&
+            (bytes[1].toInt() and 0xFF == 0x4F) &&
+            (bytes[2].toInt() and 0xFF == 0xFF) &&
+            (bytes[3].toInt() and 0xFF == 0x51)
+    return isJpeg2000Jp2 || isJpeg2000J2k
+}
+
 private fun isJpegOrPng(bytes: ByteArray): Boolean {
     if (bytes.size < 500) return false
     val isJpeg = bytes.size >= 3 &&
@@ -1127,7 +1152,7 @@ private fun isJpegOrPng(bytes: ByteArray): Boolean {
             (bytes[5].toInt() and 0xFF == 0x0A) &&
             (bytes[6].toInt() and 0xFF == 0x1A) &&
             (bytes[7].toInt() and 0xFF == 0x0A)
-    return isJpeg || isPng
+    return isJpeg || isPng || isJpeg2000(bytes)
 }
 
 private fun extractPortraitImage(result: org.multipaz.wallet.client.verification.UserDefinedDocumentQueryResult): ByteString? {
