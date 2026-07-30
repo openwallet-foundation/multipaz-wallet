@@ -116,18 +116,6 @@ suspend fun generateVerificationLink(
         readerAuthKey = readerAuthKey,
         intentToRetain = settingsModel.verificationStoreResponse.value
     )
-    if (keyInfoAndCertification != null) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                walletClient.markReaderKeyAsUsed(
-                    keyInfo = keyInfoAndCertification.first
-                )
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Logger.w(TAG, "Error marking reader key as used", e)
-            }
-        }
-    }
 
     val mdocApiRequest = VerificationSession.DcIso18013Request(
         origin = origin,
@@ -165,6 +153,19 @@ suspend fun generateVerificationLink(
             state = null
         ).toString()
     )
+
+    if (keyInfoAndCertification != null) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                walletClient.markReaderKeyAsUsed(
+                    keyInfo = keyInfoAndCertification.first
+                )
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Error marking reader key as used", e)
+            }
+        }
+    }
 
     val session = VerificationSession(
         requests = listOf(mdocApiRequest, openIdRequest),
