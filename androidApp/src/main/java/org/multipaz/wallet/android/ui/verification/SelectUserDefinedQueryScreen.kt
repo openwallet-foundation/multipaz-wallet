@@ -15,7 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 
@@ -172,7 +172,7 @@ fun SelectUserDefinedQueryScreen(
                             if (namespaceEntries.size > 1) {
                                 IconButton(onClick = { namespaceEntries.removeAt(nsIndex) }) {
                                     Icon(
-                                        imageVector = Icons.Default.Delete,
+                                        imageVector = Icons.Outlined.Delete,
                                         contentDescription = null
                                     )
                                 }
@@ -197,7 +197,7 @@ fun SelectUserDefinedQueryScreen(
                                 if (nsState.elements.size > 1) {
                                     IconButton(onClick = { nsState.elements.removeAt(elemIndex) }) {
                                         Icon(
-                                            imageVector = Icons.Default.Delete,
+                                            imageVector = Icons.Outlined.Delete,
                                             contentDescription = null
                                         )
                                     }

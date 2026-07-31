@@ -23,7 +23,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Science
@@ -117,6 +117,8 @@ import org.multipaz.wallet.client.verification.Result
 import org.multipaz.wallet.client.verification.RevocationChecker
 import org.multipaz.wallet.client.verification.RevocationCheckResult
 import org.multipaz.wallet.client.verification.RevocationCheckState
+import org.multipaz.wallet.client.verification.isJpegOrPng
+import org.multipaz.wallet.client.verification.portrait
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Instant
@@ -217,7 +219,7 @@ fun VerificationShowResponseScreen(
                     if (onEventDelete != null) {
                         IconButton(onClick = onEventDelete) {
                             Icon(
-                                imageVector = Icons.Filled.Delete,
+                                imageVector = Icons.Outlined.Delete,
                                 contentDescription = null
                             )
                         }
@@ -1048,7 +1050,7 @@ fun ShowUserDefinedResult(
     val atTime = verificationTime ?: Clock.System.now()
     val revocationCheckResult = rememberRevocationCheckResult(result, revocationChecker, atTime)
 
-    val portrait = remember(result) { extractPortraitImage(result) }
+    val portrait = remember(result) { result.portrait }
     if (portrait != null) {
         ShowPortrait(portrait)
     }
@@ -1113,60 +1115,4 @@ fun ShowUserDefinedResult(
     )
     ShowEventDetails(verificationTime, verificationLocation)
     Spacer(modifier = Modifier.height(20.dp))
-}
-
-private fun isJpeg2000(bytes: ByteArray): Boolean {
-    val isJpeg2000Jp2 = bytes.size >= 12 &&
-            (bytes[0].toInt() and 0xFF == 0x00) &&
-            (bytes[1].toInt() and 0xFF == 0x00) &&
-            (bytes[2].toInt() and 0xFF == 0x00) &&
-            (bytes[3].toInt() and 0xFF == 0x0C) &&
-            (bytes[4].toInt() and 0xFF == 0x6A) &&
-            (bytes[5].toInt() and 0xFF == 0x50) &&
-            (bytes[6].toInt() and 0xFF == 0x20) &&
-            (bytes[7].toInt() and 0xFF == 0x20) &&
-            (bytes[8].toInt() and 0xFF == 0x0D) &&
-            (bytes[9].toInt() and 0xFF == 0x0A) &&
-            (bytes[10].toInt() and 0xFF == 0x87) &&
-            (bytes[11].toInt() and 0xFF == 0x0A)
-    val isJpeg2000J2k = bytes.size >= 4 &&
-            (bytes[0].toInt() and 0xFF == 0xFF) &&
-            (bytes[1].toInt() and 0xFF == 0x4F) &&
-            (bytes[2].toInt() and 0xFF == 0xFF) &&
-            (bytes[3].toInt() and 0xFF == 0x51)
-    return isJpeg2000Jp2 || isJpeg2000J2k
-}
-
-private fun isJpegOrPng(bytes: ByteArray): Boolean {
-    if (bytes.size < 500) return false
-    val isJpeg = bytes.size >= 3 &&
-            (bytes[0].toInt() and 0xFF == 0xFF) &&
-            (bytes[1].toInt() and 0xFF == 0xD8) &&
-            (bytes[2].toInt() and 0xFF == 0xFF)
-    val isPng = bytes.size >= 8 &&
-            (bytes[0].toInt() and 0xFF == 0x89) &&
-            (bytes[1].toInt() and 0xFF == 0x50) &&
-            (bytes[2].toInt() and 0xFF == 0x4E) &&
-            (bytes[3].toInt() and 0xFF == 0x47) &&
-            (bytes[4].toInt() and 0xFF == 0x0D) &&
-            (bytes[5].toInt() and 0xFF == 0x0A) &&
-            (bytes[6].toInt() and 0xFF == 0x1A) &&
-            (bytes[7].toInt() and 0xFF == 0x0A)
-    return isJpeg || isPng || isJpeg2000(bytes)
-}
-
-private fun extractPortraitImage(result: org.multipaz.wallet.client.verification.UserDefinedDocumentQueryResult): ByteString? {
-    for ((_, elements) in result.elements) {
-        for ((dataElement, value) in elements) {
-            if (dataElement.equals("portrait", ignoreCase = true)) {
-                try {
-                    val bytes = value.asBstr
-                    if (isJpegOrPng(bytes)) {
-                        return ByteString(bytes)
-                    }
-                } catch (_: Exception) {}
-            }
-        }
-    }
-    return null
 }

@@ -1,12 +1,13 @@
 package org.multipaz.wallet.android.ui.verification
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -14,7 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Link
@@ -41,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -53,7 +53,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
+import org.multipaz.compose.decodeImage
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
 import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.items.FloatingItemList
@@ -73,14 +75,12 @@ import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
-import org.multipaz.wallet.client.verification.DrivingPrivilegesDocumentQueryResult
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
-import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
-
 import org.multipaz.wallet.client.verification.Result
 import org.multipaz.wallet.client.verification.fromCbor
+import org.multipaz.wallet.client.verification.portrait
 
 private data class EventVerificationData(
     val portrait: ImageBitmap?,
@@ -108,14 +108,14 @@ fun VerificationEventListScreen(
         ?.filterIsInstance<EventVerification>()
         ?.sortedByDescending { it.timestamp }
 
-    val eventDataMap = remember { mutableStateMapOf<String, EventVerificationData>() }
+    val eventDataMap = remember { mutableStateMapOf<String, EventVerificationData?>() }
 
     LaunchedEffect(currentEvents) {
         if (currentEvents != null) {
             for (event in currentEvents) {
                 if (eventDataMap.containsKey(event.identifier)) continue
                 launch(Dispatchers.Default) {
-                    try {
+                    val data = try {
                         val queryDataItem = event.appData["query"]
                         if (queryDataItem != null) {
                             val query = Query.fromCbor(Cbor.encode(queryDataItem))
@@ -130,32 +130,30 @@ fun VerificationEventListScreen(
                                 issuerTrustManager = issuerTrustManager
                             )
                             val docResult = queryResult.documents.firstOrNull()
-                            val portraitBytes = when (docResult) {
-                                is AgeOverDocumentQueryResult -> docResult.portrait
-                                is IdentificationDocumentQueryResult -> docResult.portrait
-                                is DrivingPrivilegesDocumentQueryResult -> docResult.portrait
-                                else -> null
-                            }
+                            val portraitBytes = docResult?.portrait
                             val portraitBitmap = portraitBytes?.let {
-                                val array = it.toByteArray()
-                                BitmapFactory.decodeByteArray(array, 0, array.size)?.asImageBitmap()
+                                decodeImage(it.toByteArray())
                             }
-                            withContext(Dispatchers.Main) {
-                                eventDataMap[event.identifier] = EventVerificationData(
-                                    portrait = portraitBitmap,
-                                    queryResult = queryResult,
-                                    presentmentRecord = presentmentRecord
-                                )
-                            }
-                        }
+                            EventVerificationData(
+                                portrait = portraitBitmap,
+                                queryResult = queryResult,
+                                presentmentRecord = presentmentRecord
+                            )
+                        } else null
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         Logger.e("VerificationEventListScreen", "Failed to process event ${event.identifier}", e)
+                        null
+                    }
+                    withContext(Dispatchers.Main) {
+                        eventDataMap[event.identifier] = data
                     }
                 }
             }
         }
     }
+
+    val isLoaded = currentEvents != null && currentEvents.all { eventDataMap.containsKey(it.identifier) }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -181,7 +179,7 @@ fun VerificationEventListScreen(
                         enabled = currentEvents?.isNotEmpty() ?: false
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Delete,
+                            imageVector = Icons.Outlined.Delete,
                             contentDescription = null
                         )
                     }
@@ -190,21 +188,28 @@ fun VerificationEventListScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Note(
-                markdownString = stringResource(R.string.verification_history_note)
-            )
-            FloatingItemList {
-                if (currentEvents == null) {
-                    CircularProgressIndicator()
-                } else {
-                    if (currentEvents.isEmpty()) {
+        if (!isLoaded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Note(
+                    markdownString = stringResource(R.string.verification_history_note)
+                )
+                FloatingItemList {
+                    if (currentEvents.isNullOrEmpty()) {
                         FloatingItemCenteredText(
                             text = stringResource(R.string.verification_history_empty),
                         )
@@ -220,8 +225,8 @@ fun VerificationEventListScreen(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.size(20.dp))
             }
-            Spacer(modifier = Modifier.size(20.dp))
         }
     }
 }
