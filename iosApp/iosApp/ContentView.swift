@@ -35,8 +35,8 @@ struct ContentView: View {
                                 ProximityPresentmentScreen(documentId: documentId)
                             case .addToWallet:
                                 AddToWalletScreen()
-                            case .provisioning(let issuerUrl, let credentialId):
-                                ProvisioningScreen(issuerUrl: issuerUrl, credentialId: credentialId)
+                            case .provisioning(let issuerUrl, let credentialId, let provisionedDocumentIdentifier):
+                                ProvisioningScreen(issuerUrl: issuerUrl, credentialId: credentialId, provisionedDocumentIdentifier: provisionedDocumentIdentifier)
                             case .provisioningFromOffer(let credentialOfferUri):
                                 ProvisioningScreen(credentialOfferUri: credentialOfferUri)
                             case .requestVerification:

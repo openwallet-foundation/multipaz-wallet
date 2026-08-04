@@ -70,8 +70,8 @@ class ViewModel {
             secret: BuildConfig.shared.BACKEND_SECRET,
             storage: storage,
             secureArea: secureArea,
-            numReaderKeys: 10,
             httpClientEngineFactory: Darwin(),
+            numReaderKeys: 10,
         )
         
         secureAreaRepository = SecureAreaRepository.Builder()
@@ -238,35 +238,100 @@ class ViewModel {
         
         let dcApi = try! await DigitalCredentialsCompanion.shared.getDefault()
         if dcApi.registerAvailable {
-            try! await dcApi.register(
-                documentStore: documentStore,
-                documentTypeRepository: documentTypeRepository,
-                selectedProtocols: dcApi.supportedProtocols
-            )
+            do {
+                try await dcApi.register(
+                    documentStore: documentStore,
+                    documentTypeRepository: documentTypeRepository,
+                    selectedProtocols: dcApi.supportedProtocols
+                )
+            } catch {
+                print("Error registering with DigitalCredentials API: \(error)")
+            }
             Task {
                 for await _ in documentStore.eventFlow {
-                    try! await dcApi.register(
-                        documentStore: documentStore,
-                        documentTypeRepository: documentTypeRepository,
-                        selectedProtocols: dcApi.supportedProtocols
-                    )
+                    Task {
+                        do {
+                            try await dcApi.register(
+                                documentStore: documentStore,
+                                documentTypeRepository: documentTypeRepository,
+                                selectedProtocols: dcApi.supportedProtocols
+                            )
+                        } catch {
+                            print("Error re-registering with DigitalCredentials API on eventFlow: \(error)")
+                        }
+                    }
                 }
             }
         }
         
         documentModel = try! await DocumentModel(
             documentStore: documentStore,
-            documentTypeRepository: documentTypeRepository
+            documentTypeRepository: documentTypeRepository,
+            badgeFunction: { document in
+                var badges: [DocumentBadge] = []
+                if document.provisionedDocumentSetupNeeded {
+                    badges.append(
+                        DocumentBadge(
+                            text: "Setup Required",
+                            color: DocumentBadgeColor(red: 0, green: 0, blue: 0)
+                        )
+                    )
+                }
+                return badges
+            }
         )
         
+        if walletClient.signedInUser.value != nil {
+            do {
+                try await walletClient.refreshSharedData()
+                await self.syncSharedData()
+            } catch {
+                print("Error refreshing shared data at startup: \(error)")
+            }
+        }
+        
         Task {
+            var previousUser: WalletClientSignedInUser? = walletClient.signedInUser.value
+            self.signedInUser = previousUser
             for await signedInUser in walletClient.signedInUser {
+                let userJustSignedOut = previousUser != nil && signedInUser == nil
+                previousUser = signedInUser
                 self.signedInUser = signedInUser
+                
+                if userJustSignedOut {
+                    do {
+                        let documents = try await documentStore.listDocuments(sort: false)
+                        for doc in documents {
+                            try await documentStore.deleteDocument(identifier: doc.identifier)
+                        }
+                    } catch {
+                        print("Error clearing documents on sign-out: \(error)")
+                    }
+                }
             }
         }
 
-    
         isLoading = false
+    }
+    
+    private var isSyncingSharedData = false
+
+    func syncSharedData() async {
+        if isSyncingSharedData { return }
+        isSyncingSharedData = true
+        defer { isSyncingSharedData = false }
+
+        guard let sharedData = walletClient.sharedData.value else { return }
+        do {
+            try await documentStore.syncWithSharedData(
+                sharedData: sharedData,
+                mpzPassIsoMdocDomain: Domains.shared.DOMAIN_MDOC_SOFTWARE,
+                mpzPassSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
+                mpzPassKeylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
+            )
+        } catch {
+            print("Failed to syncWithSharedData: \(error)")
+        }
     }
     
     private var presentmentSource: PresentmentSource? = nil

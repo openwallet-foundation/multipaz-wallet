@@ -48,6 +48,8 @@ struct SettingsScreen: View {
                                         walletBackendEncryptionKey: result.walletServerEncryptionKey.toByteString(),
                                         resetSharedData: false
                                     )
+                                    try await viewModel.walletClient.refreshSharedData()
+                                    await viewModel.syncSharedData()
                                 } catch {
                                     print("Signing in failed: \(error)")
                                 }

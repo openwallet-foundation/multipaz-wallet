@@ -8,6 +8,7 @@ struct ProvisioningScreen: View {
     
     let issuerUrl: String?
     let credentialId: String?
+    let provisionedDocumentIdentifier: String?
     let credentialOfferUri: String?
     
     @State private var provisioningState: ProvisioningModel.State = ProvisioningModel.Idle()
@@ -18,15 +19,17 @@ struct ProvisioningScreen: View {
     @State private var passphrase = ""
     @State private var isShowingSafari = false
     
-    init(issuerUrl: String, credentialId: String?) {
+    init(issuerUrl: String, credentialId: String?, provisionedDocumentIdentifier: String? = nil) {
         self.issuerUrl = issuerUrl
         self.credentialId = credentialId
+        self.provisionedDocumentIdentifier = provisionedDocumentIdentifier
         self.credentialOfferUri = nil
     }
     
     init(credentialOfferUri: String) {
         self.issuerUrl = nil
         self.credentialId = nil
+        self.provisionedDocumentIdentifier = nil
         self.credentialOfferUri = credentialOfferUri
     }
     
@@ -301,7 +304,13 @@ struct ProvisioningScreen: View {
                     credentialId: firstKey
                 )
                 
-                if viewModel.signedInUser != nil {
+                if let provDocId = provisionedDocumentIdentifier {
+                    try await document.setProvisionedDocumentIdentifier(identifier: provDocId)
+                    let documents = try await viewModel.documentStore.listDocuments(sort: false)
+                    if let placeholder = documents.first(where: { $0.provisionedDocumentIdentifier == provDocId && $0.provisionedDocumentSetupNeeded }) {
+                        try await viewModel.documentStore.deleteDocument(identifier: placeholder.identifier)
+                    }
+                } else if viewModel.signedInUser != nil {
                     try await document.setProvisionedDocumentIdentifier(identifier: provisionedDocument.identifier)
                     try await viewModel.walletClient.refreshSharedData()
                     if let currentSharedData = viewModel.walletClient.sharedData.value {

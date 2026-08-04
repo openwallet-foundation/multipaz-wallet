@@ -24,34 +24,58 @@ struct WalletScreen: View {
                 state: viewModel.verticalCardListState,
                 showCardInfo: { cardInfo in
                     let docInfo = cardInfo as! DocumentInfo
-                    let typeDisplayName = docInfo.document.typeDisplayName ?? "Pass"
+                    let targetDocument = focusedDocument ?? docInfo
+                    let typeDisplayName = targetDocument.document.typeDisplayName ?? "Pass"
                     VStack {
                         FloatingItemList {
-                            FloatingItemText(
-                                text: "\(typeDisplayName) info",
-                                showChevron: true,
-                                secondary: "Pass details and certificate info",
-                                image: { Image(systemName: "person.crop.rectangle") }
-                            ).onTapGesture {
-                                viewModel.push(.documentInfoScreen(documentId: docInfo.document.identifier))
+                            if targetDocument.document.isSyncing {
+                                let syncedSecondaryText = targetDocument.document.provisionedDocumentSetupNeeded
+                                    ? "Complete setup…"
+                                    : "Ready to use on this device"
+                                FloatingItemText(
+                                    text: "Synced to your account",
+                                    showChevron: true,
+                                    secondary: syncedSecondaryText,
+                                    image: { Image(systemName: "arrow.triangle.2.circlepath") }
+                                ).onTapGesture {
+                                    if targetDocument.document.provisionedDocumentSetupNeeded {
+                                        if let provisionedDocuments = viewModel.walletClient.sharedData.value?.provisionedDocuments,
+                                           let provDoc = provisionedDocuments.first(where: { $0.identifier == targetDocument.document.provisionedDocumentIdentifier }) as? WalletClientProvisionedDocumentOpenID4VCI {
+                                            viewModel.push(.provisioning(issuerUrl: provDoc.url, credentialId: provDoc.credentialId, provisionedDocumentIdentifier: provDoc.identifier))
+                                        }
+                                    } else {
+                                        viewModel.push(.settingsScreen)
+                                    }
+                                }
                             }
 
-                            FloatingItemText(
-                                text: "View and manage activity",
-                                showChevron: true,
-                                secondary: "Logging is enabled",
-                                image: { Image(systemName: "timer") }
-                            ).onTapGesture {
-                                print("TODO: go to activity page")
-                            }
+                            if !targetDocument.document.provisionedDocumentSetupNeeded {
+                                FloatingItemText(
+                                    text: "\(typeDisplayName) info",
+                                    showChevron: true,
+                                    secondary: "Pass details and certificate info",
+                                    image: { Image(systemName: "person.crop.rectangle") }
+                                ).onTapGesture {
+                                    viewModel.push(.documentInfoScreen(documentId: targetDocument.document.identifier))
+                                }
 
-                            FloatingItemText(
-                                text: "In person-sharing and consent",
-                                showChevron: true,
-                                secondary: "Always ask before sharing",
-                                image: { Image(systemName: "wave.3.right") }
-                            ).onTapGesture {
-                                print("TODO: go to pre-consent configuration")
+                                FloatingItemText(
+                                    text: "View and manage activity",
+                                    showChevron: true,
+                                    secondary: "Logging is enabled",
+                                    image: { Image(systemName: "timer") }
+                                ).onTapGesture {
+                                    print("TODO: go to activity page")
+                                }
+
+                                FloatingItemText(
+                                    text: "In person-sharing and consent",
+                                    showChevron: true,
+                                    secondary: "Always ask before sharing",
+                                    image: { Image(systemName: "wave.3.right") }
+                                ).onTapGesture {
+                                    print("TODO: go to pre-consent configuration")
+                                }
                             }
                         }
 
@@ -67,7 +91,7 @@ struct WalletScreen: View {
                                 image: { Image(systemName: "trash").foregroundStyle(.red) },
                             )
                         }.onTapGesture {
-                            documentToDelete = docInfo
+                            documentToDelete = targetDocument
                             showDeleteConfirmation = true
                         }
                     }
@@ -123,6 +147,18 @@ struct WalletScreen: View {
             ? BuildConfig.shared.APP_NAME : ""
         )
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            do {
+                let _ = try await viewModel.walletClient.refreshPublicData()
+                if viewModel.walletClient.signedInUser.value != nil {
+                    try await viewModel.walletClient.refreshSharedData()
+                    await viewModel.syncSharedData()
+                }
+                try await viewModel.walletClient.refreshReaderKeys()
+            } catch {
+                print("Error refreshing wallet: \(error)")
+            }
+        }
         .alert("Remove Document?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
                 documentToDelete = nil
@@ -131,7 +167,10 @@ struct WalletScreen: View {
                 if let doc = documentToDelete {
                     Task {
                         do {
-                            try await viewModel.documentStore.deleteDocument(identifier: doc.document.identifier)
+                            try await viewModel.documentStore.deleteDocumentFromWalletBackend(
+                                document: doc.document,
+                                walletClient: viewModel.walletClient
+                            )
                             await MainActor.run {
                                 viewModel.verticalCardListState.unfocus {
                                     viewModel.popWithoutAnimation()
@@ -174,7 +213,7 @@ struct WalletScreen: View {
                     avatarButton
                 }
                 .sharedBackgroundVisibility(.hidden)
-            } else {
+            } else if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         if let documentId = documentId {

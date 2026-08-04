@@ -3,9 +3,11 @@ package org.multipaz.wallet.client
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.annotation.CborSerializable
@@ -189,8 +191,10 @@ private suspend fun DocumentStore.syncProvisionedDocuments(
                 typeDisplayName = provisionedDocument.typeDisplayName,
                 cardArt = provisionedDocument.cardArt,
             )
-            document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
-            document.setProvisionedDocumentSetupNeeded(true)
+            withContext(NonCancellable) {
+                document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
+                document.setProvisionedDocumentSetupNeeded(true)
+            }
             Logger.i(
                 TAG,
                 "syncProvisionedDocuments: Added placeholder document for provisioned document ${provisionedDocument.identifier}"
