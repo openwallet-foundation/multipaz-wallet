@@ -17,6 +17,7 @@ val backendClientId: String  by rootProject.extra
 val backendClientSecret: String  by rootProject.extra
 val backendSecret: String  by rootProject.extra
 val developerModeAvailable: Boolean by rootProject.extra
+val periodicBookkeepingIntervalHours: Long by rootProject.extra
 val projectVersionCode: Int by rootProject.extra
 val projectVersionName: String by rootProject.extra
 val updateUrl: String by rootProject.extra
@@ -33,6 +34,7 @@ buildConfig {
     buildConfigField("BACKEND_CLIENT_SECRET", backendClientSecret)
     buildConfigField("BACKEND_SECRET", backendSecret)
     buildConfigField("DEVELOPER_MODE_AVAILABLE", developerModeAvailable)
+    buildConfigField("PERIODIC_BOOKKEEPING_INTERVAL_HOURS", periodicBookkeepingIntervalHours)
     buildConfigField("UPDATE_URL", updateUrl)
     buildConfigField("UPDATE_WEBSITE", updateWebsite)
     useKotlinOutput { internalVisibility = false }

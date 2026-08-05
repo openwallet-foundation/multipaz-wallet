@@ -76,6 +76,12 @@ val developerModeAvailable: Boolean by extra {
     true
 }
 
+val periodicBookkeepingIntervalHours: Long by extra {
+    val str = System.getenv("MULTIPAZ_WALLET_PERIODIC_BOOKKEEPING_INTERVAL_HOURS")
+    str?.toLongOrNull() ?: 6L
+}
+
+
 // For `versionCode` we just use the number of commits.
 val projectVersionCode: Int by extra {
     lazy {

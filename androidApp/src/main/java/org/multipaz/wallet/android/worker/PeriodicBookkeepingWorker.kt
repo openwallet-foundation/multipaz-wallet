@@ -4,16 +4,16 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import org.multipaz.wallet.android.App
-import org.multipaz.wallet.client.runDailyBookkeeping
+import org.multipaz.wallet.client.runPeriodicBookkeeping
 
-class DailyBookkeepingWorker(
+class PeriodicBookkeepingWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
         val app = App.getInstance()
-        val success = app.walletClient.runDailyBookkeeping(
+        val success = app.walletClient.runPeriodicBookkeeping(
             documentStore = app.documentStore,
             provisioningModel = app.provisioningModel,
             eventLogger = app.eventLogger
@@ -22,7 +22,7 @@ class DailyBookkeepingWorker(
     }
 
     companion object {
-        const val TAG = "DailyBookkeepingWorker"
-        const val WORK_NAME = "org.multipaz.wallet.android.DAILY_BOOKKEEPING_WORK"
+        const val TAG = "PeriodicBookkeepingWorker"
+        const val WORK_NAME = "org.multipaz.wallet.android.PERIODIC_BOOKKEEPING_WORK"
     }
 }

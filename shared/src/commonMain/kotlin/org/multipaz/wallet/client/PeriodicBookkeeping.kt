@@ -12,27 +12,27 @@ import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import kotlin.time.Clock
 
-private const val TAG = "DailyBookkeeping"
+private const val TAG = "PeriodicBookkeeping"
 
 /**
- * Runs daily background housekeeping for the wallet, including:
+ * Runs periodic background housekeeping for the wallet, including:
  * 1. Refreshing public data (trust roots, issuer metadata, configuration)
  * 2. Refreshing shared data and syncing document store
  * 3. Refreshing document credentials for all provisioned documents
  * 4. Refreshing reader keys
- * 5. Logging a [EventSimple] with [DailyBookkeepingEventDetails] stored in [EventSimple.appData] via [eventLogger], if provided.
+ * 5. Logging a [EventSimple] with [PeriodicBookkeepingEventDetails] stored in [EventSimple.appData] via [eventLogger], if provided.
  *
  * @param documentStore the [DocumentStore] containing provisioned documents.
  * @param provisioningModel the [ProvisioningModel] used to refresh OpenID4VCI credentials.
  * @param eventLogger optional [EventLogger] to record the bookkeeping event.
  * @return `true` if all tasks completed without error, or `false` if one or more tasks failed/were unreachable.
  */
-suspend fun WalletClient.runDailyBookkeeping(
+suspend fun WalletClient.runPeriodicBookkeeping(
     documentStore: DocumentStore,
     provisioningModel: ProvisioningModel,
     eventLogger: EventLogger? = null,
 ): Boolean {
-    Logger.i(TAG, "Starting daily bookkeeping...")
+    Logger.i(TAG, "Starting periodic bookkeeping...")
     val startTime = Clock.System.now()
     var success = true
     var publicDataUpdated = false
@@ -131,10 +131,10 @@ suspend fun WalletClient.runDailyBookkeeping(
     val runtimeDuration = endTime - startTime
     val runtimeDurationMs = runtimeDuration.inWholeMilliseconds
 
-    // 5. Log EventSimple containing DailyBookkeepingEventDetails in appData
+    // 5. Log EventSimple containing PeriodicBookkeepingEventDetails in appData
     if (eventLogger != null) {
         try {
-            val details = DailyBookkeepingEventDetails(
+            val details = PeriodicBookkeepingEventDetails(
                 publicDataRefreshed = publicDataUpdated,
                 sharedDataRefreshed = sharedDataUpdated,
                 refreshedCredentialsCount = totalRefreshedCredentialsCount,
@@ -145,16 +145,16 @@ suspend fun WalletClient.runDailyBookkeeping(
                 EventSimple(
                     timestamp = Clock.System.now(),
                     data = ByteString(),
-                    appData = mapOf("DailyBookkeepingEventDetails" to details.toDataItem())
+                    appData = mapOf("PeriodicBookkeepingEventDetails" to details.toDataItem())
                 )
             )
-            Logger.i(TAG, "Logged DailyBookkeeping EventSimple with event details (duration: ${runtimeDurationMs}ms)")
+            Logger.i(TAG, "Logged PeriodicBookkeeping EventSimple with event details (duration: ${runtimeDurationMs}ms)")
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            Logger.w(TAG, "Error logging EventSimple for daily bookkeeping", e)
+            Logger.w(TAG, "Error logging EventSimple for periodic bookkeeping", e)
         }
     }
 
-    Logger.i(TAG, "Daily bookkeeping finished in ${runtimeDurationMs}ms. Overall success: $success")
+    Logger.i(TAG, "Periodic bookkeeping finished in ${runtimeDurationMs}ms. Overall success: $success")
     return success
 }

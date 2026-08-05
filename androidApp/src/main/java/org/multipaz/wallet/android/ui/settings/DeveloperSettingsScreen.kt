@@ -72,7 +72,7 @@ fun DeveloperSettingsScreen(
     onClearAppDataClicked: () -> Unit,
     onClearReaderKeys: () -> Unit,
     onClearRevocationCache: () -> Unit,
-    onRunDailyBookkeeping: () -> Unit,
+    onRunPeriodicBookkeeping: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -280,7 +280,7 @@ fun DeveloperSettingsScreen(
 
                 FloatingItemHeadingAndText(
                     modifier = Modifier.clickable {
-                        onRunDailyBookkeeping()
+                        onRunPeriodicBookkeeping()
                     },
                     image = {
                         Icon(
@@ -288,8 +288,8 @@ fun DeveloperSettingsScreen(
                             contentDescription = null
                         )
                     },
-                    heading = stringResource(R.string.dev_settings_run_daily_bookkeeping_title),
-                    text = stringResource(R.string.dev_settings_run_daily_bookkeeping_text)
+                    heading = stringResource(R.string.dev_settings_run_periodic_bookkeeping_title),
+                    text = stringResource(R.string.dev_settings_run_periodic_bookkeeping_text)
                 )
 
                 FloatingItemHeadingAndText(

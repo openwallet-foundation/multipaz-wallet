@@ -184,13 +184,14 @@
     <string name="dev_settings_clear_revocation_cache_success">Revocation cache cleared</string>
     <string name="dev_settings_delete_app_data_title">Delete app data</string>
     <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed.</string>
-    <string name="dev_settings_run_daily_bookkeeping_title">Run daily bookkeeping</string>
-    <string name="dev_settings_run_daily_bookkeeping_text">Triggers daily background tasks immediately (refresh public data, shared data, credentials, and reader keys).</string>
-    <string name="dev_settings_daily_bookkeeping_success">Daily bookkeeping completed successfully</string>
-    <string name="dev_settings_daily_bookkeeping_failed">Daily bookkeeping completed with errors</string>
+    <string name="dev_settings_run_periodic_bookkeeping_title">Run periodic refresh</string>
+    <string name="dev_settings_run_periodic_bookkeeping_text">Triggers periodic background tasks immediately (refresh public data, shared data, credentials, and reader keys).</string>
+    <string name="dev_settings_periodic_bookkeeping_success">Periodic refresh completed successfully</string>
+    <string name="dev_settings_periodic_bookkeeping_failed">Periodic refresh completed with errors</string>
 
-    <string name="event_simple_daily_bookkeeping_title">Daily bookkeeping</string>
-    <string name="event_simple_daily_bookkeeping_summary">Refreshed %1$d credential(s) in %2$.1fs</string>
+    <string name="event_simple_periodic_bookkeeping_title">Periodic refresh</string>
+    <string name="event_simple_periodic_bookkeeping_summary">Refreshed %1$d credential(s) in %2$.1fs</string>
+    <string name="event_viewer_periodic_refresh_explanation">Periodic refresh is an automated background process that keeps your digital wallet up to date and secure. The application regularly synchronizes configuration and shared data with the wallet backend, updates verifier reader keys, and retrieves fresh credentials from credential issuers to ensure your digital passes remain valid and ready for use.</string>
     <string name="event_simple_title">System event</string>
     <string name="event_viewer_public_data_refreshed">Public data refreshed</string>
     <string name="event_viewer_shared_data_refreshed">Shared data refreshed</string>

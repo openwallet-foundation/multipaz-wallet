@@ -89,7 +89,7 @@ import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 
 import org.multipaz.nfc.ExternalNfcReaderStore
-import org.multipaz.wallet.android.worker.DailyBookkeepingScheduler
+import org.multipaz.wallet.android.worker.PeriodicBookkeepingScheduler
 import org.multipaz.wallet.client.verification.RevocationChecker
 import org.multipaz.wallet.client.verification.StorageRevocationChecker
 
@@ -277,7 +277,7 @@ class App private constructor() {
         )
         revocationChecker.purgeExpired()
 
-        DailyBookkeepingScheduler.scheduleDailyBookkeeping(applicationContext)
+        PeriodicBookkeepingScheduler.schedulePeriodicBookkeeping(applicationContext)
     }
 
     // Called by SimplePresentmentSource for consent prompt, including handling

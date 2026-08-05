@@ -14,7 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Sync
-import org.multipaz.wallet.client.DailyBookkeepingEventDetails
+import org.multipaz.wallet.client.PeriodicBookkeepingEventDetails
 import org.multipaz.wallet.client.fromDataItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -293,11 +293,13 @@ private fun EventItemSimple(
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) {
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
-    val details: DailyBookkeepingEventDetails? = remember(event) {
-        val dataItem = event.appData["DailyBookkeepingEventDetails"]
+    val details: PeriodicBookkeepingEventDetails? = remember(event) {
+        // Fall back to "DailyBookkeepingEventDetails" for backwards compatibility when it was called "daily" instead of "periodic" (will be removed in the future).
+        val dataItem = event.appData["PeriodicBookkeepingEventDetails"]
+            ?: event.appData["DailyBookkeepingEventDetails"]
         if (dataItem != null) {
             try {
-                DailyBookkeepingEventDetails.fromDataItem(dataItem)
+                PeriodicBookkeepingEventDetails.fromDataItem(dataItem)
             } catch (_: Exception) {
                 null
             }
@@ -307,14 +309,14 @@ private fun EventItemSimple(
     }
 
     val title = if (details != null) {
-        stringResource(R.string.event_simple_daily_bookkeeping_title)
+        stringResource(R.string.event_simple_periodic_bookkeeping_title)
     } else {
         stringResource(R.string.event_simple_title)
     }
 
     val summary = if (details != null) {
         "$eventDateTimeString • " + stringResource(
-            R.string.event_simple_daily_bookkeeping_summary,
+            R.string.event_simple_periodic_bookkeeping_summary,
             details.refreshedCredentialsCount,
             details.runtimeDurationMs / 1000.0
         )
