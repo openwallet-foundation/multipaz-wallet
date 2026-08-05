@@ -89,6 +89,7 @@ import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 
 import org.multipaz.nfc.ExternalNfcReaderStore
+import org.multipaz.wallet.android.worker.DailyBookkeepingScheduler
 import org.multipaz.wallet.client.verification.RevocationChecker
 import org.multipaz.wallet.client.verification.StorageRevocationChecker
 
@@ -100,13 +101,17 @@ class App private constructor() {
     private lateinit var documentTypeRepository: DocumentTypeRepository
     private lateinit var secureAreaRepository: SecureAreaRepository
     private lateinit var zkSystemRepository: ZkSystemRepository
-    private lateinit var documentStore: DocumentStore
+    lateinit var documentStore: DocumentStore
+        private set
     private lateinit var documentModel: DocumentModel
-    private lateinit var eventLogger: SimpleEventLogger
+    lateinit var eventLogger: SimpleEventLogger
+        private set
     private lateinit var presentmentSource: PresentmentSource
-    private lateinit var provisioningModel: ProvisioningModel
+    lateinit var provisioningModel: ProvisioningModel
+        private set
 
-    private lateinit var walletClient: WalletClient
+    lateinit var walletClient: WalletClient
+        private set
 
     private lateinit var userIssuerTrustManager: TrustManager
     private lateinit var issuerTrustManager: CompositeTrustManager
@@ -271,6 +276,8 @@ class App private constructor() {
             httpClient = HttpClient(Android)
         )
         revocationChecker.purgeExpired()
+
+        DailyBookkeepingScheduler.scheduleDailyBookkeeping(applicationContext)
     }
 
     // Called by SimplePresentmentSource for consent prompt, including handling

@@ -19,6 +19,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Sync
+import org.multipaz.wallet.client.DailyBookkeepingEventDetails
+import org.multipaz.wallet.client.fromDataItem
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -239,7 +242,11 @@ fun EventViewerScreen(
                                 issuerTrustManager = issuerTrustManager,
                             )
                         }
-                        is EventSimple -> {}
+                        is EventSimple -> {
+                            EventViewerSimple(
+                                event = event
+                            )
+                        }
                     }
                 }
             }
@@ -871,6 +878,88 @@ private fun EventViewerVerification(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventViewerSimple(
+    event: EventSimple,
+    modifier: Modifier = Modifier,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
+    val eventDateTime = event.timestamp.toLocalDateTime(timeZone = timeZone)
+    val eventDateTimeString = eventDateTime.formatLocalized(
+        dateStyle = FormatStyle.LONG,
+        timeStyle = FormatStyle.LONG
+    )
+
+    val details: DailyBookkeepingEventDetails? = remember(event) {
+        val dataItem = event.appData["DailyBookkeepingEventDetails"]
+        if (dataItem != null) {
+            try {
+                DailyBookkeepingEventDetails.fromDataItem(dataItem)
+            } catch (_: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    val title = if (details != null) {
+        stringResource(R.string.event_simple_daily_bookkeeping_title)
+    } else {
+        stringResource(R.string.event_simple_title)
+    }
+
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            modifier = Modifier.size(64.dp),
+            imageVector = Icons.Outlined.Sync,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = title,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+
+        FloatingItemList(
+            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
+        ) {
+            FloatingItemHeadingAndText(
+                heading = stringResource(R.string.event_viewer_date_time),
+                text = eventDateTimeString
+            )
+            if (details != null) {
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_public_data_refreshed),
+                    text = if (details.publicDataRefreshed) stringResource(R.string.event_viewer_yes) else stringResource(R.string.event_viewer_no)
+                )
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_shared_data_refreshed),
+                    text = if (details.sharedDataRefreshed) stringResource(R.string.event_viewer_yes) else stringResource(R.string.event_viewer_no)
+                )
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_refreshed_credentials_count),
+                    text = details.refreshedCredentialsCount.toString()
+                )
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_reader_keys_refreshed),
+                    text = if (details.readerKeysRefreshed) stringResource(R.string.event_viewer_yes) else stringResource(R.string.event_viewer_no)
+                )
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_runtime_duration),
+                    text = stringResource(R.string.event_viewer_runtime_duration_seconds, details.runtimeDurationMs / 1000.0)
+                )
             }
         }
     }

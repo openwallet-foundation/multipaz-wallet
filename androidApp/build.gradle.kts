@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.text)
     ksp(libs.multipaz.cbor.rpc)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.activity.compose)

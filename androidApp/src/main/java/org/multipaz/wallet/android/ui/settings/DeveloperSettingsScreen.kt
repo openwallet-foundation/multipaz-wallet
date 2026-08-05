@@ -56,6 +56,8 @@ import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.shared.BuildConfig
 
+import androidx.compose.material.icons.outlined.Sync
+
 private const val TAG = "DeveloperSettingsScreen"
 
 @SuppressLint("LocalContextGetResourceValueCall")
@@ -70,6 +72,7 @@ fun DeveloperSettingsScreen(
     onClearAppDataClicked: () -> Unit,
     onClearReaderKeys: () -> Unit,
     onClearRevocationCache: () -> Unit,
+    onRunDailyBookkeeping: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -273,6 +276,20 @@ fun DeveloperSettingsScreen(
                     },
                     heading = stringResource(R.string.dev_settings_clear_revocation_cache_title),
                     text = stringResource(R.string.dev_settings_clear_revocation_cache_text)
+                )
+
+                FloatingItemHeadingAndText(
+                    modifier = Modifier.clickable {
+                        onRunDailyBookkeeping()
+                    },
+                    image = {
+                        Icon(
+                            imageVector = Icons.Outlined.Sync,
+                            contentDescription = null
+                        )
+                    },
+                    heading = stringResource(R.string.dev_settings_run_daily_bookkeeping_title),
+                    text = stringResource(R.string.dev_settings_run_daily_bookkeeping_text)
                 )
 
                 FloatingItemHeadingAndText(

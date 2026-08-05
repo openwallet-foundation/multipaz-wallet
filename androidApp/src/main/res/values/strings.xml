@@ -184,6 +184,22 @@
     <string name="dev_settings_clear_revocation_cache_success">Revocation cache cleared</string>
     <string name="dev_settings_delete_app_data_title">Delete app data</string>
     <string name="dev_settings_delete_app_data_text">Clears all app data and permissions and exits the app. This is useful for simulating the first time the app is installed.</string>
+    <string name="dev_settings_run_daily_bookkeeping_title">Run daily bookkeeping</string>
+    <string name="dev_settings_run_daily_bookkeeping_text">Triggers daily background tasks immediately (refresh public data, shared data, credentials, and reader keys).</string>
+    <string name="dev_settings_daily_bookkeeping_success">Daily bookkeeping completed successfully</string>
+    <string name="dev_settings_daily_bookkeeping_failed">Daily bookkeeping completed with errors</string>
+
+    <string name="event_simple_daily_bookkeeping_title">Daily bookkeeping</string>
+    <string name="event_simple_daily_bookkeeping_summary">Refreshed %1$d credential(s) in %2$.1fs</string>
+    <string name="event_simple_title">System event</string>
+    <string name="event_viewer_public_data_refreshed">Public data refreshed</string>
+    <string name="event_viewer_shared_data_refreshed">Shared data refreshed</string>
+    <string name="event_viewer_refreshed_credentials_count">Refreshed credentials</string>
+    <string name="event_viewer_reader_keys_refreshed">Reader keys refreshed</string>
+    <string name="event_viewer_runtime_duration">Execution duration</string>
+    <string name="event_viewer_runtime_duration_seconds">%1$.1fs</string>
+    <string name="event_viewer_yes">Yes</string>
+    <string name="event_viewer_no">No (up to date)</string>
 
     <string name="doc_info_screen_title">%1$s info</string>
     <string name="doc_info_screen_usage_info">To use your pass, tap your phone to a reader or show a QR code to the verifier. This screen can\'t be used for verification.</string>

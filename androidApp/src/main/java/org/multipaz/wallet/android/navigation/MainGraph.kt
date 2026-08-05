@@ -86,6 +86,7 @@ import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
+import org.multipaz.wallet.client.runDailyBookkeeping
 import org.multipaz.wallet.android.ui.settings.EventListScreen
 import org.multipaz.wallet.android.ui.settings.EventViewerScreen
 import org.multipaz.nfc.ExternalNfcReaderStore
@@ -981,6 +982,21 @@ fun mainGraph(
                         coroutineScope.launch {
                             revocationChecker.clearCache()
                             showToast(context.getString(R.string.dev_settings_clear_revocation_cache_success))
+                        }
+                    },
+                    onRunDailyBookkeeping = {
+                        coroutineScope.launch {
+                            val success = walletClient.runDailyBookkeeping(
+                                documentStore = documentStore,
+                                provisioningModel = provisioningModel,
+                                eventLogger = eventLogger
+                            )
+                            val msg = if (success) {
+                                context.getString(R.string.dev_settings_daily_bookkeeping_success)
+                            } else {
+                                context.getString(R.string.dev_settings_daily_bookkeeping_failed)
+                            }
+                            showToast(msg)
                         }
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },

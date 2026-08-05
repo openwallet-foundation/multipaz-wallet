@@ -13,6 +13,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Sync
+import org.multipaz.wallet.client.DailyBookkeepingEventDetails
+import org.multipaz.wallet.client.fromDataItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -157,7 +160,13 @@ fun EventListScreen(
                                         event = event
                                     )
                                 }
-                                is EventSimple -> {}
+                                is EventSimple -> {
+                                    EventItemSimple(
+                                        modifier = Modifier
+                                            .clickable { onEventClicked(event) },
+                                        event = event
+                                    )
+                                }
                             }
                         }
                     }
@@ -273,5 +282,57 @@ private fun EventItemVerification(
         },
         text = "Verification",
         secondary = text,
+    )
+}
+
+@Composable
+private fun EventItemSimple(
+    event: EventSimple,
+    modifier: Modifier = Modifier,
+    imageSize: Dp = 24.dp,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) {
+    val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
+    val details: DailyBookkeepingEventDetails? = remember(event) {
+        val dataItem = event.appData["DailyBookkeepingEventDetails"]
+        if (dataItem != null) {
+            try {
+                DailyBookkeepingEventDetails.fromDataItem(dataItem)
+            } catch (_: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    val title = if (details != null) {
+        stringResource(R.string.event_simple_daily_bookkeeping_title)
+    } else {
+        stringResource(R.string.event_simple_title)
+    }
+
+    val summary = if (details != null) {
+        "$eventDateTimeString • " + stringResource(
+            R.string.event_simple_daily_bookkeeping_summary,
+            details.refreshedCredentialsCount,
+            details.runtimeDurationMs / 1000.0
+        )
+    } else {
+        eventDateTimeString
+    }
+
+    FloatingItemText(
+        modifier = modifier,
+        showChevron = true,
+        image = {
+            Icon(
+                modifier = Modifier.size(imageSize),
+                imageVector = Icons.Outlined.Sync,
+                contentDescription = null
+            )
+        },
+        text = title,
+        secondary = summary,
     )
 }
