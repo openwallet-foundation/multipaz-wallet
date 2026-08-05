@@ -26,3 +26,12 @@
 
 # Tell R8 to ignore missing JNDI classes used by BouncyCastle's LDAP features
 -dontwarn javax.naming.**
+
+# Keep WorkManager and Room database implementations instantiated via reflection
+-keep class * extends androidx.room.RoomDatabase {
+    public <init>();
+}
+-keep class androidx.work.impl.WorkDatabase_Impl {
+    public <init>();
+}
+-keep class androidx.work.impl.** { *; }
