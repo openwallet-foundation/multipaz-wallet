@@ -171,6 +171,7 @@ fun AppNavHost(
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                Logger.w(TAG, "Error importing pass", e)
                 backStack.add(ErrorDialogDestination(
                     title = context.getString(R.string.app_navigation_error_importing_pass_title),
                     textMarkdown = context.getString(R.string.app_navigation_error_importing_pass_something_went_wrong, e.toString())

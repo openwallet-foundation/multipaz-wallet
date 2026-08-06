@@ -302,7 +302,8 @@ enum class ProximityScanMode {
 
 @Serializable
 data class VerificationProximityTransferDestination(
-    val initialScanMode: ProximityScanMode = ProximityScanMode.NONE
+    val initialScanMode: ProximityScanMode = ProximityScanMode.NONE,
+    val nfcOnly: Boolean = false,
 ): Destination()
 
 @Serializable

@@ -136,7 +136,6 @@ class ProximityReaderModel {
         this.existingTransport = existingTransport
         this.nfcHandoverType = nfcHandoverType
         this.durationNfcTapToEngagement = durationNfcTapToEngagement
-        _state.value = State.WAITING_FOR_DEVICE_REQUEST
 
         this.deviceEngagement = DeviceEngagement.fromDataItem(
             this._deviceEngagement!!
@@ -149,6 +148,7 @@ class ProximityReaderModel {
             add(handover)
         }
         Logger.dCbor(TAG, "sessionTranscript", _sessionTranscript!!)
+        _state.value = State.WAITING_FOR_DEVICE_REQUEST
     }
 
     fun setDeviceRequest(
@@ -156,9 +156,9 @@ class ProximityReaderModel {
         deviceRequest: DeviceRequest
     ) {
         check(_state.value == State.WAITING_FOR_DEVICE_REQUEST)
-        _state.value = State.WAITING_FOR_START
         this.query = query
         this.deviceRequest = deviceRequest
+        _state.value = State.WAITING_FOR_START
     }
 
     /**

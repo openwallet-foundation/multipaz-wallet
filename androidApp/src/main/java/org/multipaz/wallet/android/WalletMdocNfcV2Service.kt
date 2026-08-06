@@ -6,6 +6,7 @@ import org.multipaz.compose.mdoc.MdocNfcV2Service
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.crypto.EcCurve
 import org.multipaz.mdoc.transport.MdocTransportOptions
+import org.multipaz.presentment.PresentmentModel
 import org.multipaz.util.Logger
 import kotlin.time.Clock
 
@@ -23,11 +24,13 @@ class WalletMdocNfcV2Service(
         val t1 = Clock.System.now()
         Logger.i(TAG, "App initialized in ${(t1 - t0).inWholeMilliseconds} ms")
 
-        PresentmentActivity.presentmentModel.reset(
-            source = source,
-            // TODO: if user is currently selecting a document, pass it here
-            preselectedDocuments = emptyList()
-        )
+        if (PresentmentActivity.presentmentModel.state.value is PresentmentModel.State.Reset) {
+            PresentmentActivity.presentmentModel.reset(
+                source = source,
+                // TODO: if user is currently selecting a document, pass it here
+                preselectedDocuments = emptyList()
+            )
+        }
 
         return Settings(
             source = source,

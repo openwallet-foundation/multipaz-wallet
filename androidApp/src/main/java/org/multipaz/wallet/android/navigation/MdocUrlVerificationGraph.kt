@@ -140,6 +140,7 @@ fun mdocUrlVerificationGraph(
                     externalNfcReaderStore = externalNfcReaderStore,
                     promptModel = promptModel,
                     initialScanMode = key.initialScanMode,
+                    nfcOnly = key.nfcOnly,
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },

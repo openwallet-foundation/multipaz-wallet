@@ -2,11 +2,16 @@ package org.multipaz.wallet.android.ui.verification
 
 import android.os.Build
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfcV2
 import org.multipaz.mdoc.nfc.ScanMdocReaderResult
+import org.multipaz.mdoc.transport.MdocTransportClosedException
+import org.multipaz.mdoc.transport.MdocTransportException
 import org.multipaz.mdoc.transport.MdocTransportOptions
+import org.multipaz.nfc.NfcTagLostException
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.client.verification.ProximityReaderModel
@@ -30,13 +35,27 @@ val nfcPollingFramesInsertionSupported by lazy {
     }
 }
 
+private fun Throwable.isTagLostOrTransportClosed(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current is NfcTagLostException ||
+            current is MdocTransportClosedException ||
+            current is MdocTransportException
+        ) {
+            return true
+        }
+        current = current.cause
+    }
+    return false
+}
+
 suspend fun handleNfcHandover(
     scanResult: ScanMdocReaderResult,
     proximityReaderModel: ProximityReaderModel,
-) {
+): Boolean {
     if (proximityReaderModel.state.value != ProximityReaderModel.State.IDLE) {
         Logger.i(TAG, "Ignoring NFC handover, state is already ${proximityReaderModel.state.value}")
-        return
+        return false
     }
     try {
         proximityReaderModel.reset()
@@ -53,9 +72,29 @@ suspend fun handleNfcHandover(
             nfcHandoverType = scanResult.type,
             durationNfcTapToEngagement = scanResult.processingDuration
         )
+
+        val isNfcOnly = scanResult.transport.connectionMethod is MdocConnectionMethodNfcV2
+        if (isNfcOnly) {
+            proximityReaderModel.state.first { it == ProximityReaderModel.State.COMPLETED || it == ProximityReaderModel.State.IDLE }
+            if (proximityReaderModel.state.value == ProximityReaderModel.State.COMPLETED) {
+                val err = proximityReaderModel.error
+                if (err != null) {
+                    if (err.isTagLostOrTransportClosed()) {
+                        Logger.i(TAG, "Tag lost during NFC-only transfer, resetting model for re-tap", err)
+                        proximityReaderModel.reset()
+                        throw err
+                    } else {
+                        throw err
+                    }
+                }
+            }
+        }
+        return true
     } catch (e: Exception) {
         if (e is CancellationException) throw e
         Logger.w(TAG, "Error handling NFC handover endpoint setup", e)
+        proximityReaderModel.reset()
+        throw e
     }
 }
 

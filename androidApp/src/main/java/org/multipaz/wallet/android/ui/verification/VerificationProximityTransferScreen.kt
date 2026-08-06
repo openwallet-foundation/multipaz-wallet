@@ -104,6 +104,7 @@ fun VerificationProximityTransferScreen(
     externalNfcReaderStore: ExternalNfcReaderStore,
     promptModel: PromptModel,
     initialScanMode: ProximityScanMode = ProximityScanMode.NONE,
+    nfcOnly: Boolean = false,
     onNfcHandover: (suspend (ScanMdocReaderResult) -> Unit)? = null,
     onQrCodeScanned: (suspend (String) -> Unit)? = null,
     onBackClicked: () -> Unit,
@@ -128,9 +129,15 @@ fun VerificationProximityTransferScreen(
                         null
                     }
                     val query = settingsModel.readerQuery.value
+                    val sessionTranscript = try {
+                        proximityReaderModel.sessionTranscript
+                    } catch (e: Exception) {
+                        Logger.w(TAG, "Session transcript not available", e)
+                        return@LaunchedEffect
+                    }
                     val deviceRequest = query.generateDeviceRequest(
-                        deviceEngagement = proximityReaderModel.sessionTranscript.asArray[0].asTaggedEncodedCbor,
-                        sessionTranscript = proximityReaderModel.sessionTranscript,
+                        deviceEngagement = sessionTranscript.asArray[0].asTaggedEncodedCbor,
+                        sessionTranscript = sessionTranscript,
                         readerAuthKey = keyInfoAndCertification?.let {
                             AsymmetricKey.X509CertifiedSecureAreaBased(
                                 certChain = keyInfoAndCertification.second,
@@ -166,10 +173,11 @@ fun VerificationProximityTransferScreen(
                 proximityReaderModel.start(coroutineScope)
             }
             ProximityReaderModel.State.COMPLETED -> {
-                if (proximityReaderModel.error != null) {
-                    onTransferError(proximityReaderModel.error!!)
-                } else {
-                    val result = proximityReaderModel.result!!
+                val error = proximityReaderModel.error
+                val result = proximityReaderModel.result
+                if (error != null) {
+                    onTransferError(error)
+                } else if (result != null) {
                     if (result.deviceResponse == null) {
                         onTransferError(IllegalStateException("No DeviceResponse message"))
                     } else if (result.deviceResponse!!.status != 0) {
@@ -239,8 +247,8 @@ fun VerificationProximityTransferScreen(
         }
     }
 
-    LaunchedEffect(state, initialScanMode, nfcTagReader) {
-        if (state == ProximityReaderModel.State.IDLE && initialScanMode == ProximityScanMode.NFC && onNfcHandover != null) {
+    LaunchedEffect(initialScanMode, nfcTagReader, nfcOnly) {
+        if (proximityReaderModel.state.value == ProximityReaderModel.State.IDLE && initialScanMode == ProximityScanMode.NFC && onNfcHandover != null) {
             if (nfcTagReader != null && !nfcTagReader.dialogAlwaysShown) {
                 withContext(promptModel) {
                     while (isActive) {
@@ -256,20 +264,27 @@ fun VerificationProximityTransferScreen(
                                 ),
                                 transportFactory = MdocTransportFactory.Default,
                                 selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
-                                negotiatedHandoverConnectionMethods = listOf(
-                                    MdocConnectionMethodBle(
-                                        supportsPeripheralServerMode = false,
-                                        supportsCentralClientMode = true,
-                                        peripheralServerModeUuid = null,
-                                        centralClientModeUuid = UUID.randomUUID(),
+                                negotiatedHandoverConnectionMethods = if (nfcOnly) {
+                                    emptyList()
+                                } else {
+                                    listOf(
+                                        MdocConnectionMethodBle(
+                                            supportsPeripheralServerMode = false,
+                                            supportsCentralClientMode = true,
+                                            peripheralServerModeUuid = null,
+                                            centralClientModeUuid = UUID.randomUUID(),
+                                        )
                                     )
-                                ),
-                                nfcScanOptions = nfcScanOptions
+                                },
+                                nfcScanOptions = nfcScanOptions,
+                                onHandover = { scanResult ->
+                                    onNfcHandover(scanResult)
+                                    scanResult
+                                }
                             )
                             if (scanResult != null) {
-                                onNfcHandover(scanResult)
+                                break
                             }
-                            break
                         } catch (e: Throwable) {
                             if (!isActive) {
                                 Logger.e(TAG, "Caught exception while scanning and scope isn't active", e)
@@ -330,7 +345,8 @@ fun VerificationProximityTransferScreen(
                 if (initialScanMode == ProximityScanMode.NFC) {
                     InPersonNfcView(
                         isDarkTheme = isDarkTheme,
-                        isExternal = isExternalReader
+                        isExternal = isExternalReader,
+                        nfcOnly = nfcOnly
                     )
                 } else if (initialScanMode == ProximityScanMode.QR) {
                     InPersonQrScannerView(
@@ -368,7 +384,8 @@ fun VerificationProximityTransferScreen(
 @Composable
 private fun InPersonNfcView(
     isDarkTheme: Boolean,
-    isExternal: Boolean = false
+    isExternal: Boolean = false,
+    nfcOnly: Boolean = false
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -404,6 +421,14 @@ private fun InPersonNfcView(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
+        if (nfcOnly) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.request_verification_nfc_only),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

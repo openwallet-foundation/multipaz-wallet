@@ -121,7 +121,7 @@
     <string name="external_nfc_reader_status_not_connected">Not connected</string>
     <string name="request_verification_nfc_reader_heading">NFC reader</string>
     <string name="request_verification_internal_nfc_reader">Internal NFC reader</string>
-    <string name="request_verification_tap_on_external_nfc_reader">Tap on external NFC reader</string>
+    <string name="request_verification_tap_on_external_nfc_reader">Hold wallet on external NFC reader</string>
     <string name="request_verification_reader_not_connected_title">Reader not connected</string>
     <string name="request_verification_reader_not_connected_message">The selected external NFC reader is not connected. Please connect the reader to your device and try again.</string>
     <string name="request_verification_nfc_reader_info">To use an external NFC reader, connect it to your device via USB and follow the on-screen prompts.</string>
@@ -543,6 +543,7 @@
     <string name="request_verification_share_qr_explainer">This QR code can be scanned by the individual being verified.</string>
     <string name="request_verification_share_close">Close</string>
     <string name="request_verification_hold_to_wallet">Hold to Wallet</string>
+    <string name="request_verification_nfc_only">(NFC only)</string>
     <string name="request_verification_camera_permission_required">Camera permission is required</string>
     <string name="request_verification_grant_permission">Grant Permission</string>
     <string name="request_verification_scan_nfc">Scan NFC</string>

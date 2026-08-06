@@ -2,13 +2,16 @@ package org.multipaz.wallet.android.ui.verification
 
 import android.annotation.SuppressLint
 import android.os.Build
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +31,7 @@ import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -111,7 +116,7 @@ private data class CompletedVerificationData(
 private const val TAG = "RequestVerificationScreen"
 
 @SuppressLint("LocalContextGetResourceValueCall")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun RequestVerificationScreen(
     walletClient: WalletClient,
@@ -127,7 +132,7 @@ fun RequestVerificationScreen(
     onSelectVerificationTypeClicked: () -> Unit,
     onSelectNfcReaderClicked: () -> Unit,
     onScanQrClicked: () -> Unit,
-    onScanNfcClicked: () -> Unit,
+    onScanNfcClicked: (nfcOnly: Boolean) -> Unit,
     onGenerateVerificationLinkClicked: () -> Unit,
     onViewVerificationClicked: (query: Query, presentmentRecord: PresentmentRecord, atTime: Instant, showNotTrusted: Boolean) -> Unit,
     onDeletePendingVerificationClicked: (requestId: String) -> Unit,
@@ -538,12 +543,28 @@ fun RequestVerificationScreen(
                             )
                         }
                     }
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = onScanNfcClicked
+                    val devMode = settingsModel.devMode.collectAsState().value
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight)
+                            .combinedClickable(
+                                onClick = { onScanNfcClicked(false) },
+                                onLongClick = {
+                                    if (devMode) {
+                                        onScanNfcClicked(true)
+                                    } else {
+                                        onScanNfcClicked(false)
+                                    }
+                                }
+                            ),
+                        shape = ButtonDefaults.shape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(ButtonDefaults.ContentPadding),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(

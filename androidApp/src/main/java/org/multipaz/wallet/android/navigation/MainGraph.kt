@@ -1319,7 +1319,7 @@ fun mainGraph(
                         proximityReaderModel.reset()
                         backStack.add(VerificationProximityTransferDestination(ProximityScanMode.QR))
                     },
-                    onScanNfcClicked = {
+                    onScanNfcClicked = { nfcOnly ->
                         coroutineScope.launch {
                             val selectedReaderId = settingsModel.selectedExternalNfcReaderId.value
                             if (selectedReaderId != null) {
@@ -1336,7 +1336,12 @@ fun mainGraph(
                                 }
                             }
                             proximityReaderModel.reset()
-                            backStack.add(VerificationProximityTransferDestination(ProximityScanMode.NFC))
+                            backStack.add(
+                                VerificationProximityTransferDestination(
+                                    initialScanMode = ProximityScanMode.NFC,
+                                    nfcOnly = nfcOnly
+                                )
+                            )
                         }
                     },
                     onGenerateVerificationLinkClicked = {
@@ -1482,11 +1487,13 @@ fun mainGraph(
                     externalNfcReaderStore = externalNfcReaderStore,
                     promptModel = promptModel,
                     initialScanMode = key.initialScanMode,
+                    nfcOnly = key.nfcOnly,
                     onNfcHandover = { scanResult ->
                         handleNfcHandover(
                             scanResult = scanResult,
                             proximityReaderModel = proximityReaderModel
                         )
+                        scanResult
                     },
                     onQrCodeScanned = { qrCode ->
                         handleQrCodeScanned(
