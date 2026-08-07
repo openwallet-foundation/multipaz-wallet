@@ -18,7 +18,10 @@ import org.multipaz.securearea.KeyAttestation
 import org.multipaz.server.common.getBaseUrl
 import org.multipaz.server.enrollment.ServerIdentity
 import org.multipaz.server.enrollment.getServerIdentity
+import org.multipaz.util.Logger
 import org.multipaz.util.validateAndroidKeyAttestation
+
+private const val TAG = "OpenID4VCIBackendImpl"
 
 @RpcState(
     endpoint = "openid4vci_backend",
@@ -48,7 +51,9 @@ class OpenID4VCIBackendImpl: OpenID4VCIBackend, RpcAuthInspector by RpcAuthBacke
             nonce = null,
             walletName = walletName,
             walletLink = walletLink,
-        )
+        ).also {
+            Logger.d(TAG, "Wallet Attestation JWT: $it")
+        }
     }
 
     override suspend fun createJwtKeyAttestation(
@@ -69,7 +74,9 @@ class OpenID4VCIBackendImpl: OpenID4VCIBackend, RpcAuthInspector by RpcAuthBacke
             challenge = challenge,
             userAuthentication = userAuthentication,
             keyStorage = keyStorage
-        )
+        ).also {
+            Logger.d(TAG, "Key Attestation JWT: $it")
+        }
     }
 
     companion object {
