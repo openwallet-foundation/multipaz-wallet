@@ -86,6 +86,12 @@ val maxCardArtSizeInSharedDataKb: Int by extra {
     str?.toIntOrNull() ?: 50
 }
 
+val maxSharedDataBlobSizeKb: Int by extra {
+    val str = System.getenv("MULTIPAZ_WALLET_MAX_SHARED_DATA_BLOB_SIZE_KB")
+    str?.toIntOrNull() ?: 3072
+}
+
+
 
 // For `versionCode` we just use the number of commits.
 val projectVersionCode: Int by extra {

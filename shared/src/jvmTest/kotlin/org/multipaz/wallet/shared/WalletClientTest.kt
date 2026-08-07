@@ -378,6 +378,38 @@ class WalletClientTest {
     }
 
     @Test
+    fun putSharedDataTooLargeTest() = runTest {
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
+        val clientNonce = client.getNonce()
+        client.signInWithGoogle(
+            nonce = clientNonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = clientNonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+
+        val maxSizeBytes = BuildConfig.MAX_SHARED_DATA_BLOB_SIZE_KB * 1024
+        val oversizedData = ByteString(Random.nextBytes(maxSizeBytes + 1))
+        assertFailsWith(WalletBackendSharedDataTooLargeException::class) {
+            client.putSharedData(oversizedData)
+        }
+    }
+
+
+    @Test
     fun getVerificationLinkOrigin() = runTest {
         val clientStorage = EphemeralStorage()
         val clientSecureArea = SoftwareSecureArea.create(clientStorage)

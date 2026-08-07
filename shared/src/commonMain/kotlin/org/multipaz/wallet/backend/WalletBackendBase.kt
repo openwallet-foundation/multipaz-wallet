@@ -40,6 +40,7 @@ import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
 import org.multipaz.wallet.shared.WalletBackendIdTokenException
 import org.multipaz.wallet.shared.WalletBackendNonceException
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
+import org.multipaz.wallet.shared.WalletBackendSharedDataTooLargeException
 import org.multipaz.wallet.shared.WalletBackendVerificationLinkExpiredException
 import org.multipaz.wallet.shared.WalletClientPublicData
 import kotlin.random.Random
@@ -175,6 +176,12 @@ abstract class WalletBackendBase: WalletBackend {
         initialSharedData: ByteString,
         clientType: ClientType
     ) {
+        val maxSizeBytes = BuildConfig.MAX_SHARED_DATA_BLOB_SIZE_KB * 1024
+        if (initialSharedData.size > maxSizeBytes) {
+            throw WalletBackendSharedDataTooLargeException(
+                "Initial shared data size (${initialSharedData.size} bytes) exceeds maximum allowed size ($maxSizeBytes bytes)"
+            )
+        }
         val walletClient = loadRemoteWalletClient()
         val signedInUser = GoogleSignedInUser(
             id = googleUserId
@@ -385,6 +392,12 @@ abstract class WalletBackendBase: WalletBackend {
     }
 
     override suspend fun putSharedData(data: ByteString): Long {
+        val maxSizeBytes = BuildConfig.MAX_SHARED_DATA_BLOB_SIZE_KB * 1024
+        if (data.size > maxSizeBytes) {
+            throw WalletBackendSharedDataTooLargeException(
+                "Shared data size (${data.size} bytes) exceeds maximum allowed size ($maxSizeBytes bytes)"
+            )
+        }
         val walletClient = loadRemoteWalletClient()
         if (walletClient.signedInUser == null) {
             throw WalletBackendNotSignedInException("User is not signed in")
