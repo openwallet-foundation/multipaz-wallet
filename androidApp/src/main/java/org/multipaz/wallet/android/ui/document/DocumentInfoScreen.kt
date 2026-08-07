@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.document
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,7 +67,12 @@ fun DocumentInfoScreen(
         topBar = {
             MediumTopAppBar(
                 title = {
-                    Text(stringResource(R.string.doc_info_screen_title, typeDisplayName))
+                    Text(
+                        text = stringResource(R.string.doc_info_screen_title, typeDisplayName),
+                        modifier = Modifier.clickable(enabled = devMode) {
+                            onDeveloperExtrasClicked()
+                        }
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
@@ -75,16 +80,6 @@ fun DocumentInfoScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null
                         )
-                    }
-                },
-                actions = {
-                    if (devMode) {
-                        IconButton(onClick = onDeveloperExtrasClicked) {
-                            Icon(
-                                imageVector = Icons.Outlined.Science,
-                                contentDescription = stringResource(R.string.document_info_developer_extras_content_description)
-                            )
-                        }
                     }
                 },
                 scrollBehavior = scrollBehavior

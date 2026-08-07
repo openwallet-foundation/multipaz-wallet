@@ -73,6 +73,11 @@ code in the `webApp` or `shared` modules will be automatically reflected in the 
 can also point the mobile apps to that wallet backend by clicking Avatar → Developer Settings →
 Set wallet backend.
 
+## Developer Mode
+
+Multipaz Wallet includes a built-in Developer Mode for testing, debugging, and advanced configuration.
+For full details on enabling Developer Mode and all available options, see [DEVELOPER-MODE.md](DEVELOPER-MODE.md).
+
 ## Running the iOS app
 
 To run the iOS app, first you need to build the XCFramework, like this

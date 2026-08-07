@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DoorBack
 import androidx.compose.material.icons.outlined.NoEncryption
 import androidx.compose.material.icons.outlined.Remove
@@ -73,6 +74,7 @@ fun DeveloperSettingsScreen(
     onClearReaderKeys: () -> Unit,
     onClearRevocationCache: () -> Unit,
     onRunPeriodicBookkeeping: () -> Unit,
+    onDeveloperModeDocumentationClicked: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -290,6 +292,21 @@ fun DeveloperSettingsScreen(
                     },
                     heading = stringResource(R.string.dev_settings_run_periodic_bookkeeping_title),
                     text = stringResource(R.string.dev_settings_run_periodic_bookkeeping_text)
+                )
+
+                FloatingItemHeadingAndText(
+                    modifier = Modifier.clickable {
+                        onDeveloperModeDocumentationClicked()
+                    },
+                    showChevron = true,
+                    image = {
+                        Icon(
+                            imageVector = Icons.Outlined.Description,
+                            contentDescription = null
+                        )
+                    },
+                    heading = stringResource(R.string.dev_settings_documentation_title),
+                    text = stringResource(R.string.dev_settings_documentation_text)
                 )
 
                 FloatingItemHeadingAndText(

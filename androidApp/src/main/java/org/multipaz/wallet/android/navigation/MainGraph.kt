@@ -86,6 +86,7 @@ import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
+import org.multipaz.wallet.android.ui.settings.DeveloperModeDocumentationScreen
 import org.multipaz.wallet.client.runPeriodicBookkeeping
 import org.multipaz.wallet.android.ui.settings.EventListScreen
 import org.multipaz.wallet.android.ui.settings.EventViewerScreen
@@ -999,8 +1000,16 @@ fun mainGraph(
                             showToast(msg)
                         }
                     },
+                    onDeveloperModeDocumentationClicked = {
+                        backStack.add(DeveloperModeDocumentationDestination)
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
+                )
+            }
+            is DeveloperModeDocumentationDestination -> NavEntry(key) {
+                DeveloperModeDocumentationScreen(
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is DeveloperSettingsClearAppDataDialogDestination -> NavEntry(

@@ -188,6 +188,9 @@
     <string name="dev_settings_run_periodic_bookkeeping_text">Triggers periodic background tasks immediately (refresh public data, shared data, credentials, and reader keys).</string>
     <string name="dev_settings_periodic_bookkeeping_success">Periodic refresh completed successfully</string>
     <string name="dev_settings_periodic_bookkeeping_failed">Periodic refresh completed with errors</string>
+    <string name="dev_settings_documentation_title">Developer documentation</string>
+    <string name="dev_settings_documentation_text">View detailed documentation for all developer mode options and features.</string>
+    <string name="dev_settings_documentation_screen_title">Developer Documentation</string>
 
     <string name="event_simple_periodic_bookkeeping_title">Periodic refresh</string>
     <string name="event_simple_periodic_bookkeeping_summary">Refreshed %1$d credential(s) in %2$.1fs</string>

@@ -150,6 +150,9 @@ data class EventViewerDestination(
 data object DeveloperSettingsDestination: Destination()
 
 @Serializable
+data object DeveloperModeDocumentationDestination: Destination()
+
+@Serializable
 data object SettingsActivityLogDisableConfirmationDialogDestination: Destination() {
 }
 

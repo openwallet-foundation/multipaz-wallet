@@ -22,11 +22,13 @@ val projectVersionCode: Int by rootProject.extra
 val projectVersionName: String by rootProject.extra
 val updateUrl: String by rootProject.extra
 val updateWebsite: String by rootProject.extra
+val developerModeTextMd: String by rootProject.extra
 
 buildConfig {
     packageName("org.multipaz.wallet.shared")
     buildConfigField("APP_NAME", appName)
     buildConfigField("APP_ABOUT_TEXT_MD", appAboutTextMd)
+    buildConfigField("DEVELOPER_MODE_TEXT_MD", developerModeTextMd)
     buildConfigField("ANDROID_APP_ID", androidAppId)
     buildConfigField("VERSION", projectVersionName)
     buildConfigField("BACKEND_URL", backendUrl)

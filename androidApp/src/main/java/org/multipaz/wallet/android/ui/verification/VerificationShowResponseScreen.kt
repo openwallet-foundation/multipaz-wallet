@@ -178,7 +178,14 @@ fun VerificationShowResponseScreen(
             .fillMaxSize(),
         topBar = {
             MediumTopAppBar(
-                title = { Text(stringResource(R.string.verification_show_response_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.verification_show_response_title),
+                        modifier = Modifier.clickable(enabled = devModeEnabled) {
+                            onDeveloperExtrasClicked()
+                        }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
                         Icon(
@@ -188,14 +195,6 @@ fun VerificationShowResponseScreen(
                     }
                 },
                 actions = {
-                    if (devModeEnabled) {
-                        IconButton(onClick = onDeveloperExtrasClicked) {
-                            Icon(
-                                imageVector = Icons.Outlined.Science,
-                                contentDescription = null
-                            )
-                        }
-                    }
                     if (eventIdentifier != null) {
                         IconButton(
                             onClick = {

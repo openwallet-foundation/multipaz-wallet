@@ -148,3 +148,8 @@ val appAboutTextMd: String by extra {
                 )))
 }
 
+val developerModeTextMd: String by extra {
+    file("DEVELOPER-MODE.md").readText()
+}
+
+
