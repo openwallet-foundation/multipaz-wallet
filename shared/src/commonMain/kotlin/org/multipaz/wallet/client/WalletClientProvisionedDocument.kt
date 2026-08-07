@@ -33,5 +33,10 @@ sealed class WalletClientProvisionedDocument(
     open val displayName: String?,
     open val typeDisplayName: String?
 ) {
+    /**
+     * Creates a new instance of this [WalletClientProvisionedDocument] with the [cardArt] replaced.
+     */
+    abstract fun withCardArt(cardArt: ByteString?): WalletClientProvisionedDocument
+
     companion object
 }

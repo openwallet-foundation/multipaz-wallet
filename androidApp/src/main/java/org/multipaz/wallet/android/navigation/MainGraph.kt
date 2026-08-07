@@ -56,6 +56,7 @@ import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.deleteVerification
+import org.multipaz.wallet.android.encodeCardArt
 import org.multipaz.wallet.android.generateVerificationLink
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.toCbor
@@ -223,9 +224,26 @@ fun mainGraph(
                                         document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
                                         Logger.i(TAG, "Adding a new provisioned document to shared data")
                                         walletClient.refreshSharedData()
+                                        val provisionedDocumentToAdd = provisionedDocument.cardArt?.let { cardArt ->
+                                            val origBytes = cardArt.size
+                                            val scaledCardArt = encodeCardArt(
+                                                cardArt = cardArt,
+                                                maxBytes = BuildConfig.MAX_CARD_ART_SIZE_IN_SHARED_DATA_KB * 1024
+                                            )
+                                            if (scaledCardArt != null) {
+                                                val newBytes = scaledCardArt.size
+                                                Logger.i(
+                                                    TAG,
+                                                    "Scaled down card art from $origBytes bytes to $newBytes bytes"
+                                                )
+                                                provisionedDocument.withCardArt(scaledCardArt)
+                                            } else {
+                                                null
+                                            }
+                                        } ?: provisionedDocument
                                         walletClient.setSharedData(
                                             sharedData = walletClient.sharedData.value!!.addProvisionedDocument(
-                                                provisionedDocument
+                                                provisionedDocumentToAdd
                                             ),
                                             suppressSpinner = true
                                         )

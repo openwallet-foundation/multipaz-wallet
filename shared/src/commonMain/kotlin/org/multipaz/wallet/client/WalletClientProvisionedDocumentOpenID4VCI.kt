@@ -25,4 +25,7 @@ data class WalletClientProvisionedDocumentOpenID4VCI(
     // credentialId is sufficient since most of the time holders only have a single credential of a given
     // type with a given issuer.
     //
-): WalletClientProvisionedDocument(identifier, cardArt, displayName, typeDisplayName)
+): WalletClientProvisionedDocument(identifier, cardArt, displayName, typeDisplayName) {
+    override fun withCardArt(cardArt: ByteString?): WalletClientProvisionedDocumentOpenID4VCI =
+        copy(cardArt = cardArt)
+}

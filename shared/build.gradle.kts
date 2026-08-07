@@ -23,6 +23,7 @@ val projectVersionName: String by rootProject.extra
 val updateUrl: String by rootProject.extra
 val updateWebsite: String by rootProject.extra
 val developerModeTextMd: String by rootProject.extra
+val maxCardArtSizeInSharedDataKb: Int by rootProject.extra
 
 buildConfig {
     packageName("org.multipaz.wallet.shared")
@@ -37,6 +38,7 @@ buildConfig {
     buildConfigField("BACKEND_SECRET", backendSecret)
     buildConfigField("DEVELOPER_MODE_AVAILABLE", developerModeAvailable)
     buildConfigField("PERIODIC_BOOKKEEPING_INTERVAL_HOURS", periodicBookkeepingIntervalHours)
+    buildConfigField("MAX_CARD_ART_SIZE_IN_SHARED_DATA_KB", maxCardArtSizeInSharedDataKb)
     buildConfigField("UPDATE_URL", updateUrl)
     buildConfigField("UPDATE_WEBSITE", updateWebsite)
     useKotlinOutput { internalVisibility = false }

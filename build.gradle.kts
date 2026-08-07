@@ -81,6 +81,11 @@ val periodicBookkeepingIntervalHours: Long by extra {
     str?.toLongOrNull() ?: 6L
 }
 
+val maxCardArtSizeInSharedDataKb: Int by extra {
+    val str = System.getenv("MULTIPAZ_WALLET_MAX_CARD_ART_SIZE_IN_SHARED_DATA_KB")
+    str?.toIntOrNull() ?: 50
+}
+
 
 // For `versionCode` we just use the number of commits.
 val projectVersionCode: Int by extra {

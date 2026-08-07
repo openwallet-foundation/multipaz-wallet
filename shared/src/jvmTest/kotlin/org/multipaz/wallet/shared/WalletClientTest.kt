@@ -978,6 +978,30 @@ class WalletClientTest {
     }
 
     @Test
+    fun testProvisionedDocumentWithCardArt() {
+        val doc = WalletClientProvisionedDocumentOpenID4VCI(
+            identifier = "id1",
+            cardArt = null,
+            displayName = "Document 1",
+            typeDisplayName = "Type 1",
+            url = "https://example.com/issuer",
+            credentialId = "cred1"
+        )
+        assertNull(doc.cardArt)
+        val newCardArt = ByteString(1, 2, 3, 4)
+        val updatedDoc = doc.withCardArt(newCardArt)
+        assertEquals(newCardArt, updatedDoc.cardArt)
+        assertEquals(doc.identifier, updatedDoc.identifier)
+        assertEquals(doc.displayName, updatedDoc.displayName)
+        assertEquals(doc.typeDisplayName, updatedDoc.typeDisplayName)
+        assertEquals(doc.url, updatedDoc.url)
+        assertEquals(doc.credentialId, updatedDoc.credentialId)
+
+        val docCleared = updatedDoc.withCardArt(null)
+        assertNull(docCleared.cardArt)
+    }
+
+    @Test
     fun testDocumentStoreSyncProvisionedDocuments() = runTest {
         val doc1 = getProvisionedDocument1()
         val doc2 = getProvisionedDocument2()
