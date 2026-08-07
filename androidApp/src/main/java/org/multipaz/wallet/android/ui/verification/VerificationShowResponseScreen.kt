@@ -114,9 +114,9 @@ import org.multipaz.wallet.client.verification.IdentificationDocumentQueryResult
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
-import org.multipaz.wallet.client.verification.RevocationChecker
-import org.multipaz.wallet.client.verification.RevocationCheckResult
-import org.multipaz.wallet.client.verification.RevocationCheckState
+import org.multipaz.revocation.RevocationChecker
+import org.multipaz.revocation.RevocationCheckResult
+import org.multipaz.revocation.RevocationCheckState
 import org.multipaz.wallet.client.verification.isJpegOrPng
 import org.multipaz.wallet.client.verification.portrait
 import org.multipaz.wallet.shared.Location
@@ -391,14 +391,18 @@ private fun rememberRevocationCheckResult(
     LaunchedEffect(result.revocationStatus) {
         val status = result.revocationStatus
         if (revocationChecker != null && status != null && status !is RevocationStatus.Unknown) {
+            val issuerCert = result.trustResult.trustChain?.certificates?.last()
             checkResult = revocationChecker.check(
                 revocationStatus = status,
-                issuerCertChain = result.certificateChain,
+                issuerCert = issuerCert,
+                onlyTrusted = false,
                 atTime = atTime
             )
+            Logger.i(TAG, "RevocationCheckResult: $checkResult")
         } else {
             checkResult = RevocationCheckResult(
                 state = RevocationCheckState.UNKNOWN,
+                isTrusted = false,
                 error = null
             )
         }

@@ -50,7 +50,7 @@ import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.verification.ProximityReaderModel
-import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.revocation.RevocationChecker
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException

@@ -36,14 +36,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.multipaz.wallet.android.R
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.android.Android
-import io.ktor.client.request.get
-import io.ktor.client.statement.readRawBytes
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
+import org.multipaz.revocation.IdentifierList
+import org.multipaz.revocation.RevocationCheckState
+import org.multipaz.revocation.RevocationChecker
+import org.multipaz.revocation.RevocationInfo
+import org.multipaz.revocation.RevocationStatus
+import org.multipaz.revocation.StatusList
+import org.multipaz.revocation.getRevocationInfo
+import org.multipaz.trustmanagement.TrustManagerInterface
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.decodeToString
@@ -65,11 +65,6 @@ import org.multipaz.credential.Credential
 import org.multipaz.credential.SecureAreaBoundCredential
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.mdoc.credential.MdocCredential
-import org.multipaz.mdoc.mso.MobileSecurityObject
-import org.multipaz.revocation.IdentifierList
-import org.multipaz.revocation.RevocationStatus
-import org.multipaz.revocation.StatusList
-import org.multipaz.sdjwt.SdJwt
 import org.multipaz.sdjwt.credential.SdJwtVcCredential
 import org.multipaz.util.Logger
 import org.multipaz.util.toHex
@@ -83,6 +78,8 @@ fun CredentialInfoScreen(
     documentModel: DocumentModel,
     documentId: String,
     credentialId: String,
+    revocationChecker: RevocationChecker,
+    issuerTrustManager: TrustManagerInterface,
     onBackClicked: () -> Unit,
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
     showToast: (message: String) -> Unit
@@ -128,6 +125,8 @@ fun CredentialInfoScreen(
                 FloatingItemList() {
                     CredentialInfoSection(
                         credentialInfo = credentialInfo,
+                        revocationChecker = revocationChecker,
+                        issuerTrustManager = issuerTrustManager,
                         onViewCertificateChain = onViewCertificateChain,
                         showToast = showToast
                     )
@@ -148,6 +147,8 @@ fun CredentialInfoScreen(
 @Composable
 private fun CredentialInfoSection(
     credentialInfo: CredentialInfo,
+    revocationChecker: RevocationChecker,
+    issuerTrustManager: TrustManagerInterface,
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -171,7 +172,11 @@ private fun CredentialInfoSection(
             "${credentialInfo.credential.issuerProvidedData.size} bytes"
         )
         FloatingItemHeadingAndText("Usage Count", credentialInfo.credential.usageCount.toString())
-        RevocationStatusSection(credentialInfo.credential)
+        RevocationStatusSection(
+            revocationChecker = revocationChecker,
+            issuerTrustManager = issuerTrustManager,
+            credential = credentialInfo.credential
+        )
         when (credentialInfo.credential) {
             is MdocCredential -> {
                 val issuerSigned = Cbor.decode(credentialInfo.credential.issuerProvidedData.toByteArray())
@@ -299,164 +304,80 @@ private fun CredentialClaimsSection(credentialInfo: CredentialInfo) {
 }
 
 @Composable
-private fun RevocationStatusSection(credential: Credential) {
+private fun RevocationStatusSection(
+    revocationChecker: RevocationChecker,
+    issuerTrustManager: TrustManagerInterface,
+    credential: Credential
+) {
     val coroutineScope = rememberCoroutineScope()
-    val revocationData = remember { mutableStateOf<RevocationData?>(null) }
+    val revocationData = remember { mutableStateOf<RevocationInfo?>(null) }
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            revocationData.value = extractRevocationData(credential)
+            revocationData.value = credential.getRevocationInfo(issuerTrustManager)
         }
     }
-
-    when (val status = revocationData.value?.revocationStatus) {
-        is RevocationStatus.Unknown -> {
-            FloatingItemHeadingAndText(
-                heading = "Revocation info",
-                text = "Not parsed"
-            )
-        }
-        is RevocationStatus.StatusList -> StatusListCheckSection(status, revocationData.value!!.certChain)
-        is RevocationStatus.IdentifierList -> IdentifierListCheckSection(status, revocationData.value!!.certChain)
-        else -> {
-            FloatingItemHeadingAndText(
-                heading = "Revocation info",
-                text = "Not found"
-            )
-        }
-    }
-}
-
-private suspend fun extractRevocationData(credential: Credential): RevocationData? {
-    return when (credential) {
-        is MdocCredential -> {
-            val issuerSigned = Cbor.decode(credential.issuerProvidedData.toByteArray())
-            val issuerAuth = issuerSigned["issuerAuth"].asCoseSign1
-            val certChain = issuerAuth.unprotectedHeaders[
-                CoseNumberLabel(Cose.COSE_LABEL_X5CHAIN)
-            ]!!.asX509CertChain
-            val tagged = Cbor.decode(issuerAuth.payload!!)
-            val mso = MobileSecurityObject.fromDataItem(Cbor.decode((tagged as Tagged).taggedItem.asBstr))
-            mso.revocationStatus?.let { RevocationData(it, certChain) }
-        }
-        is SdJwtVcCredential -> {
-            val sdjwt = SdJwt.fromCompactSerialization(credential.issuerProvidedData.decodeToString())
-            val certChain = sdjwt.x5c ?: return null
-            sdjwt.revocationStatus?.let { RevocationData(it, certChain) }
-        }
-        else -> null
-    }
-}
-
-private class RevocationData(
-    val revocationStatus: RevocationStatus,
-    val certChain: X509CertChain
-)
-
-private val STATUSLIST_JWT = ContentType("application", "statuslist+jwt")
-private val STATUSLIST_CWT = ContentType("application", "statuslist+cwt")
-
-@Composable
-private fun StatusListCheckSection(
-    status: RevocationStatus.StatusList,
-    certChain: X509CertChain
-) {
-    val coroutineScope = rememberCoroutineScope()
-    val statusText = remember { mutableStateOf("Click to check status") }
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .clickable {
-                coroutineScope.launch {
-                    val client = HttpClient(Android)
-                    val response = client.get(status.uri) {
-                        // CWT is more compact, so prefer that
-                        headers.append(
-                            name = HttpHeaders.Accept,
-                            value = "$STATUSLIST_CWT, $STATUSLIST_JWT;q=0.9"
-                        )
-                    }
-                    if (response.status != HttpStatusCode.OK) {
-                        statusText.value = "HTTP Status: ${response.status}"
-                    } else {
-                        try {
-                            val cert = status.certificate ?: certChain.certificates.first()
-                            val statusList = when (val type = response.contentType()) {
-                                STATUSLIST_JWT -> StatusList.fromJwt(
-                                    jwt = response.readRawBytes().decodeToString(),
-                                    publicKey = cert.ecPublicKey
-                                )
-                                STATUSLIST_CWT -> StatusList.fromCwt(
-                                    cwt = response.readRawBytes(),
-                                    publicKey = cert.ecPublicKey
-                                )
-                                else -> throw IllegalStateException("Unknown type: $type")
-                            }
-
-                            statusText.value = when (val code = statusList[status.idx]) {
-                                0 -> "Valid"
-                                1 -> "Invalid"
-                                2 -> "Suspended"
-                                else -> "Unexpected status $code"
-                            }
-                        } catch (err: Exception) {
-                            if (err is CancellationException) throw err
-                            Logger.e(TAG, "Failed to parse status list", err)
-                            statusText.value = "Failed to parse status list"
-                        }
-                    }
-                }
-            }
-    ) {
+    val value = revocationData.value
+    if (value != null) {
+        RevocationCheckSection(revocationChecker, value)
+    } else {
         FloatingItemHeadingAndText(
-            heading = "Status List Revocation",
-            text = "Index: ${status.idx}\n" +
-                    "Url: ${status.uri}\n" +
-                    statusText.value
+            heading = "Revocation info",
+            text = "Not found"
         )
     }
 }
 
 @Composable
-private fun IdentifierListCheckSection(
-    status: RevocationStatus.IdentifierList,
-    certChain: X509CertChain
+private fun RevocationCheckSection(
+    revocationChecker: RevocationChecker,
+    revocationData: RevocationInfo
 ) {
     val coroutineScope = rememberCoroutineScope()
     val statusText = remember { mutableStateOf("Click to check status") }
+    val heading = when (revocationData.revocationStatus) {
+        is RevocationStatus.StatusList -> "Status List Revocation"
+        is RevocationStatus.IdentifierList -> "Identifier List Revocation"
+        else -> "Revocation info"
+    }
+    val detailsText = when (val status = revocationData.revocationStatus) {
+        is RevocationStatus.StatusList -> {
+            "Index: ${status.idx}\nUrl: ${status.uri}"
+        }
+        is RevocationStatus.IdentifierList -> {
+            "Identifier: ${status.id.toByteArray().toHex()}\nUrl: ${status.uri}"
+        }
+        else -> "Unknown revocation data format"
+    }
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .clickable {
                 coroutineScope.launch {
-                    val client = HttpClient(Android)
-                    val response = client.get(status.uri)
-                    if (response.status != HttpStatusCode.OK) {
-                        statusText.value = "HTTP Status: ${response.status}"
+                    val result = revocationChecker.check(
+                        revocationStatus = revocationData.revocationStatus,
+                        issuerCert = revocationData.certificate,
+                        onlyTrusted = false
+                    )
+                    Logger.i(TAG, "RevocationCheckResult: $result")
+                    val state = when (result.state) {
+                        RevocationCheckState.VALID -> "Valid"
+                        RevocationCheckState.INVALID -> "Invalid"
+                        RevocationCheckState.SUSPENDED -> "Suspended"
+                        RevocationCheckState.UNKNOWN -> "Unknown"
+                    }
+                    val trust = if (result.isTrusted) "Trusted" else "Not trusted"
+                    statusText.value = if (result.error == null) {
+                        "$state ($trust)"
                     } else {
-                        val cert = status.certificate ?: certChain.certificates.first()
-                        try {
-                            val identifierList = IdentifierList.fromCwt(
-                                cwt = response.readRawBytes(),
-                                publicKey = cert.ecPublicKey
-                            )
-                            statusText.value = if (identifierList.contains(status.id)) {
-                                "Invalid"
-                            } else {
-                                "Valid"
-                            }
-                        } catch (err: Exception) {
-                            if (err is CancellationException) throw err
-                            Logger.e(TAG, "Failed to parse identifier list", err)
-                            statusText.value = "Failed to parse identifier list"
-                        }
+                        "$state ($trust) [${result.error!!::class.simpleName}]"
                     }
                 }
             }
     ) {
         FloatingItemHeadingAndText(
-            heading = "Identifier List Revocation",
-            text = "Identifier: ${status.id.toByteArray().toHex()}\n" +
-                    "Url: ${status.uri}\n" +
-                    statusText.value
+            heading = heading,
+            text = "$detailsText\n${statusText.value}"
         )
     }
 }

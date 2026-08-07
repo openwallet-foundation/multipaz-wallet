@@ -137,7 +137,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.revocation.RevocationChecker
 
 private const val TAG = "MainGraph"
 
@@ -527,6 +527,8 @@ fun mainGraph(
                     documentModel = documentModel,
                     documentId = key.documentId,
                     credentialId = key.credentialId,
+                    revocationChecker = revocationChecker,
+                    issuerTrustManager = issuerTrustManager,
                     onViewCertificateChain = { certChain ->
                         backStack.add(CertificateViewerDestination.create(certChain))
                     },

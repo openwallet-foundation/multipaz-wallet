@@ -27,7 +27,7 @@ import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.client.WalletClient
-import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.revocation.RevocationChecker
 
 @Composable
 fun MdocUrlVerificationNavHost(

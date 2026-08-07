@@ -90,8 +90,8 @@ import java.security.Security
 
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.worker.PeriodicBookkeepingScheduler
-import org.multipaz.wallet.client.verification.RevocationChecker
-import org.multipaz.wallet.client.verification.StorageRevocationChecker
+import org.multipaz.revocation.CachingRevocationChecker
+import org.multipaz.revocation.RevocationChecker
 
 class App private constructor() {
 
@@ -271,11 +271,10 @@ class App private constructor() {
 
         externalNfcReaderStore = ExternalNfcReaderStore.create(storage)
         proximityReaderModel = ProximityReaderModel()
-        revocationChecker = StorageRevocationChecker(
+        revocationChecker = CachingRevocationChecker(
             storage = storage,
             httpClient = HttpClient(Android)
         )
-        revocationChecker.purgeExpired()
 
         PeriodicBookkeepingScheduler.schedulePeriodicBookkeeping(applicationContext)
     }

@@ -76,9 +76,9 @@ import kotlin.time.Instant
 
 import androidx.compose.runtime.mutableStateMapOf
 import org.multipaz.revocation.RevocationStatus
-import org.multipaz.wallet.client.verification.RevocationChecker
-import org.multipaz.wallet.client.verification.RevocationCheckResult
-import org.multipaz.wallet.client.verification.RevocationCheckState
+import org.multipaz.revocation.RevocationChecker
+import org.multipaz.revocation.RevocationCheckResult
+import org.multipaz.revocation.RevocationCheckState
 import kotlinx.coroutines.launch
 
 private const val TAG = "VerificationShowResponseScreen"
@@ -160,15 +160,20 @@ fun VerificationShowResponseDeveloperExtrasScreen(
         revocationCheckStatuses[vpNum] = RevocationCheckStatus.Checking
         coroutineScope.launch {
             val result = if (revocationChecker != null && revStatus !is RevocationStatus.Unknown) {
+                val trustResult = issuerTrustManager.verify(certChain.certificates, atTime)
+                val issuerCert = trustResult.trustChain?.certificates?.last()
+                Logger.i(TAG, "Passing cert: ${issuerCert?.toPem()}")
                 revocationChecker.check(
                     revocationStatus = revStatus,
-                    issuerCertChain = certChain,
+                    issuerCert = issuerCert,
+                    onlyTrusted = false,
                     atTime = atTime,
                     bypassCache = true
                 )
             } else {
-                RevocationCheckResult(RevocationCheckState.UNKNOWN, IllegalStateException("No revocation checker available"))
+                RevocationCheckResult(RevocationCheckState.UNKNOWN, isTrusted = false, error = IllegalStateException("No revocation checker available"))
             }
+            Logger.i(TAG, "RevocationCheckResult: $result")
             revocationCheckStatuses[vpNum] = RevocationCheckStatus.Completed(result)
         }
     }
@@ -382,7 +387,22 @@ private suspend fun parseResponse(
                     val (statusText, isClickable) = when (checkStatus) {
                         is RevocationCheckStatus.Idle -> Pair("Click to check status", true)
                         is RevocationCheckStatus.Checking -> Pair("Checking status...", false)
-                        is RevocationCheckStatus.Completed -> Pair("${checkStatus.result.state}${checkStatus.result.error?.let { ": ${it.message}" } ?: ""}", true)
+                        is RevocationCheckStatus.Completed -> {
+                            val res = checkStatus.result
+                            val stateStr = when (res.state) {
+                                RevocationCheckState.VALID -> "Valid"
+                                RevocationCheckState.INVALID -> "Invalid"
+                                RevocationCheckState.SUSPENDED -> "Suspended"
+                                RevocationCheckState.UNKNOWN -> "Unknown"
+                            }
+                            val trustStr = if (res.isTrusted) "Trusted" else "Not trusted"
+                            val text = if (res.error == null) {
+                                "$stateStr ($trustStr)"
+                            } else {
+                                "$stateStr ($trustStr) [${res.error!!::class.simpleName}]"
+                            }
+                            Pair(text, true)
+                        }
                     }
 
                     val onClickAction: (() -> Unit)? = if (revocationChecker != null && isClickable) {
@@ -492,7 +512,22 @@ private suspend fun parseResponse(
                     val (statusText, isClickable) = when (checkStatus) {
                         is RevocationCheckStatus.Idle -> Pair("Click to check status", true)
                         is RevocationCheckStatus.Checking -> Pair("Checking status...", false)
-                        is RevocationCheckStatus.Completed -> Pair("${checkStatus.result.state}${checkStatus.result.error?.let { ": ${it.message}" } ?: ""}", true)
+                        is RevocationCheckStatus.Completed -> {
+                            val res = checkStatus.result
+                            val stateStr = when (res.state) {
+                                RevocationCheckState.VALID -> "Valid"
+                                RevocationCheckState.INVALID -> "Invalid"
+                                RevocationCheckState.SUSPENDED -> "Suspended"
+                                RevocationCheckState.UNKNOWN -> "Unknown"
+                            }
+                            val trustStr = if (res.isTrusted) "Trusted" else "Not trusted"
+                            val text = if (res.error == null) {
+                                "$stateStr ($trustStr)"
+                            } else {
+                                "$stateStr ($trustStr) [${res.error!!::class.simpleName}]"
+                            }
+                            Pair(text, true)
+                        }
                     }
 
                     val onClickAction: (() -> Unit)? = if (revocationChecker != null && isClickable) {

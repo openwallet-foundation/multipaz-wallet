@@ -42,7 +42,7 @@ import org.multipaz.wallet.android.ui.verification.handleQrCodeScanned
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
-import org.multipaz.wallet.client.verification.RevocationChecker
+import org.multipaz.revocation.RevocationChecker
 import org.multipaz.wallet.client.verification.toCbor
 import kotlin.time.Clock
 import kotlin.time.Instant
