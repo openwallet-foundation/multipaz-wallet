@@ -49,6 +49,8 @@ import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
 import org.multipaz.securearea.software.SoftwareSecureArea
 import org.multipaz.storage.Storage
+import org.multipaz.storage.StorageTable
+import org.multipaz.storage.StorageTableSpec
 import org.multipaz.storage.ephemeral.EphemeralStorage
 import org.multipaz.trustmanagement.TrustEntryX509Cert
 import org.multipaz.util.fromBase64Url
@@ -1333,6 +1335,170 @@ class WalletClientTest {
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
         assertNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
+    }
+
+    @Test
+    fun testSyncWithSharedDataCorruptPassAutoRemoval() = runTest {
+        val pass1 = getPass1()
+        val corruptPass = MpzPass(
+            uniqueId = "corrupt_pass",
+            version = 1,
+            updateUrl = null,
+            name = null,
+            typeName = null,
+            cardArt = null,
+            isoMdoc = emptyList(),
+            sdJwtVc = listOf(
+                MpzPassSdJwtVc(
+                    vct = "urn:eudi:pid:de:1",
+                    deviceKeyPrivate = Crypto.createEcPrivateKey(EcCurve.P256),
+                    compactSerialization = "invalid_jwt_payload"
+                )
+            )
+        )
+
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
+        val clientNonce = client.getNonce()
+        client.signInWithGoogle(
+            nonce = clientNonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = clientNonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val documentStore = buildDocumentStore(
+            storage = clientStorage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        // Add both a valid pass and a corrupt pass to backend shared data
+        client.setSharedData(
+            client.sharedData.value!!
+                .addMpzPass(pass1)
+                .addMpzPass(corruptPass)
+        )
+
+        assertEquals(2, client.sharedData.value!!.getMpzPasses().size)
+
+        // Sync with shared data passing walletClient for auto-removal of bad passes
+        documentStore.syncWithSharedData(
+            sharedData = client.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+        )
+
+        // Valid pass imported successfully
+        assertNotNull(documentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
+        // Corrupt pass failed import and was auto-removed from shared data on backend
+        assertNull(documentStore.listDocuments().find { it.mpzPassId == corruptPass.uniqueId })
+        val updatedPasses = client.sharedData.value!!.getMpzPasses()
+        assertEquals(1, updatedPasses.size)
+        assertEquals(pass1.uniqueId, updatedPasses.first().uniqueId)
+    }
+
+    @Test
+    fun testSyncWithSharedDataCorruptProvisionedDocumentAutoRemoval() = runTest {
+        val validDoc = getProvisionedDocument1()
+        val corruptDoc = getProvisionedDocument2()
+
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
+        val clientNonce = client.getNonce()
+        client.signInWithGoogle(
+            nonce = clientNonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = clientNonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+
+        val failingStorage = object : Storage by clientStorage {
+            override suspend fun getTable(spec: StorageTableSpec): StorageTable {
+                val table = clientStorage.getTable(spec)
+                return object : StorageTable by table {
+                    override suspend fun insert(
+                        key: String?,
+                        data: ByteString,
+                        partitionId: String?,
+                        expiration: kotlin.time.Instant
+                    ): String {
+                        if (spec.name == "Documents" && key == null) {
+                            if (table.enumerate(partitionId).size >= 1) {
+                                throw IllegalStateException("Simulated document creation failure for corrupt provisioned document")
+                            }
+                        }
+                        return table.insert(key, data, partitionId, expiration)
+                    }
+                }
+            }
+        }
+
+        val documentStore = buildDocumentStore(
+            storage = failingStorage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        // Add validDoc and corruptDoc to backend shared data
+        client.setSharedData(
+            client.sharedData.value!!
+                .addProvisionedDocument(validDoc)
+                .addProvisionedDocument(corruptDoc)
+        )
+
+        assertEquals(2, client.sharedData.value!!.provisionedDocuments?.size)
+
+        // Sync with shared data passing walletClient for auto-removal of bad provisioned documents
+        documentStore.syncWithSharedData(
+            sharedData = client.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+        )
+
+        // validDoc was created successfully in DocumentStore
+        assertNotNull(documentStore.listDocuments().find { it.provisionedDocumentIdentifier == validDoc.identifier })
+        // corruptDoc failed creation and was auto-removed from backend shared data
+        val updatedDocs = client.sharedData.value!!.provisionedDocuments
+        assertEquals(1, updatedDocs?.size)
+        assertEquals(validDoc.identifier, updatedDocs?.first()?.identifier)
     }
 
     @Test

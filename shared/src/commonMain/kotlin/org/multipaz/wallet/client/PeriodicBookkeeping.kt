@@ -73,7 +73,8 @@ suspend fun WalletClient.runPeriodicBookkeeping(
                     sharedData = sharedData,
                     mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                     mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                    walletClient = this,
                 )
             }
         } catch (e: WalletBackendNotSignedInException) {

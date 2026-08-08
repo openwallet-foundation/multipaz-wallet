@@ -596,13 +596,19 @@ fun mainGraph(
                                 true,
                                 false,
                             )
-                            walletClient.sharedData.value?.let {
-                                documentStore.syncWithSharedData(
-                                    sharedData = it,
-                                    mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                                    mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
-                                )
+                            try {
+                                walletClient.sharedData.value?.let {
+                                    documentStore.syncWithSharedData(
+                                        sharedData = it,
+                                        mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                                        mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                                        walletClient = walletClient,
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.e(TAG, "Failed syncing shared data during sign in", e)
                             }
                             isSigningIn.value = false
                         }

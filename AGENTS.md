@@ -49,6 +49,8 @@ You should also be familiar with the project's [README.md](README.md) file.
 ## 5. Compilation and testing
 It is critical that all code you deliver compiles successfully and passes all relevant test suites. A task is not considered complete until these verification steps have been performed.
 
+You must follow the guidelines in [CODING-STYLE.md](CODING-STYLE.md) file.
+
 ## 6. Commits
 The following rules apply when being asked to generate a commit.
 * The commit message should detail the changes being committed, not all the prompts that led to here. This includes changes to the source that was done by others, for example the human driving the AI.

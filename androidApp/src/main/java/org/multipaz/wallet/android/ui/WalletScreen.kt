@@ -459,13 +459,15 @@ fun WalletScreen(
                                         sharedData = it,
                                         mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                                         mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                                        walletClient = walletClient,
                                     )
                                 }
                             }
                             walletClient.refreshReaderKeys()
                             onRefresh()
                         } catch (e: Exception) {
+                            if (e is CancellationException) throw e
                             Logger.e(TAG, "Error refreshing data", e)
                             showToast(e.toString())
                         } finally {

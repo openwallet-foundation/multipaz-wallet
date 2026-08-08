@@ -41,8 +41,14 @@ data class WalletClientSharedData(
      * @return a list of [MpzPass] instances.
      */
     suspend fun getMpzPasses(): List<MpzPass> {
-        return encodedMpzPasses?.map {
-            MpzPass.fromDataItem(Cbor.decode(it.toByteArray()))
+        return encodedMpzPasses?.mapNotNull {
+            try {
+                MpzPass.fromDataItem(Cbor.decode(it.toByteArray()))
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.e(TAG, "Failed to decode MpzPass from CBOR", e)
+                null
+            }
         } ?: emptyList()
     }
 
@@ -73,8 +79,12 @@ data class WalletClientSharedData(
     suspend fun removeMpzPass(pass: MpzPass): WalletClientSharedData {
         return copy(
             encodedMpzPasses = encodedMpzPasses?.filter {
-                val p = MpzPass.fromDataItem(Cbor.decode(it.toByteArray()))
-                p.uniqueId != pass.uniqueId
+                try {
+                    val p = MpzPass.fromDataItem(Cbor.decode(it.toByteArray()))
+                    p.uniqueId != pass.uniqueId
+                } catch (e: Exception) {
+                    false
+                }
             }?.ifEmpty { null }
         )
     }
@@ -109,22 +119,26 @@ data class WalletClientSharedData(
  * @param mpzPassIsoMdocDomain The domain string to use when creating ISO mdoc credentials.
  * @param mpzPassSdJwtVcDomain The domain string to use when creating SD-JWT VC credentials.
  * @param mpzPassKeylessSdJwtVcDomain the domain string to use when creating keyless SD-JWT VC credentials.
+ * @param walletClient optional [WalletClient] to auto-remove un-importable corrupt passes from cloud shared data.
  */
 @Throws(Exception::class)
 suspend fun DocumentStore.syncWithSharedData(
     sharedData: WalletClientSharedData,
     mpzPassIsoMdocDomain: String,
     mpzPassSdJwtVcDomain: String,
-    mpzPassKeylessSdJwtVcDomain: String
+    mpzPassKeylessSdJwtVcDomain: String,
+    walletClient: WalletClient? = null,
 ) {
     syncMpzPasses(
         sharedData = sharedData,
         mpzPassIsoMdocDomain = mpzPassIsoMdocDomain,
         mpzPassSdJwtVcDomain = mpzPassSdJwtVcDomain,
         mpzPassKeylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain,
+        walletClient = walletClient,
     )
     syncProvisionedDocuments(
         sharedData = sharedData,
+        walletClient = walletClient,
     )
 }
 
@@ -132,43 +146,71 @@ private suspend fun DocumentStore.syncMpzPasses(
     sharedData: WalletClientSharedData,
     mpzPassIsoMdocDomain: String = "mdoc",
     mpzPassSdJwtVcDomain: String = "sdjwtvc",
-    mpzPassKeylessSdJwtVcDomain: String = "sdjwtvc_keyless"
+    mpzPassKeylessSdJwtVcDomain: String = "sdjwtvc_keyless",
+    walletClient: WalletClient? = null,
 ) {
     val mpzPasses = sharedData.getMpzPasses()
 
     Logger.i(TAG, "syncMpzPasses: Running")
+    val failedPasses = mutableListOf<MpzPass>()
+
     // First add / update passes
     mpzPasses.forEach { pass ->
         val documentForPass = listDocuments().find {
             it.mpzPassId == pass.uniqueId
         }
-        if (documentForPass == null) {
-            importMpzPass(
-                mpzPass = pass,
-                isoMdocDomain = mpzPassIsoMdocDomain,
-                sdJwtVcDomain = mpzPassSdJwtVcDomain,
-                keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
-            )
-            Logger.i(TAG, "syncMpzPasses: Imported pass ${pass.uniqueId} at version ${pass.version}")
-        } else if (documentForPass.mpzPassVersion!! < pass.version) {
-            val oldVersion = documentForPass.mpzPassVersion!!
-            importMpzPass(
-                mpzPass = pass,
-                isoMdocDomain = mpzPassIsoMdocDomain,
-                sdJwtVcDomain = mpzPassSdJwtVcDomain,
-                keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
-            )
-            Logger.i(TAG, "syncMpzPasses: Updated pass ${pass.uniqueId} from version $oldVersion to ${pass.version}")
+        try {
+            if (documentForPass == null) {
+                importMpzPass(
+                    mpzPass = pass,
+                    isoMdocDomain = mpzPassIsoMdocDomain,
+                    sdJwtVcDomain = mpzPassSdJwtVcDomain,
+                    keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
+                )
+                Logger.i(TAG, "syncMpzPasses: Imported pass ${pass.uniqueId} at version ${pass.version}")
+            } else if (documentForPass.mpzPassVersion!! < pass.version) {
+                val oldVersion = documentForPass.mpzPassVersion!!
+                importMpzPass(
+                    mpzPass = pass,
+                    isoMdocDomain = mpzPassIsoMdocDomain,
+                    sdJwtVcDomain = mpzPassSdJwtVcDomain,
+                    keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
+                )
+                Logger.i(TAG, "syncMpzPasses: Updated pass ${pass.uniqueId} from version $oldVersion to ${pass.version}")
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.e(TAG, "syncMpzPasses: Failed importing pass ${pass.uniqueId} at version ${pass.version}", e)
+            failedPasses.add(pass)
         }
     }
 
-    // Then remove passes in DocumentStore which no longer exists in shared data
+    // Auto-remove failed passes from backend shared data if walletClient is provided
+    if (failedPasses.isNotEmpty() && walletClient != null) {
+        for (failedPass in failedPasses) {
+            try {
+                walletClient.refreshSharedData()
+                walletClient.sharedData.value?.let { currentSharedData ->
+                    if (currentSharedData.getMpzPasses().any { it.uniqueId == failedPass.uniqueId }) {
+                        val updatedSharedData = currentSharedData.removeMpzPass(failedPass)
+                        walletClient.setSharedData(updatedSharedData)
+                        Logger.i(TAG, "syncMpzPasses: Auto-removed un-importable pass ${failedPass.uniqueId} from backend shared data")
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "syncMpzPasses: Failed to remove un-importable pass ${failedPass.uniqueId} from backend shared data", e)
+            }
+        }
+    }
+
+    // Then remove passes in DocumentStore which no longer exist in shared data (or failed import)
     for (document in listDocuments()) {
         if (document.mpzPassId == null) {
             continue
         }
         val pass = mpzPasses.find { it.uniqueId == document.mpzPassId }
-        if (pass == null) {
+        if (pass == null || failedPasses.any { it.uniqueId == document.mpzPassId }) {
             deleteDocument(document.identifier)
             Logger.i(TAG, "syncMpzPasses: Removed pass ${document.mpzPassId} at version ${document.mpzPassVersion}")
         }
@@ -177,32 +219,59 @@ private suspend fun DocumentStore.syncMpzPasses(
 
 private suspend fun DocumentStore.syncProvisionedDocuments(
     sharedData: WalletClientSharedData,
+    walletClient: WalletClient? = null,
 ) {
     Logger.i(TAG, "syncProvisionedDocuments: Running")
+    val failedProvisionedDocuments = mutableListOf<WalletClientProvisionedDocument>()
 
     // First add / update provisioned documents
     sharedData.provisionedDocuments?.forEach { provisionedDocument ->
-        val documentForProvisionedDocument = listDocuments().find {
-            it.provisionedDocumentIdentifier == provisionedDocument.identifier
-        }
-        if (documentForProvisionedDocument == null) {
-            val document = createDocument(
-                displayName = provisionedDocument.displayName,
-                typeDisplayName = provisionedDocument.typeDisplayName,
-                cardArt = provisionedDocument.cardArt,
-            )
-            withContext(NonCancellable) {
-                document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
-                document.setProvisionedDocumentSetupNeeded(true)
+        try {
+            val documentForProvisionedDocument = listDocuments().find {
+                it.provisionedDocumentIdentifier == provisionedDocument.identifier
             }
-            Logger.i(
-                TAG,
-                "syncProvisionedDocuments: Added placeholder document for provisioned document ${provisionedDocument.identifier}"
-            )
+            if (documentForProvisionedDocument == null) {
+                val document = createDocument(
+                    displayName = provisionedDocument.displayName,
+                    typeDisplayName = provisionedDocument.typeDisplayName,
+                    cardArt = provisionedDocument.cardArt,
+                )
+                withContext(NonCancellable) {
+                    document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
+                    document.setProvisionedDocumentSetupNeeded(true)
+                }
+                Logger.i(
+                    TAG,
+                    "syncProvisionedDocuments: Added placeholder document for provisioned document ${provisionedDocument.identifier}"
+                )
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.e(TAG, "syncProvisionedDocuments: Failed adding document for ${provisionedDocument.identifier}", e)
+            failedProvisionedDocuments.add(provisionedDocument)
         }
     }
 
-    // Then remove provisioned documents in DocumentStore which no longer exists in shared data.
+    // Auto-remove failed provisioned documents from backend shared data if walletClient is provided
+    if (failedProvisionedDocuments.isNotEmpty() && walletClient != null) {
+        for (failedDoc in failedProvisionedDocuments) {
+            try {
+                walletClient.refreshSharedData()
+                walletClient.sharedData.value?.let { currentSharedData ->
+                    if (currentSharedData.provisionedDocuments?.any { it.identifier == failedDoc.identifier } == true) {
+                        val updatedSharedData = currentSharedData.removeProvisionedDocument(failedDoc)
+                        walletClient.setSharedData(updatedSharedData)
+                        Logger.i(TAG, "syncProvisionedDocuments: Auto-removed un-creatable provisioned document ${failedDoc.identifier} from backend shared data")
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "syncProvisionedDocuments: Failed to remove provisioned document ${failedDoc.identifier} from backend shared data", e)
+            }
+        }
+    }
+
+    // Then remove provisioned documents in DocumentStore which no longer exist in shared data (or failed creation).
     for (document in listDocuments()) {
         if (document.provisionedDocumentIdentifier == null) {
             continue
@@ -211,7 +280,7 @@ private suspend fun DocumentStore.syncProvisionedDocuments(
         val provisionedDocument = sharedData.provisionedDocuments?.find {
             it.identifier == document.provisionedDocumentIdentifier
         }
-        if (provisionedDocument == null) {
+        if (provisionedDocument == null || failedProvisionedDocuments.any { it.identifier == document.provisionedDocumentIdentifier }) {
             deleteDocument(document.identifier)
             Logger.i(TAG, "syncProvisionedDocuments: Removed document for provisioned document " +
                     "${document.identifier} since it no longer exists in shared data")
