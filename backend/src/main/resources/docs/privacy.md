@@ -8,6 +8,8 @@ ${APP_NAME} is a secure, privacy-preserving digital identity credential wallet d
 ## 2. Information We Collect
 ${APP_NAME} is designed with strict data minimization principles. We do not track user identity attributes or share personal data with external third parties without user consent—either given explicitly prompt-by-prompt during document presentation flows or configured via saved pre-consent policies.
 
+To help inform users where and when their account data was accessed, the backend collects the client's IP address (used to resolve coarse location), client device model, and platform name and version. This information is stored securely and displayed to the user in the Device Sessions management screen.
+
 ## 3. Secure Credential Storage & Encryption
 Credential data and personally identifiable information (PII) are stored securely in encrypted application storage, while private key material may be stored in the mobile device's hardware-backed Secure Area (such as Android KeyStore / StrongBox or iOS Secure Enclave).
 

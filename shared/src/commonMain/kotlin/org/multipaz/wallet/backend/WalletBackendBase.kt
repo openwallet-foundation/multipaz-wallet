@@ -83,6 +83,8 @@ abstract class WalletBackendBase: WalletBackend {
      */
     abstract override suspend fun getClientId(): String
 
+    open suspend fun getIpAddress(): String? = null
+
     override suspend fun getNonce(): String {
         val nonceTable = BackendEnvironment.getTable(nonceTableSpec)
         val nonce = Random.nextBytes(16).toBase64Url()
@@ -229,6 +231,30 @@ abstract class WalletBackendBase: WalletBackend {
         saveRemoteWalletClient(newWalletClient)
     }
 
+    override suspend fun markAlive(clientDevice: String?, clientPlatform: String?) {
+        val walletClient = loadRemoteWalletClient()
+        val currentIp = getIpAddress()
+        Logger.i(TAG, "markAlive ip:$currentIp walletClient.ip=${walletClient.ipAddress}")
+        val updatedClient = walletClient.copy(
+            clientDevice = clientDevice ?: walletClient.clientDevice,
+            clientPlatform = clientPlatform ?: walletClient.clientPlatform,
+            ipAddress = currentIp ?: walletClient.ipAddress
+        )
+        saveRemoteWalletClient(updatedClient)
+    }
+
+    /**
+     * Looks up a human-readable location string from an IP address.
+     *
+     * Subclasses can override this method to perform IP-to-location resolution.
+     *
+     * @param ipAddress the IP address to look up, or `null`.
+     * @return a human-readable location string, or `null` if unavailable.
+     */
+    open suspend fun lookupLocationFromIpAddress(ipAddress: String?): String? {
+        return ipAddress
+    }
+
     override suspend fun getSessions(): List<Session> {
         val walletClient = loadRemoteWalletClient()
         val signedInUser = walletClient.signedInUser
@@ -242,11 +268,16 @@ abstract class WalletBackendBase: WalletBackend {
 
         return allClients
             .filter { it.signedInUser?.sharedDataKey == userSharedDataKey }
-            .map { client ->
+            .mapNotNull { client ->
+                val clientType = client.clientType ?: return@mapNotNull null
+                val lastSeenMillis = client.lastSeenMillis ?: return@mapNotNull null
                 Session(
                     clientId = client.clientId,
-                    clientType = client.clientType ?: error("clientType not set for client ${client.clientId}"),
-                    lastSeenMillis = client.lastSeenMillis ?: error("lastSeenMillis not set for client ${client.clientId}")
+                    clientType = clientType,
+                    lastSeenMillis = lastSeenMillis,
+                    location = lookupLocationFromIpAddress(client.ipAddress),
+                    clientDevice = client.clientDevice,
+                    clientPlatform = client.clientPlatform
                 )
             }
     }
@@ -272,20 +303,24 @@ abstract class WalletBackendBase: WalletBackend {
 
     private suspend fun loadRemoteWalletClient(): RemoteWalletClient {
         val clientId = getClientId()
+        val currentIp = getIpAddress()
         val walletClientsTable = BackendEnvironment.getTable(walletClientsTableSpec)
         val walletClientEncoded = walletClientsTable.get(
             key = clientId
         )
         val now = Clock.System.now().toEpochMilliseconds()
         val remoteWalletClient = if (walletClientEncoded != null) {
-            RemoteWalletClient.fromCbor(walletClientEncoded.toByteArray()).copy(
-                lastSeenMillis = now
+            val existing = RemoteWalletClient.fromCbor(walletClientEncoded.toByteArray())
+            existing.copy(
+                lastSeenMillis = now,
+                ipAddress = currentIp ?: existing.ipAddress
             )
         } else {
             RemoteWalletClient(
                 clientId = clientId,
                 signedInUser = null,
-                lastSeenMillis = now
+                lastSeenMillis = now,
+                ipAddress = currentIp
             )
         }
         saveRemoteWalletClient(remoteWalletClient)

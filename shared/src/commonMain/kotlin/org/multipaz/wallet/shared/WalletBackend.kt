@@ -82,6 +82,18 @@ interface WalletBackend {
     suspend fun signOut()
 
     /**
+     * Updates client activity timestamp, clientDevice, and clientPlatform in backend storage.
+     *
+     * @param clientDevice the name of the device, or `null` if unknown.
+     * @param clientPlatform the name and version of the platform, or `null` if unknown.
+     */
+    @RpcMethod
+    suspend fun markAlive(
+        clientDevice: String? = null,
+        clientPlatform: String? = null
+    )
+
+    /**
      * Gets all active device sessions for the signed-in user.
      *
      * @return a list of active [Session] instances.

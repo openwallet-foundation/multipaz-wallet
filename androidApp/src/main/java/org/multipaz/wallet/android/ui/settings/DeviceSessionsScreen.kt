@@ -185,22 +185,32 @@ fun DeviceSessionsScreen(
                                 .thenByDescending { it.lastSeenMillis }
                         )
                         for (session in sortedSessions) {
-                            val deviceName = when (session.clientType) {
+                            val fallbackDeviceName = when (session.clientType) {
                                 ClientType.WEB -> stringResource(R.string.device_sessions_screen_device_web)
                                 ClientType.ANDROID -> stringResource(R.string.device_sessions_screen_device_android)
                                 ClientType.IOS -> stringResource(R.string.device_sessions_screen_device_ios)
                             }
+                            val deviceName = session.clientDevice ?: fallbackDeviceName
                             val deviceIcon = when (session.clientType) {
                                 ClientType.WEB -> Icons.Outlined.Computer
                                 ClientType.ANDROID, ClientType.IOS -> Icons.Outlined.Smartphone
                             }
                             val isCurrentDevice = (currentClientId.value != null && session.clientId == currentClientId.value)
                             val lastSeenText = durationFromNowText(Instant.fromEpochMilliseconds(session.lastSeenMillis))
-                            val secondaryText = if (isCurrentDevice) {
-                                "${stringResource(R.string.device_sessions_screen_this_device)} • $lastSeenText"
-                            } else {
-                                lastSeenText
+                            val secondaryTextParts = mutableListOf<String>()
+                            if (isCurrentDevice) {
+                                secondaryTextParts.add(stringResource(R.string.device_sessions_screen_this_device))
                             }
+                            if (!session.clientPlatform.isNullOrBlank()) {
+                                secondaryTextParts.add(session.clientPlatform!!)
+                            }
+                            if (!session.location.isNullOrBlank()) {
+                                secondaryTextParts.add(session.location!!)
+                            }
+                            if (!isCurrentDevice) {
+                                secondaryTextParts.add(lastSeenText)
+                            }
+                            val secondaryText = secondaryTextParts.joinToString(" • ")
 
                             FloatingItemText(
                                 text = deviceName,
@@ -241,11 +251,14 @@ fun DeviceSessionsScreen(
     }
 
     sessionToSignOut.value?.let { targetSession ->
-        val targetName = when (targetSession.clientType) {
+        val baseTargetName = when (targetSession.clientType) {
             ClientType.WEB -> stringResource(R.string.device_sessions_screen_device_web)
             ClientType.ANDROID -> stringResource(R.string.device_sessions_screen_device_android)
             ClientType.IOS -> stringResource(R.string.device_sessions_screen_device_ios)
         }
+        val targetName = targetSession.clientDevice
+            ?: targetSession.clientPlatform
+            ?: baseTargetName
         AlertDialog(
             onDismissRequest = { sessionToSignOut.value = null },
             title = {

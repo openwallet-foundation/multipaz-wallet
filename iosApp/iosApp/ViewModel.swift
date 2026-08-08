@@ -72,6 +72,8 @@ class ViewModel {
             secureArea: secureArea,
             httpClientEngineFactory: Darwin(),
             numReaderKeys: 10,
+            clientDevice: getIosClientDevice(),
+            clientPlatform: getIosClientPlatform()
         )
         
         secureAreaRepository = SecureAreaRepository.Builder()
@@ -383,6 +385,47 @@ class ViewModel {
         )
         self.presentmentSource = source
         return source
+    }
+}
+
+private func getIosClientDevice() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    let machine = withUnsafePointer(to: &systemInfo.machine) { ptr in
+        String(cString: UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.self))
+    }
+    if machine == "x86_64" || machine == "arm64" {
+        return "\(UIDevice.current.model) Simulator"
+    } else {
+        return mapIosModelCode(machine) ?? UIDevice.current.model
+    }
+}
+
+private func getIosClientPlatform() -> String {
+    let systemName = UIDevice.current.systemName
+    let systemVersion = UIDevice.current.systemVersion
+    return "\(systemName) \(systemVersion)"
+}
+
+private func mapIosModelCode(_ code: String) -> String? {
+    switch code {
+    case "iPhone14,2": return "iPhone 13 Pro"
+    case "iPhone14,3": return "iPhone 13 Pro Max"
+    case "iPhone14,4": return "iPhone 13 mini"
+    case "iPhone14,5": return "iPhone 13"
+    case "iPhone14,7": return "iPhone 14"
+    case "iPhone14,8": return "iPhone 14 Plus"
+    case "iPhone15,2": return "iPhone 14 Pro"
+    case "iPhone15,3": return "iPhone 14 Pro Max"
+    case "iPhone15,4": return "iPhone 15"
+    case "iPhone15,5": return "iPhone 15 Plus"
+    case "iPhone16,1": return "iPhone 15 Pro"
+    case "iPhone16,2": return "iPhone 15 Pro Max"
+    case "iPhone17,1": return "iPhone 16 Pro"
+    case "iPhone17,2": return "iPhone 16 Pro Max"
+    case "iPhone17,3": return "iPhone 16"
+    case "iPhone17,4": return "iPhone 16 Plus"
+    default: return nil
     }
 }
 

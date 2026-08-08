@@ -152,11 +152,12 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
                     )
                     FloatingItemList {
                         for (session in sortedSessions) {
-                            val deviceName = when (session.clientType) {
+                            val fallbackDeviceName = when (session.clientType) {
                                 ClientType.WEB -> "Web Client"
                                 ClientType.ANDROID -> "Android Device"
                                 ClientType.IOS -> "iOS Device"
                             }
+                            val deviceName = session.clientDevice ?: fallbackDeviceName
                             val deviceIcon = when (session.clientType) {
                                 ClientType.WEB -> DevicesIcon
                                 ClientType.ANDROID, ClientType.IOS -> PhoneIcon
@@ -184,7 +185,18 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
                                         }
                                         div {
                                             className = ClassName("text-xs text-slate-500 dark:text-slate-400 mt-0.5")
-                                            +"${formatLastSeen(session.lastSeenMillis)} • ID: ${session.clientId.take(8)}"
+                                            val parts = mutableListOf<String>()
+                                            if (!session.clientPlatform.isNullOrBlank()) {
+                                                parts.add(session.clientPlatform!!)
+                                            }
+                                            if (!session.location.isNullOrBlank()) {
+                                                parts.add(session.location!!)
+                                            }
+                                            if (!isCurrentDevice) {
+                                                parts.add(formatLastSeen(session.lastSeenMillis))
+                                            }
+                                            parts.add("ID: ${session.clientId.take(8)}")
+                                            +parts.joinToString(" • ")
                                         }
                                     }
                                 }
@@ -208,11 +220,14 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
         }
 
         if (sessionToSignOut != null) {
-            val targetName = when (sessionToSignOut.clientType) {
+            val baseTargetName = when (sessionToSignOut.clientType) {
                 ClientType.WEB -> "Web Client"
                 ClientType.ANDROID -> "Android Device"
                 ClientType.IOS -> "iOS Device"
             }
+            val targetName = sessionToSignOut.clientDevice
+                ?: sessionToSignOut.clientPlatform
+                ?: baseTargetName
             ConfirmationDialog {
                 title = "Sign out $targetName?"
                 message = "This device session will be signed out from your account and will lose access to synced wallet data."

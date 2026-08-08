@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
+import io.ktor.server.plugins.origin
 import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.annotation.CborSerializable;
 import org.multipaz.crypto.AsymmetricKey
@@ -15,6 +16,7 @@ import org.multipaz.rpc.backend.RpcAuthBackendDelegate
 import org.multipaz.rpc.handler.RpcAuthContext
 import org.multipaz.rpc.handler.RpcAuthInspector
 import org.multipaz.securearea.KeyAttestation
+import org.multipaz.server.common.KtorCall
 import org.multipaz.server.enrollment.ServerIdentity
 import org.multipaz.server.enrollment.getServerIdentity
 import org.multipaz.util.Logger
@@ -29,6 +31,8 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "WalletBackendImpl"
+
+private val ipLocationLookup: IpLocationLookup = IpWhoIsLocationLookup()
 
 @RpcState(
     endpoint = "wallet_backend",
@@ -113,6 +117,12 @@ class WalletBackendImpl: WalletBackendBase(), WalletBackend, RpcAuthInspector by
     }
 
     override suspend fun getClientId() = RpcAuthContext.getClientId()
+
+    override suspend fun getIpAddress(): String = KtorCall.getCall().request.origin.remoteAddress
+
+    override suspend fun lookupLocationFromIpAddress(ipAddress: String?): String? {
+        return ipLocationLookup.lookup(ipAddress)
+    }
 
     override suspend fun certifyReaderKeys(readerKeys: List<KeyAttestation>): List<X509CertChain> {
         // TODO: if dealing with Android client, verify attestations

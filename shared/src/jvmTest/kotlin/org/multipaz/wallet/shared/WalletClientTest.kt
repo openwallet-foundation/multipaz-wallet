@@ -127,6 +127,8 @@ class TestWalletBackendImpl: WalletBackendBase(), WalletBackend {
         return testClientData!!.clientId
     }
 
+    override suspend fun getIpAddress(): String? = null
+
     override suspend fun certifyReaderKeys(readerKeys: List<KeyAttestation>): List<X509CertChain> {
         val testClientData = BackendEnvironment.getInterface(TestClientData::class)!!
         val readerKeyTestData = BackendEnvironment.getInterface(ReaderKeyTestData::class)!!
@@ -321,7 +323,9 @@ class WalletClientTest {
         clientSecureArea: SecureArea,
         serverConfiguration: Configuration? = null,
         readerKeyTestData: ReaderKeyTestData? = null,
-        clientType: ClientType = ClientType.ANDROID
+        clientType: ClientType = ClientType.ANDROID,
+        clientDevice: String? = null,
+        clientPlatform: String? = null
     ): WalletClient {
         val now = Clock.System.now()
         val readerRootKey = Crypto.createEcPrivateKey(EcCurve.P256)
@@ -348,7 +352,9 @@ class WalletClientTest {
             notifier = localDispatcher.environment.getInterface(RpcNotifier::class)!!,
             storage = clientStorage,
             secureArea = clientSecureArea,
-            numReaderKeys = 10
+            numReaderKeys = 10,
+            clientDevice = clientDevice,
+            clientPlatform = clientPlatform
         )
         return client
     }
@@ -556,7 +562,13 @@ class WalletClientTest {
 
         val client1Storage = EphemeralStorage()
         val client1SecureArea = SoftwareSecureArea.create(client1Storage)
-        val client1 = createWalletClientBase(client1Storage, client1SecureArea, clientType = ClientType.WEB)
+        val client1 = createWalletClientBase(
+            client1Storage,
+            client1SecureArea,
+            clientType = ClientType.WEB,
+            clientDevice = null,
+            clientPlatform = "Google Chrome 151"
+        )
         val client1Nonce = client1.getNonce()
         client1.signInWithGoogle(
             nonce = client1Nonce,
@@ -572,7 +584,13 @@ class WalletClientTest {
 
         val client2Storage = EphemeralStorage()
         val client2SecureArea = SoftwareSecureArea.create(client2Storage)
-        val client2 = createWalletClientBase(client2Storage, client2SecureArea, clientType = ClientType.ANDROID)
+        val client2 = createWalletClientBase(
+            client2Storage,
+            client2SecureArea,
+            clientType = ClientType.ANDROID,
+            clientDevice = "Google Pixel 8 Pro",
+            clientPlatform = "Android 15"
+        )
         val client2Nonce = client2.getNonce()
         client2.signInWithGoogle(
             nonce = client2Nonce,
@@ -599,11 +617,25 @@ class WalletClientTest {
         assertNotNull(webSession)
         assertEquals(client1Id, webSession.clientId)
         assertTrue(webSession.lastSeenMillis > 0L)
+        assertNull(webSession.clientDevice)
+        assertEquals("Google Chrome 151", webSession.clientPlatform)
+        assertNull(webSession.location)
 
         val androidSession = sessions.find { it.clientType == ClientType.ANDROID }
         assertNotNull(androidSession)
         assertEquals(client2Id, androidSession.clientId)
         assertTrue(androidSession.lastSeenMillis > 0L)
+        assertEquals("Google Pixel 8 Pro", androidSession.clientDevice)
+        assertEquals("Android 15", androidSession.clientPlatform)
+        assertNull(androidSession.location)
+
+        // Test markAlive explicitly
+        client1.markAlive()
+        val updatedSessions = client1.getSessions()
+        val updatedWebSession = updatedSessions.find { it.clientType == ClientType.WEB }
+        assertNotNull(updatedWebSession)
+        assertNull(updatedWebSession.clientDevice)
+        assertEquals("Google Chrome 151", updatedWebSession.clientPlatform)
 
         // Sign out client2 via client1
         client1.signOutSession(client2Id)

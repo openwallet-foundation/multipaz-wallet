@@ -38,6 +38,8 @@ fun main() {
                     storage = storage,
                     secureArea = secureArea,
                     httpClientEngineFactory = Js,
+                    clientDevice = null,
+                    clientPlatform = getWebClientPlatform()
                 )
 
                 val documentTypeRepository = DocumentTypeRepository()
@@ -101,5 +103,40 @@ fun main() {
                 }
             }
         }
+    }
+}
+
+private fun getWebClientPlatform(): String {
+    val ua = window.navigator.userAgent
+    return when {
+        ua.contains("Edg/") -> {
+            val version = ua.substringAfter("Edg/").substringBefore(".").substringBefore(" ")
+            "Microsoft Edge $version"
+        }
+        ua.contains("OPR/") -> {
+            val version = ua.substringAfter("OPR/").substringBefore(".").substringBefore(" ")
+            "Opera $version"
+        }
+        ua.contains("CriOS/") -> {
+            val version = ua.substringAfter("CriOS/").substringBefore(".").substringBefore(" ")
+            "Google Chrome $version"
+        }
+        ua.contains("Chrome/") -> {
+            val version = ua.substringAfter("Chrome/").substringBefore(".").substringBefore(" ")
+            "Google Chrome $version"
+        }
+        ua.contains("FxiOS/") -> {
+            val version = ua.substringAfter("FxiOS/").substringBefore(".").substringBefore(" ")
+            "Firefox $version"
+        }
+        ua.contains("Firefox/") -> {
+            val version = ua.substringAfter("Firefox/").substringBefore(".").substringBefore(" ")
+            "Firefox $version"
+        }
+        ua.contains("Safari/") && ua.contains("Version/") -> {
+            val version = ua.substringAfter("Version/").substringBefore(".").substringBefore(" ")
+            "Safari $version"
+        }
+        else -> "Web Browser"
     }
 }

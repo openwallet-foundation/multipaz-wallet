@@ -36,6 +36,10 @@ dependencies {
     implementation(libs.ktor.server.logging)
     implementation(libs.logback.classic)
     implementation(libs.identity.google.api.client)
+
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.ktor.client.mock)
 }
 
 tasks.named<ProcessResources>("processResources") {

@@ -242,6 +242,8 @@ class App private constructor() {
             secureArea = secureArea,
             httpClientEngineFactory = Android,
             numReaderKeys = 10,
+            clientDevice = getAndroidClientDevice(),
+            clientPlatform = getAndroidClientPlatform()
         )
 
         userIssuerTrustManager = TrustManager(
@@ -571,4 +573,21 @@ class App private constructor() {
             return app.presentmentSource
         }
     }
+}
+
+private fun getAndroidClientDevice(): String {
+    val manufacturer = android.os.Build.MANUFACTURER
+    val model = android.os.Build.MODEL
+    return if (model.lowercase().startsWith(manufacturer.lowercase())) {
+        model
+    } else {
+        val formattedManufacturer = manufacturer.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString()
+        }
+        "$formattedManufacturer $model"
+    }
+}
+
+private fun getAndroidClientPlatform(): String {
+    return "Android ${android.os.Build.VERSION.RELEASE}"
 }

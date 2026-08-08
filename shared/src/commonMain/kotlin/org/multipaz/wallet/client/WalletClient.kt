@@ -1,5 +1,6 @@
 package org.multipaz.wallet.client
 
+import kotlin.jvm.JvmOverloads
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.http.Url
 import kotlinx.coroutines.CancellationException
@@ -121,6 +122,8 @@ private const val TAG = "WalletClient"
  * Use [create] to create a new instance.
  *
  * @property clientType the type of client.
+ * @property clientDevice the name of the device, or `null` if unknown.
+ * @property clientPlatform the name and version of the platform, if known.
  */
 class WalletClient private constructor(
     val clientType: ClientType,
@@ -130,7 +133,9 @@ class WalletClient private constructor(
     private val secureArea: SecureArea?,
     private val numReaderKeys: Int,
     private val httpClientEngineFactory: HttpClientEngineFactory<*>?,
-    private val dispatcherAndNotifier: Pair<RpcDispatcher, RpcNotifier>?
+    private val dispatcherAndNotifier: Pair<RpcDispatcher, RpcNotifier>?,
+    val clientDevice: String? = null,
+    val clientPlatform: String? = null
 ) {
     init {
         require(httpClientEngineFactory != null || dispatcherAndNotifier != null) {
@@ -585,6 +590,33 @@ class WalletClient private constructor(
     }
 
     /**
+     * Notifies the wallet backend that this client is currently active.
+     *
+     * @throws WalletClientBackendUnreachableException if unable to reach the wallet backend.
+     * @throws WalletClientAuthorizationException if not authorized to access the wallet backend.
+     */
+    @Throws(
+        WalletClientBackendUnreachableException::class,
+        WalletClientAuthorizationException::class,
+        CancellationException::class
+    )
+    suspend fun markAlive() {
+        lock.withLock {
+            val walletBackend = getWalletBackend()
+            withContext(session) {
+                try {
+                    walletBackend.markAlive(
+                        clientDevice = clientDevice,
+                        clientPlatform = clientPlatform
+                    )
+                } catch (e: HttpTransport.HttpClientException) {
+                    throw WalletClientBackendUnreachableException(e.message, e)
+                }
+            }
+        }
+    }
+
+    /**
      * Gets all active device sessions for the signed-in user.
      *
      * @return a list of active [Session] instances.
@@ -788,6 +820,15 @@ class WalletClient private constructor(
         val walletBackend = getWalletBackend()
         val currentData = getSharedDataCached()
         val getSharedDataResult = withContext(session) {
+            try {
+                walletBackend.markAlive(
+                    clientDevice = clientDevice,
+                    clientPlatform = clientPlatform
+                )
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Error marking client alive during getSharedDataInternal", e)
+            }
             val currentVersion = if (currentData != null) {
                 Logger.i(TAG, "Checking if backend has newer SharedData, we have version ${currentData.dataVersion}")
                 currentData.dataVersion
@@ -1451,6 +1492,8 @@ class WalletClient private constructor(
          * @param secureArea the [SecureArea] to use for device attestations.
          * @param httpClientEngineFactory a [HttpClientEngineFactory] to use for the HTTP client.
          * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
+         * @param clientDevice optional name of the device.
+         * @param clientPlatform optional name and version of the platform.
          */
         suspend fun create(
             clientType: ClientType,
@@ -1459,7 +1502,9 @@ class WalletClient private constructor(
             storage: Storage,
             secureArea: SecureArea,
             httpClientEngineFactory: HttpClientEngineFactory<*>,
-            numReaderKeys: Int = 0,
+            numReaderKeys: Int,
+            clientDevice: String?,
+            clientPlatform: String?
         ): WalletClient {
             val client = WalletClient(
                 clientType = clientType,
@@ -1469,11 +1514,33 @@ class WalletClient private constructor(
                 secureArea = secureArea,
                 numReaderKeys = numReaderKeys,
                 httpClientEngineFactory = httpClientEngineFactory,
-                dispatcherAndNotifier = null
+                dispatcherAndNotifier = null,
+                clientDevice = clientDevice,
+                clientPlatform = clientPlatform
             )
             client.initialize()
             return client
         }
+
+        suspend fun create(
+            clientType: ClientType,
+            url: String,
+            secret: String,
+            storage: Storage,
+            secureArea: SecureArea,
+            httpClientEngineFactory: HttpClientEngineFactory<*>,
+            numReaderKeys: Int = 0
+        ): WalletClient = create(
+            clientType = clientType,
+            url = url,
+            secret = secret,
+            storage = storage,
+            secureArea = secureArea,
+            httpClientEngineFactory = httpClientEngineFactory,
+            numReaderKeys = numReaderKeys,
+            clientDevice = null,
+            clientPlatform = null
+        )
 
         /**
          * Creates a new [WalletClient] instance (for testing only).
@@ -1484,6 +1551,8 @@ class WalletClient private constructor(
          * @param storage the storage to use for caching.
          * @param secureArea the [SecureArea] to use for device attestations.
          * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
+         * @param clientDevice optional name of the device.
+         * @param clientPlatform optional name and version of the platform.
          */
         suspend fun create(
             clientType: ClientType,
@@ -1491,7 +1560,9 @@ class WalletClient private constructor(
             notifier: RpcNotifier,
             storage: Storage,
             secureArea: SecureArea,
-            numReaderKeys: Int = 0,
+            numReaderKeys: Int,
+            clientDevice: String?,
+            clientPlatform: String?
         ): WalletClient {
             val client = WalletClient(
                 clientType = clientType,
@@ -1501,11 +1572,31 @@ class WalletClient private constructor(
                 secureArea = secureArea,
                 httpClientEngineFactory = null,
                 numReaderKeys = numReaderKeys,
-                dispatcherAndNotifier = Pair(dispatcher, notifier)
+                dispatcherAndNotifier = Pair(dispatcher, notifier),
+                clientDevice = clientDevice,
+                clientPlatform = clientPlatform
             )
             client.initialize()
             return client
         }
+
+        suspend fun create(
+            clientType: ClientType,
+            dispatcher: RpcDispatcher,
+            notifier: RpcNotifier,
+            storage: Storage,
+            secureArea: SecureArea,
+            numReaderKeys: Int = 0
+        ): WalletClient = create(
+            clientType = clientType,
+            dispatcher = dispatcher,
+            notifier = notifier,
+            storage = storage,
+            secureArea = secureArea,
+            numReaderKeys = numReaderKeys,
+            clientDevice = null,
+            clientPlatform = null
+        )
     }
 
     private suspend fun initialize() {
