@@ -138,4 +138,28 @@ class IpWhoIsLocationLookupTest {
         assertEquals("Sydney, Australia", loc3)
         assertEquals(2, requestCount.get())
     }
+
+    @Test
+    fun testXForwardedForMultipleIps() = runTest {
+        val mockEngine = MockEngine { request ->
+            val requestedIp = request.url.encodedPath.removePrefix("/")
+            assertEquals("8.8.8.8", requestedIp)
+            respond(
+                content = """
+                    {
+                        "ip": "8.8.8.8",
+                        "success": true,
+                        "city": "Mountain View",
+                        "country": "United States"
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
+        val location = lookup.lookup("8.8.8.8, 192.168.1.1, 10.0.0.1")
+        assertEquals("Mountain View, United States", location)
+    }
 }

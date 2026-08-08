@@ -118,7 +118,17 @@ class WalletBackendImpl: WalletBackendBase(), WalletBackend, RpcAuthInspector by
 
     override suspend fun getClientId() = RpcAuthContext.getClientId()
 
-    override suspend fun getIpAddress(): String = KtorCall.getCall().request.origin.remoteAddress
+    override suspend fun getIpAddress(): String {
+        val call = KtorCall.getCall()
+        val xForwardedFor = call.request.headers["X-Forwarded-For"]
+        if (!xForwardedFor.isNullOrBlank()) {
+            val clientIp = xForwardedFor.split(",").firstOrNull()?.trim()
+            if (!clientIp.isNullOrBlank()) {
+                return clientIp
+            }
+        }
+        return call.request.origin.remoteAddress
+    }
 
     override suspend fun lookupLocationFromIpAddress(ipAddress: String?): String? {
         return ipLocationLookup.lookup(ipAddress)

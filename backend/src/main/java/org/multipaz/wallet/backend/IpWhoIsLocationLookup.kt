@@ -49,26 +49,29 @@ class IpWhoIsLocationLookup(
         if (ipAddress.isNullOrBlank()) {
             return null
         }
-        val trimmedIp = ipAddress.trim()
+        val targetIp = ipAddress.split(",").firstOrNull()?.trim()
+        if (targetIp.isNullOrBlank()) {
+            return null
+        }
 
-        if (isPrivateOrLocalIp(trimmedIp)) {
+        if (isPrivateOrLocalIp(targetIp)) {
             return "Local Network"
         }
 
         val now = clock.now().toEpochMilliseconds()
-        val existingEntry = cache[trimmedIp]
+        val existingEntry = cache[targetIp]
         if (existingEntry != null && (now - existingEntry.timestampMillis) < cacheTtlMillis) {
             return existingEntry.location
         }
 
         return mutex.withLock {
-            val entryUnderLock = cache[trimmedIp]
+            val entryUnderLock = cache[targetIp]
             if (entryUnderLock != null && (now - entryUnderLock.timestampMillis) < cacheTtlMillis) {
                 return@withLock entryUnderLock.location
             }
 
-            val resolvedLocation = fetchLocationFromApi(trimmedIp)
-            cache[trimmedIp] = CacheEntry(
+            val resolvedLocation = fetchLocationFromApi(targetIp)
+            cache[targetIp] = CacheEntry(
                 location = resolvedLocation,
                 timestampMillis = now
             )
