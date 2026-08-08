@@ -38,6 +38,7 @@ fun main() {
                     storage = storage,
                     secureArea = secureArea,
                     httpClientEngineFactory = Js,
+                    numReaderKeys = 0,
                     clientDevice = null,
                     clientPlatform = getWebClientPlatform()
                 )
