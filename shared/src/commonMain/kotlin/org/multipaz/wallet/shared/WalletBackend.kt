@@ -96,11 +96,12 @@ interface WalletBackend {
     /**
      * Gets all active device sessions for the signed-in user.
      *
+     * @param lang optional language/locale code for location name localization (e.g. "en", "es", "de").
      * @return a list of active [Session] instances.
      * @throws WalletBackendNotSignedInException if not signed in.
      */
     @RpcMethod
-    suspend fun getSessions(): List<Session>
+    suspend fun getSessions(lang: String? = null): List<Session>
 
     /**
      * Signs out a specific device session by its [clientId].

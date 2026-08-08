@@ -249,13 +249,14 @@ abstract class WalletBackendBase: WalletBackend {
      * Subclasses can override this method to perform IP-to-location resolution.
      *
      * @param ipAddress the IP address to look up, or `null`.
+     * @param lang optional language code for location name localization, or `null`.
      * @return a human-readable location string, or `null` if unavailable.
      */
-    open suspend fun lookupLocationFromIpAddress(ipAddress: String?): String? {
+    open suspend fun lookupLocationFromIpAddress(ipAddress: String?, lang: String? = null): String? {
         return ipAddress
     }
 
-    override suspend fun getSessions(): List<Session> {
+    override suspend fun getSessions(lang: String?): List<Session> {
         val walletClient = loadRemoteWalletClient()
         val signedInUser = walletClient.signedInUser
             ?: throw WalletBackendNotSignedInException("User is not signed in")
@@ -275,7 +276,7 @@ abstract class WalletBackendBase: WalletBackend {
                     clientId = client.clientId,
                     clientType = clientType,
                     lastSeenMillis = lastSeenMillis,
-                    location = lookupLocationFromIpAddress(client.ipAddress),
+                    location = lookupLocationFromIpAddress(client.ipAddress, lang),
                     clientDevice = client.clientDevice,
                     clientPlatform = client.clientPlatform
                 )

@@ -45,7 +45,7 @@ class IpWhoIsLocationLookup(
     private val json = Json { ignoreUnknownKeys = true }
     private val mutex = Mutex()
 
-    override suspend fun lookup(ipAddress: String?): String? {
+    override suspend fun lookup(ipAddress: String?, lang: String?): String? {
         if (ipAddress.isNullOrBlank()) {
             return null
         }
@@ -58,20 +58,21 @@ class IpWhoIsLocationLookup(
             return "Local Network"
         }
 
+        val cacheKey = if (lang.isNullOrBlank()) targetIp else "$targetIp:$lang"
         val now = clock.now().toEpochMilliseconds()
-        val existingEntry = cache[targetIp]
+        val existingEntry = cache[cacheKey]
         if (existingEntry != null && (now - existingEntry.timestampMillis) < cacheTtlMillis) {
             return existingEntry.location
         }
 
         return mutex.withLock {
-            val entryUnderLock = cache[targetIp]
+            val entryUnderLock = cache[cacheKey]
             if (entryUnderLock != null && (now - entryUnderLock.timestampMillis) < cacheTtlMillis) {
                 return@withLock entryUnderLock.location
             }
 
-            val resolvedLocation = fetchLocationFromApi(targetIp)
-            cache[targetIp] = CacheEntry(
+            val resolvedLocation = fetchLocationFromApi(targetIp, lang)
+            cache[cacheKey] = CacheEntry(
                 location = resolvedLocation,
                 timestampMillis = now
             )
@@ -88,9 +89,14 @@ class IpWhoIsLocationLookup(
         }
     }
 
-    private suspend fun fetchLocationFromApi(ip: String): String? {
+    private suspend fun fetchLocationFromApi(ip: String, lang: String?): String? {
         return try {
-            val responseText = httpClient.get("https://ipwho.is/$ip").bodyAsText()
+            val url = if (lang.isNullOrBlank()) {
+                "https://ipwho.is/$ip"
+            } else {
+                "https://ipwho.is/$ip?lang=$lang"
+            }
+            val responseText = httpClient.get(url).bodyAsText()
             val jsonObj = json.parseToJsonElement(responseText).jsonObject
             val success = jsonObj["success"]?.jsonPrimitive?.booleanOrNull ?: false
             if (!success) {
@@ -99,10 +105,14 @@ class IpWhoIsLocationLookup(
             val city = jsonObj["city"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
             val country = jsonObj["country"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
             val region = jsonObj["region"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            val regionCode = jsonObj["region_code"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+
+            val effectiveRegion = (regionCode ?: region)?.takeIf { city == null || !it.equals(city, ignoreCase = true) }
 
             when {
+                city != null && effectiveRegion != null && country != null -> "$city, $effectiveRegion, $country"
                 city != null && country != null -> "$city, $country"
-                region != null && country != null -> "$region, $country"
+                effectiveRegion != null && country != null -> "$effectiveRegion, $country"
                 country != null -> country
                 else -> null
             }

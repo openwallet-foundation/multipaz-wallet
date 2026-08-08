@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -94,7 +95,8 @@ fun DeviceSessionsScreen(
                         Logger.w(TAG, "Failed to get current clientId", e)
                     }
                 }
-                sessions.value = walletClient.getSessions()
+                val locale = Locale.current.toLanguageTag()
+                sessions.value = walletClient.getSessions(locale)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Logger.e(TAG, "Failed to load device sessions", e)

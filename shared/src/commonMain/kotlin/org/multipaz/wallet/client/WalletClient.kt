@@ -630,12 +630,12 @@ class WalletClient private constructor(
         WalletBackendNotSignedInException::class,
         CancellationException::class
     )
-    suspend fun getSessions(): List<Session> {
+    suspend fun getSessions(lang: String? = null): List<Session> {
         return lock.withLock {
             val walletBackend = getWalletBackend()
             withContext(session) {
                 try {
-                    walletBackend.getSessions()
+                    walletBackend.getSessions(lang)
                 } catch (e: WalletBackendNotSignedInException) {
                     handleNotSignedInException(e)
                 } catch (e: HttpTransport.HttpClientException) {

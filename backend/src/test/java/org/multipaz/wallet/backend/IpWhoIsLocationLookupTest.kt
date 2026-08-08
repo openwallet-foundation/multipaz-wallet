@@ -29,7 +29,8 @@ class IpWhoIsLocationLookupTest {
                 "success": true,
                 "city": "Mountain View",
                 "country": "United States",
-                "region": "California"
+                "region": "California",
+                "region_code": "CA"
             }
         """.trimIndent()
 
@@ -44,7 +45,76 @@ class IpWhoIsLocationLookupTest {
 
         val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
         val location = lookup.lookup("8.8.8.8")
-        assertEquals("Mountain View, United States", location)
+        assertEquals("Mountain View, CA, United States", location)
+    }
+
+    @Test
+    fun testPublicIpResolutionFallbackToFullRegion() = runTest {
+        val jsonResponse = """
+            {
+                "ip": "8.8.8.8",
+                "success": true,
+                "city": "Mountain View",
+                "country": "United States",
+                "region": "California"
+            }
+        """.trimIndent()
+
+        val mockEngine = MockEngine { respond(content = jsonResponse, status = HttpStatusCode.OK) }
+        val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
+        val location = lookup.lookup("8.8.8.8")
+        assertEquals("Mountain View, California, United States", location)
+    }
+
+    @Test
+    fun testDisambiguateSameCityInDifferentStates() = runTest {
+        val jsonCa = """
+            {
+                "ip": "8.8.8.8",
+                "success": true,
+                "city": "Mountain View",
+                "country": "United States",
+                "region": "California",
+                "region_code": "CA"
+            }
+        """.trimIndent()
+        val jsonAr = """
+            {
+                "ip": "8.8.4.4",
+                "success": true,
+                "city": "Mountain View",
+                "country": "United States",
+                "region": "Arkansas",
+                "region_code": "AR"
+            }
+        """.trimIndent()
+
+        val mockEngine = MockEngine { request ->
+            val ip = request.url.encodedPath.removePrefix("/")
+            val body = if (ip == "8.8.8.8") jsonCa else jsonAr
+            respond(content = body, status = HttpStatusCode.OK)
+        }
+
+        val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
+        assertEquals("Mountain View, CA, United States", lookup.lookup("8.8.8.8"))
+        assertEquals("Mountain View, AR, United States", lookup.lookup("8.8.4.4"))
+    }
+
+    @Test
+    fun testDeduplicateCityMatchingRegion() = runTest {
+        val jsonResponse = """
+            {
+                "ip": "1.1.1.1",
+                "success": true,
+                "city": "Singapore",
+                "country": "Singapore",
+                "region": "Singapore"
+            }
+        """.trimIndent()
+
+        val mockEngine = MockEngine { respond(content = jsonResponse, status = HttpStatusCode.OK) }
+        val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
+        assertEquals("Singapore, Singapore", lookup.lookup("1.1.1.1"))
     }
 
     @Test
@@ -161,5 +231,30 @@ class IpWhoIsLocationLookupTest {
         val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
         val location = lookup.lookup("8.8.8.8, 192.168.1.1, 10.0.0.1")
         assertEquals("Mountain View, United States", location)
+    }
+
+    @Test
+    fun testLocalizedIpResolution() = runTest {
+        val mockEngine = MockEngine { request ->
+            assertEquals("https://ipwho.is/8.8.8.8?lang=es", request.url.toString())
+            respond(
+                content = """
+                    {
+                        "ip": "8.8.8.8",
+                        "success": true,
+                        "city": "Mountain View",
+                        "country": "Estados Unidos",
+                        "region": "California",
+                        "region_code": "CA"
+                    }
+                """.trimIndent(),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val lookup = IpWhoIsLocationLookup(httpClientEngine = mockEngine)
+        val location = lookup.lookup("8.8.8.8", lang = "es")
+        assertEquals("Mountain View, CA, Estados Unidos", location)
     }
 }

@@ -130,8 +130,8 @@ class WalletBackendImpl: WalletBackendBase(), WalletBackend, RpcAuthInspector by
         return call.request.origin.remoteAddress
     }
 
-    override suspend fun lookupLocationFromIpAddress(ipAddress: String?): String? {
-        return ipLocationLookup.lookup(ipAddress)
+    override suspend fun lookupLocationFromIpAddress(ipAddress: String?, lang: String?): String? {
+        return ipLocationLookup.lookup(ipAddress, lang)
     }
 
     override suspend fun certifyReaderKeys(readerKeys: List<KeyAttestation>): List<X509CertChain> {

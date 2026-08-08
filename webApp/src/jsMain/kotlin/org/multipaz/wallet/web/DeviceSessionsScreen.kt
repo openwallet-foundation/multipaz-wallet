@@ -1,5 +1,6 @@
 package org.multipaz.wallet.web
 
+import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,7 +60,8 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
                         Logger.w(TAG, "Failed to get current clientId", e)
                     }
                 }
-                val list = props.walletClient.getSessions()
+                val lang = window.navigator.language
+                val list = props.walletClient.getSessions(lang)
                 setSessions(list)
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to load device sessions", e)
