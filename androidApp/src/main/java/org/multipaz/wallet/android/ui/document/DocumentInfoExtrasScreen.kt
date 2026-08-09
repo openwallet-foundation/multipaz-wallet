@@ -36,14 +36,19 @@ import androidx.compose.ui.unit.dp
 import org.multipaz.wallet.android.R
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.datetime.formattedDateTime
 import org.multipaz.compose.document.DocumentModel
+import org.multipaz.compose.items.FloatingItemCenteredText
+import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.credential.Credential
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
+import org.multipaz.tags.Tags
+import org.multipaz.util.toHex
 import org.multipaz.wallet.android.ui.Note
 import kotlin.time.Instant
 
@@ -56,13 +61,18 @@ fun DocumentInfoExtrasScreen(
     onRefreshCredentialsClicked: () -> Unit,
     onCredentialClicked: (String) -> Unit
 ) {
-    val credentialsByDomain = documentModel.documentInfos.collectAsState().value
-        .find { it.document.identifier == documentId }
+    val documentInfos = documentModel.documentInfos.collectAsState().value
+    val documentInfo = documentInfos.find { it.document.identifier == documentId }
+
+    val credentialsByDomain = documentInfo
         ?.credentialInfos
         ?.map { it.credential }
         ?.sortedByDescending { it.domain }
         ?.groupBy { it.domain }
         .orEmpty()
+
+    val tags = documentInfo?.document?.tags
+    val tagKeys = tags?.keys?.sorted().orEmpty()
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
@@ -105,7 +115,7 @@ fun DocumentInfoExtrasScreen(
         ) {
             Note(
                 markdownString = "This is a low-level view of the credentials backing this pass, " +
-                        "organized by domain. Click on each credential for more info"
+                        "organized by domain. Click on each credential for more info."
             )
 
             credentialsByDomain.forEach { (domain, creds) ->
@@ -139,9 +149,69 @@ fun DocumentInfoExtrasScreen(
                     }
                 }
             }
+
+            FloatingItemList(title = "Document tags") {
+                if (tagKeys.isEmpty()) {
+                    FloatingItemCenteredText("No tags")
+                } else {
+                    tagKeys.forEach { key ->
+                        val text = tags?.formatTagValue(key).orEmpty()
+                        FloatingItemHeadingAndText(
+                            heading = key,
+                            text = text
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
+}
+
+// TODO: It would be nice to just have Tags.get() returning a DataItem to avoid the shenanigans below.
+private fun Tags.formatTagValue(key: String): String {
+    try {
+        getString(key)?.let { return it }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getBoolean(key)?.let { return it.toString() }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getLong(key)?.let { return it.toString() }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getInt(key)?.let { return it.toString() }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getByteString(key)?.let { bstr ->
+            return if (bstr.size > 64) {
+                "${bstr.size} bytes"
+            } else {
+                bstr.toByteArray().toHex()
+            }
+        }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getList<String>(key)?.let { return it.joinToString(", ") }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getList<ByteString>(key)?.let { list ->
+            return list.joinToString(", ") { bstr ->
+                if (bstr.size > 64) "${bstr.size} bytes" else bstr.toByteArray().toHex()
+            }
+        }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getList<Boolean>(key)?.let { return it.joinToString(", ") }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getList<Long>(key)?.let { return it.joinToString(", ") }
+    } catch (_: IllegalArgumentException) {}
+    try {
+        getList<Int>(key)?.let { return it.joinToString(", ") }
+    } catch (_: IllegalArgumentException) {}
+    return ""
 }
 
 private fun Instant.format(): String {
