@@ -7,6 +7,7 @@ This repository contains code for the Multipaz Wallet application
   frontend apps.
 - `androidApp` is the Android wallet client, using Jetpack Compose.
 - `iosApp` is the iOS wallet client, using SwiftUI.
+- `webApp` is the Web wallet client, using Kotlin/JS, React, and Tailwind CSS (see [webApp/README.md](webApp/README.md)).
 - `backend` is the wallet backend.
 
 ## What is Multipaz?
@@ -78,6 +79,14 @@ Set wallet backend.
 Multipaz Wallet includes a built-in Developer Mode for testing, debugging, and advanced configuration.
 For full details on enabling Developer Mode and all available options, see [DEVELOPER-MODE.md](DEVELOPER-MODE.md).
 
+## Running the Android app
+
+To build the Android app debug APK:
+```bash
+./gradlew :androidApp:assembleDebug
+```
+You can also open the repository root in Android Studio, select the `androidApp` run configuration, and run it on an emulator or physical device.
+
 ## Running the iOS app
 
 To run the iOS app, first you need to build the XCFramework, like this
@@ -93,7 +102,19 @@ You need to do these steps every time code in `shared/` is changed or when updat
 Multipaz version. Since building the framework is a time-consuming step (~10 minutes) changes
 to `shared/` are normally tested with the Android app, Web App, or unit tests first.
 
+## Running Tests
+
+To run unit and integration tests across the project modules:
+
+- **Shared Core:** `./gradlew :shared:allTests`
+- **Backend:** `./gradlew :backend:test`
+- **Android App:** `./gradlew :androidApp:testDebugUnitTest`
+- **Web App:** `./gradlew :webApp:jsBrowserTest`
+- **iOS App:** `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimulator test`
+
 ## Contributions
+
+Please follow the coding style guidelines in [CODING-STYLE.md](CODING-STYLE.md).
 
 Commit messages must be detailed and to the point. If referring to classes or types in the
 project enclose it in backticks, if referring to function or method names use trailing
@@ -101,6 +122,9 @@ open and close parenthesis.
 
 First line of the commit message must end in a period and be no longer than 72 characters
 and should avoid using type or function names.
+
+Commit messages should use line breaks and lines should not be larger than 80 characters,
+with exceptions to avoid breaking hyperlinks.
 
 Commit messages must have a "Test:" stanza detailing how the change was tested.
 
