@@ -732,7 +732,7 @@
     <string name="credential_info_http_status">HTTP Status: %1$d</string>
     <string name="credential_info_failed_parse_status_list">Failed to parse status list</string>
     <string name="credential_info_failed_parse_identifier_list">Failed to parse identifier list</string>
-    <string name="document_info_credentials_title">Credentials</string>
+    <string name="document_info_credentials_title">Additional pass info</string>
     <string name="document_info_refresh_credentials_content_description">Refresh credentials</string>
     <string name="document_info_developer_extras_content_description">Developer Extras</string>
 </resources>

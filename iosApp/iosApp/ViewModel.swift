@@ -329,7 +329,8 @@ class ViewModel {
                 sharedData: sharedData,
                 mpzPassIsoMdocDomain: Domains.shared.DOMAIN_MDOC_SOFTWARE,
                 mpzPassSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
-                mpzPassKeylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
+                mpzPassKeylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS,
+                walletClient: walletClient
             )
         } catch {
             print("Failed to syncWithSharedData: \(error)")

@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.document
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,15 +32,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.multipaz.wallet.android.R
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.bytestring.ByteString
+import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.toCdn
 import org.multipaz.compose.datetime.formattedDateTime
+import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemCenteredText
+import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
@@ -61,6 +67,8 @@ fun DocumentInfoExtrasScreen(
     onRefreshCredentialsClicked: () -> Unit,
     onCredentialClicked: (String) -> Unit
 ) {
+    @Suppress("DEPRECATION")
+    val clipboardManager = LocalClipboardManager.current
     val documentInfos = documentModel.documentInfos.collectAsState().value
     val documentInfo = documentInfos.find { it.document.identifier == documentId }
 
@@ -114,12 +122,115 @@ fun DocumentInfoExtrasScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Note(
-                markdownString = "This is a low-level view of the credentials backing this pass, " +
-                        "organized by domain. Click on each credential for more info."
+                markdownString = "This screen contains low-level information about the pass, " +
+                        "including its backing credentials, organized by domain."
             )
 
+            documentInfo?.document?.let { doc ->
+                FloatingItemList(title = "Metadata") {
+                    FloatingItemHeadingAndText(
+                        heading = "Identifier",
+                        text = doc.identifier
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "Display name",
+                        text = doc.displayName ?: "N/A"
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "Type display name",
+                        text = doc.typeDisplayName ?: "N/A"
+                    )
+                    val createdLocal = doc.created.toLocalDateTime(TimeZone.currentSystemDefault())
+                    FloatingItemHeadingAndText(
+                        heading = "Created",
+                        text = createdLocal.formatLocalized()
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "Provisioned",
+                        text = if (doc.provisioned) "Yes" else "No"
+                    )
+                    FloatingItemHeadingAndContent(
+                        heading = "Card art",
+                        content = {
+                            val cardArt = doc.cardArt
+                            if (cardArt != null) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(text = "${cardArt.size} bytes")
+                                    val bitmap = remember(cardArt) { decodeImage(cardArt.toByteArray()) }
+                                    Image(
+                                        bitmap = bitmap,
+                                        contentDescription = null,
+                                        modifier = Modifier.height(80.dp)
+                                    )
+                                }
+                            } else {
+                                Text(text = "None")
+                            }
+                        }
+                    )
+                    FloatingItemHeadingAndContent(
+                        heading = "Issuer logo",
+                        content = {
+                            val issuerLogo = doc.issuerLogo
+                            if (issuerLogo != null) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(text = "${issuerLogo.size} bytes")
+                                    val bitmap = remember(issuerLogo) { decodeImage(issuerLogo.toByteArray()) }
+                                    Image(
+                                        bitmap = bitmap,
+                                        contentDescription = null,
+                                        modifier = Modifier.height(80.dp)
+                                    )
+                                }
+                            } else {
+                                Text(text = "None")
+                            }
+                        }
+                    )
+                    val authDataText = formatAuthorizationData(doc.authorizationData)
+                    FloatingItemHeadingAndText(
+                        heading = "Authorization data",
+                        text = authDataText,
+                        showChevron = doc.authorizationData != null,
+                        modifier = if (doc.authorizationData != null) {
+                            Modifier.clickable {
+                                clipboardManager.setText(AnnotatedString(authDataText))
+                            }
+                        } else {
+                            Modifier
+                        }
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "MpzPass ID",
+                        text = doc.mpzPassId ?: "N/A"
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "MpzPass version",
+                        text = doc.mpzPassVersion?.toString() ?: "N/A"
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "Metadata",
+                        text = doc.metadata?.serialize()?.let { "${it.size} bytes" } ?: "None"
+                    )
+                }
+            }
+
+            FloatingItemList(title = "Document tags") {
+                if (tagKeys.isEmpty()) {
+                    FloatingItemCenteredText("No tags")
+                } else {
+                    tagKeys.forEach { key ->
+                        val text = tags?.formatTagValue(key).orEmpty()
+                        FloatingItemHeadingAndText(
+                            heading = key,
+                            text = text
+                        )
+                    }
+                }
+            }
+
             credentialsByDomain.forEach { (domain, creds) ->
-                FloatingItemList(title = domain) {
+                FloatingItemList(title = "Domain $domain") {
                     creds.forEach { credential ->
 
                         val (text, secondary) = if (credential.isCertified) {
@@ -150,22 +261,17 @@ fun DocumentInfoExtrasScreen(
                 }
             }
 
-            FloatingItemList(title = "Document tags") {
-                if (tagKeys.isEmpty()) {
-                    FloatingItemCenteredText("No tags")
-                } else {
-                    tagKeys.forEach { key ->
-                        val text = tags?.formatTagValue(key).orEmpty()
-                        FloatingItemHeadingAndText(
-                            heading = key,
-                            text = text
-                        )
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
         }
+    }
+}
+
+private fun formatAuthorizationData(authorizationData: ByteString?): String {
+    if (authorizationData == null) return "None"
+    return try {
+        Cbor.decode(authorizationData.toByteArray()).toCdn()
+    } catch (_: Exception) {
+        authorizationData.toByteArray().toHex()
     }
 }
 
