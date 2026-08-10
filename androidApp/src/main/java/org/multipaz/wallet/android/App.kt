@@ -18,10 +18,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
@@ -43,6 +45,7 @@ import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.addKnownTypes
 import org.multipaz.eventlogger.Event
+import org.multipaz.eventlogger.EventPresentment
 import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
@@ -211,6 +214,10 @@ class App private constructor() {
                     .launchIn(this)
             }
         }
+        settingsModel = SettingsModel.create(storage)
+        val walletBackendUrl = settingsModel.walletBackendUrl.value ?: BuildConfig.BACKEND_URL
+        Logger.i(TAG, "Using wallet backend URL $walletBackendUrl")
+
         provisioningModel = ProvisioningModel(
             documentProvisioningHandler = DocumentProvisioningHandler(
                 documentStore = documentStore,
@@ -220,7 +227,8 @@ class App private constructor() {
                     mdocNoUserAuthDomain = Domains.DOMAIN_MDOC_NO_USER_AUTH,
                     sdJwtUserAuthDomain = Domains.DOMAIN_SDJWT_USER_AUTH,
                     sdJwtNoUserAuthDomain = Domains.DOMAIN_SDJWT_NO_USER_AUTH,
-                    sdJwtKeylessDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                    sdJwtKeylessDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                    requestNoUserAuth = !settingsModel.disableNoUserAuth.value
                 )
             ),
             httpClient = HttpClient(Android) {
@@ -230,10 +238,6 @@ class App private constructor() {
             authorizationSecureArea = secureArea,
             eventLogger = eventLogger
         )
-
-        settingsModel = SettingsModel.create(storage)
-        val walletBackendUrl = settingsModel.walletBackendUrl.value ?: BuildConfig.BACKEND_URL
-        Logger.i(TAG, "Using wallet backend URL $walletBackendUrl")
         walletClient = WalletClient.create(
             clientType = ClientType.ANDROID,
             url = walletBackendUrl,
@@ -281,6 +285,13 @@ class App private constructor() {
         PeriodicBookkeepingScheduler.schedulePeriodicBookkeeping(applicationContext)
     }
 
+    private data class PendingPreconsentNotification(
+        val documentNames: List<String>,
+        val verifierName: String?,
+        val cardArtBytes: ByteArray?
+    )
+    private var pendingPreconsentNotification: PendingPreconsentNotification? = null
+
     // Called by SimplePresentmentSource for consent prompt, including handling
     // the cases where pre-consent is used.
     private suspend fun showConsentPromptFn(
@@ -295,17 +306,29 @@ class App private constructor() {
             consentData.credentialQueryResult.checkPreconsent(
                 requester = requester,
                 domainRewriter = { domain ->
-                    when (domain) {
-                        Domains.DOMAIN_MDOC_USER_AUTH -> Domains.DOMAIN_MDOC_NO_USER_AUTH
-                        Domains.DOMAIN_SDJWT_USER_AUTH -> Domains.DOMAIN_SDJWT_NO_USER_AUTH
-                        else -> domain
+                    if (settingsModel.disableNoUserAuth.value) {
+                        domain
+                    } else {
+                        when (domain) {
+                            Domains.DOMAIN_MDOC_USER_AUTH -> Domains.DOMAIN_MDOC_NO_USER_AUTH
+                            Domains.DOMAIN_SDJWT_USER_AUTH -> Domains.DOMAIN_SDJWT_NO_USER_AUTH
+                            else -> domain
+                        }
                     }
                 }
             )?.let { selection ->
                 onDocumentsInFocus(selection.matches.map { it.credential.document })
+                pendingPreconsentNotification = PendingPreconsentNotification(
+                    documentNames = selection.matches.mapNotNull {
+                        it.credential.document.displayName ?: it.credential.document.typeDisplayName
+                    },
+                    verifierName = trustedRequesterIdentity?.trustMetadata?.displayName,
+                    cardArtBytes = selection.matches.firstOrNull()?.credential?.document?.cardArt?.toByteArray()
+                )
                 return selection
             }
         }
+        pendingPreconsentNotification = null
         // Otherwise fall back to consent prompt...
         return promptModelRequestConsent(
             requester = requester,
@@ -344,6 +367,22 @@ class App private constructor() {
     // amended to the event.
     //
     private suspend fun onAddEvent(event: Event): Map<String, DataItem>? {
+        if (event is EventPresentment) {
+            pendingPreconsentNotification?.let { details ->
+                val detailsToPost = details
+                pendingPreconsentNotification = null
+                CoroutineScope(Dispatchers.Default).launch {
+                    delay(5.seconds)
+                    postPreconsentNotification(
+                        context = applicationContext,
+                        documentNames = detailsToPost.documentNames,
+                        verifierName = detailsToPost.verifierName,
+                        eventId = event.identifier,
+                        cardArtBytes = detailsToPost.cardArtBytes
+                    )
+                }
+            }
+        }
         if (!settingsModel.eventLoggingEnabled.value) {
             return null
         }
@@ -479,6 +518,7 @@ class App private constructor() {
                 mpzPassesToImportChannel = mpzPassesToImportChannel,
                 credentialOffers = credentialOffers,
                 documentIdToViewChannel = documentIdToViewChannel,
+                eventIdToViewChannel = eventIdToViewChannel,
                 requestVerificationFlow = requestVerificationFlow,
                 showToast = ::showToast
             )
@@ -515,13 +555,20 @@ class App private constructor() {
         }
     }
 
-    private val documentIdToViewChannel = Channel<String>()
+    private val documentIdToViewChannel = Channel<String>(Channel.UNLIMITED)
+    private val eventIdToViewChannel = Channel<String>(Channel.UNLIMITED)
 
     val requestVerificationFlow = MutableStateFlow<Boolean>(false)
 
     fun viewDocument(documentId: String) {
         CoroutineScope(Dispatchers.Default).launch {
             documentIdToViewChannel.send(documentId)
+        }
+    }
+
+    fun viewEvent(eventId: String) {
+        CoroutineScope(Dispatchers.Default).launch {
+            eventIdToViewChannel.send(eventId)
         }
     }
 
@@ -538,6 +585,7 @@ class App private constructor() {
         private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
         private const val HAIP_VCI_URL_SCHEME = "haip-vci://"
         const val ACTION_VIEW_DOCUMENT = "${BuildConfig.ANDROID_APP_ID}.action.viewDocument"
+        const val ACTION_VIEW_EVENT = "${BuildConfig.ANDROID_APP_ID}.action.viewEvent"
 
         private var cryptoInitialized = false
         private val cryptoInitLock = Mutex()

@@ -35,7 +35,7 @@
     <string name="setup_ble_continue">Continue</string>
 
     <string name="setup_notification_title">Notification Permissions</string>
-    <string name="setup_notification_text">%1$s needs notification permission to notify you when verification responses are received. Please grant the necessary permission to continue.</string>
+    <string name="setup_notification_text">%1$s needs notification permission to notify you when passes are shared automatically and when verification responses are received. Please grant the necessary permission to continue.</string>
     <string name="setup_notification_grant">Grant Permission</string>
     <string name="setup_notification_skip">Skip</string>
     <string name="setup_notification_continue">Continue</string>
@@ -161,6 +161,8 @@
     <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk.</string>
     <string name="dev_settings_logging_debug_title">Enable debug logging</string>
     <string name="dev_settings_logging_debug_text">Enable debug to print out structures helpful for debugging. Warning: debug messages may contain PII.</string>
+    <string name="dev_settings_disable_no_user_auth_title">Always require auth for presentment</string>
+    <string name="dev_settings_disable_no_user_auth_text">If enabled, the wallet will not request `no_user_auth` credentials and if available, won\'t be used at presentment time</string>
     <string name="dev_settings_corrupt_key_title">Corrupt encryption key in Google Drive</string>
     <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted.</string>
     <string name="dev_settings_not_signed_in">User is not signed in</string>
@@ -436,7 +438,15 @@
     <string name="preconsent_screen_trusted_readers_title">Allow trusted readers without consent</string>
     <string name="preconsent_screen_trusted_readers_description">Automatically share information without asking for your consent, but only if the reader\'s identity is verified and matches a specific, pre-approved trusted reader.</string>
     <string name="preconsent_screen_share_automatically_title">Share anything without consent</string>
-    <string name="preconsent_screen_share_automatically_description">Never ask for your consent. Information will be shared automatically with anyone who asks, even if the reader\'s identity cannot be verified. Use with caution.</string>
+    <string name="preconsent_screen_share_automatically_description">Never ask for your consent. Information will be shared automatically with any reader you interact with in person, and you will receive a notification whenever the pass is shared.</string>
+    <string name="preconsent_tip_text">This pass will be automatically shared when sharing in person. Tap to change.</string>
+    <string name="preconsent_tip_dismiss_content_description">Dismiss tip</string>
+
+    <string name="preconsent_notification_channel_name">Pre-consent credential sharing</string>
+    <string name="preconsent_notification_channel_description">Notifications sent when documents are automatically presented via pre-consent settings.</string>
+    <string name="preconsent_notification_title">Pass shared</string>
+    <string name="preconsent_notification_text">%1$s was shared with %2$s</string>
+    <string name="preconsent_notification_text_unknown_verifier">%1$s was shared via pre-consent</string>
 
     <string name="manage_trusted_readers_blurb">Readers listed below will be able to access information from this pass automatically if their identity is verified.</string>
     <string name="manage_trusted_readers_trusted_section">Trusted readers</string>
@@ -674,7 +684,7 @@
     <string name="verification_history_time_protocol">%1$s • %2$s</string>
 
     <!-- Verification Notifications -->
-    <string name="verification_notification_channel_name">Verification Responses</string>
+    <string name="verification_notification_channel_name">Verification responses</string>
     <string name="verification_notification_channel_description">Notifications for verification responses received via link</string>
     <string name="verification_notification_title">Verification Response Received</string>
     <string name="verification_notification_text">A pending verification was received</string>

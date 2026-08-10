@@ -63,27 +63,24 @@ suspend fun Document.setProvisionedDocumentSetupNeeded(value: Boolean) {
  * can be presented without requiring explicit user consent.
  *
  * @receiver the [Document] to check.
- * @return the pre-consent setting, or `null` if none is configured.
+ * @return the pre-consent setting, defaulting to [DocumentPreconsentSetting.NeverRequireConsent] if none is configured.
  */
-val Document.preconsentSetting: DocumentPreconsentSetting?
+val Document.preconsentSetting: DocumentPreconsentSetting
     get() = tags.getByteString(PRECONSENT_SETTING_TAG_KEY)?.let {
         DocumentPreconsentSetting.fromCbor(it.toByteArray())
-    }
+    } ?: DocumentPreconsentSetting.NeverRequireConsent
 
 /**
- * Sets or clears the [DocumentPreconsentSetting] for this [Document].
+ * Sets the [DocumentPreconsentSetting] for this [Document].
  *
  * This configures the rules under which credentials belonging to this document
  * can be presented without requiring explicit user consent.
  *
  * @receiver the [Document] to configure.
- * @param value the new [DocumentPreconsentSetting] to apply, or `null` to remove
- *              the existing setting.
+ * @param value the new [DocumentPreconsentSetting] to apply.
  */
-suspend fun Document.setPreconsentSetting(value: DocumentPreconsentSetting?) {
+suspend fun Document.setPreconsentSetting(value: DocumentPreconsentSetting) {
     edit {
-        value?.let {
-            tags.setByteString(PRECONSENT_SETTING_TAG_KEY, ByteString(value.toCbor()))
-        } ?: tags.remove(PRECONSENT_SETTING_TAG_KEY)
+        tags.setByteString(PRECONSENT_SETTING_TAG_KEY, ByteString(value.toCbor()))
     }
 }

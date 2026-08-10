@@ -87,6 +87,7 @@ fun AppNavHost(
     mpzPassesToImportChannel: Channel<ByteString>,
     credentialOffers: Channel<String>,
     documentIdToViewChannel: Channel<String>,
+    eventIdToViewChannel: Channel<String>,
     requestVerificationFlow: StateFlow<Boolean>,
     showToast: (message: String) -> Unit,
 ) {
@@ -184,6 +185,17 @@ fun AppNavHost(
         while (true) {
             val documentId = documentIdToViewChannel.receive()
             backStack.add(WalletDestination(documentId = documentId))
+        }
+    }
+
+    LaunchedEffect(true) {
+        while (true) {
+            val eventId = eventIdToViewChannel.receive()
+            if (eventId.isEmpty()) {
+                backStack.add(EventListDestination)
+            } else {
+                backStack.add(EventViewerDestination(eventId = eventId))
+            }
         }
     }
     val requestVerificationTrigger = requestVerificationFlow.collectAsState().value

@@ -140,6 +140,28 @@ fun DeveloperSettingsScreen(
 
                 FloatingItemHeadingAndText(
                     modifier = Modifier.clickable {
+                        settingsModel.disableNoUserAuth.value = !settingsModel.disableNoUserAuth.value
+                    },
+                    image = {
+                        Icon(
+                            imageVector = Icons.Outlined.NoEncryption,
+                            contentDescription = null
+                        )
+                    },
+                    heading = stringResource(R.string.dev_settings_disable_no_user_auth_title),
+                    text = stringResource(R.string.dev_settings_disable_no_user_auth_text),
+                    trailingContent = {
+                        Switch(
+                            checked = settingsModel.disableNoUserAuth.collectAsState().value,
+                            onCheckedChange = { value ->
+                                settingsModel.disableNoUserAuth.value = value
+                            }
+                        )
+                    }
+                )
+
+                FloatingItemHeadingAndText(
+                    modifier = Modifier.clickable {
                         onCorruptEncryptionKeyClicked()
                     },
                     image = {

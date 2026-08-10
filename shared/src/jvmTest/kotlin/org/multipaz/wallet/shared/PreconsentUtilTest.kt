@@ -267,6 +267,7 @@ class PreconsentUtilTest {
         val cpd = DcqlQuery.fromJsonString(queryJson).execute(presentmentSource = harness.presentmentSource)
         
         harness.docPhotoId.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
+        harness.docPhotoId2.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
         
         assertEquals(
             null,

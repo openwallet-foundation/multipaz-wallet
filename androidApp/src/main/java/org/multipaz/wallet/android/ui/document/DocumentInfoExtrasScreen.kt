@@ -291,6 +291,9 @@ private fun Tags.formatTagValue(key: String): String {
     } catch (_: IllegalArgumentException) {}
     try {
         getByteString(key)?.let { bstr ->
+            try {
+                return Cbor.decode(bstr.toByteArray()).toCdn()
+            } catch (_: Throwable) {}
             return if (bstr.size > 64) {
                 "${bstr.size} bytes"
             } else {
@@ -304,7 +307,11 @@ private fun Tags.formatTagValue(key: String): String {
     try {
         getList<ByteString>(key)?.let { list ->
             return list.joinToString(", ") { bstr ->
-                if (bstr.size > 64) "${bstr.size} bytes" else bstr.toByteArray().toHex()
+                try {
+                    Cbor.decode(bstr.toByteArray()).toCdn()
+                } catch (_: Throwable) {
+                    if (bstr.size > 64) "${bstr.size} bytes" else bstr.toByteArray().toHex()
+                }
             }
         }
     } catch (_: IllegalArgumentException) {}

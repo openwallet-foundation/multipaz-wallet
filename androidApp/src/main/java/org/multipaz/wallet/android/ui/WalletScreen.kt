@@ -36,9 +36,11 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -52,10 +54,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -617,6 +630,7 @@ private fun DocumentInfoContent(
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
     var showJustAdded by remember { mutableStateOf(justAdded) }
+    var showPreconsentTip by remember { mutableStateOf(justAdded && documentInfo.isProximityPresentable) }
 
     Crossfade(
         targetState = showJustAdded,
@@ -637,6 +651,8 @@ private fun DocumentInfoContent(
                 DocumentInfoContentReal(
                     documentInfo = documentInfo,
                     settingsModel = settingsModel,
+                    showPreconsentTip = showPreconsentTip,
+                    onDismissPreconsentTip = { showPreconsentTip = false },
                     onDocumentActivityClicked = onDocumentActivityClicked,
                     onDocumentInfoClicked = onDocumentInfoClicked,
                     onDocumentRemoveClicked = onDocumentRemoveClicked,
@@ -653,6 +669,8 @@ private fun DocumentInfoContent(
 private fun DocumentInfoContentReal(
     documentInfo: DocumentInfo,
     settingsModel: SettingsModel,
+    showPreconsentTip: Boolean,
+    onDismissPreconsentTip: () -> Unit,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -772,7 +790,6 @@ private fun DocumentInfoContentReal(
                 )
                 if (documentInfo.isProximityPresentable) {
                     val preconsentSetting = documentInfo.document.preconsentSetting
-                        ?: DocumentPreconsentSetting.AlwaysRequireConsent
                     FloatingItemText(
                         modifier = Modifier.clickable {
                             onDocumentPreconsentSettingsClicked(documentInfo)
@@ -780,11 +797,7 @@ private fun DocumentInfoContentReal(
                         showChevron = true,
                         text = stringResource(R.string.preconsent_screen_title),
                         secondary = preconsentSetting.toHumanReadable(documentInfo),
-                        secondaryColor = if (preconsentSetting is DocumentPreconsentSetting.NeverRequireConsent) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.secondary
-                        },
+                        secondaryColor = MaterialTheme.colorScheme.secondary,
                         image = {
                             Icon(
                                 modifier = Modifier.size(iconSize),
@@ -795,6 +808,16 @@ private fun DocumentInfoContentReal(
                     )
                 }
             }
+        }
+        if (showPreconsentTip) {
+            Spacer(modifier = Modifier.height(12.dp))
+            PreconsentSpeechBubbleTip(
+                onClick = {
+                    onDismissPreconsentTip()
+                    onDocumentPreconsentSettingsClicked(documentInfo)
+                },
+                onDismiss = onDismissPreconsentTip
+            )
         }
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -927,5 +950,88 @@ private fun AppUpdateCard() {
                 Text(text = str)
             }
         }
+    }
+}
+
+@Composable
+private fun PreconsentSpeechBubbleTip(
+    onClick: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = SpeechBubbleShape(),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp, bottom = 14.dp, start = 14.dp, end = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = stringResource(R.string.preconsent_tip_text),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.preconsent_tip_dismiss_content_description),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+private class SpeechBubbleShape(
+    private val cornerRadius: Dp = 14.dp,
+    private val arrowWidth: Dp = 14.dp,
+    private val arrowHeight: Dp = 8.dp,
+    private val arrowOffsetPx: Float = 48f
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val cr = with(density) { cornerRadius.toPx() }
+        val arrowW = with(density) { arrowWidth.toPx() }
+        val arrowH = with(density) { arrowHeight.toPx() }
+
+        val path = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    rect = Rect(0f, arrowH, size.width, size.height),
+                    cornerRadius = CornerRadius(cr, cr)
+                )
+            )
+            val arrowLeft = arrowOffsetPx.coerceAtLeast(cr + 8f)
+            moveTo(arrowLeft, arrowH)
+            lineTo(arrowLeft + arrowW / 2f, 0f)
+            lineTo(arrowLeft + arrowW, arrowH)
+            close()
+        }
+        return Outline.Generic(path)
     }
 }

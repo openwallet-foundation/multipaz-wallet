@@ -59,7 +59,7 @@ fun PreconsentSettingsScreen(
         it.document.identifier == documentId
     } ?: return
     
-    val currentSetting = documentInfo.document.preconsentSetting ?: DocumentPreconsentSetting.AlwaysRequireConsent
+    val currentSetting = documentInfo.document.preconsentSetting
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -185,8 +185,7 @@ fun PreconsentSettingsScreen(
                         coroutineScope.launch {
                             documentInfo.document.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
                         }
-                    },
-                    isDestructive = true
+                    }
                 )
             }
             Spacer(modifier = Modifier.height(20.dp))

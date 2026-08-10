@@ -38,77 +38,76 @@ suspend fun CredentialQueryResult.checkPreconsent(
     val selections = getAllSelections()
     checkSelection@ for (selection in selections) {
         for (match in selection.matches) {
-            match.credential.document.preconsentSetting?.let { preconsentSetting ->
-                when (preconsentSetting) {
-                    DocumentPreconsentSetting.AlwaysRequireConsent -> {
-                        // This selection doesn't work since this document always require consent
+            val preconsentSetting = match.credential.document.preconsentSetting
+            when (preconsentSetting) {
+                DocumentPreconsentSetting.AlwaysRequireConsent -> {
+                    // This selection doesn't work since this document always require consent
+                    continue@checkSelection
+                }
+                DocumentPreconsentSetting.NeverRequireConsent -> {
+                    // Have user's pre-consent for this document
+                }
+                is DocumentPreconsentSetting.RequestComplexityBased -> {
+                    val requestComplexity = selection.getMaxSensitivity()
+                    if (requestComplexity == null) {
+                        // This selection doesn't work since the request contains unclassified claims
                         continue@checkSelection
                     }
-                    DocumentPreconsentSetting.NeverRequireConsent -> {
-                        // Have user's pre-consent for this document
+                    if (requestComplexity > preconsentSetting.approvedSensitivity) {
+                        // This selection doesn't work since the complexity exceeds the approved complexity
+                        continue@checkSelection
                     }
-                    is DocumentPreconsentSetting.RequestComplexityBased -> {
-                        val requestComplexity = selection.getMaxSensitivity()
-                        if (requestComplexity == null) {
-                            // This selection doesn't work since the request contains unclassified claims
-                            continue@checkSelection
-                        }
-                        if (requestComplexity > preconsentSetting.approvedSensitivity) {
-                            // This selection doesn't work since the complexity exceeds the approved complexity
-                            continue@checkSelection
-                        }
-                        // The request satisfies the approved sensitivity
+                    // The request satisfies the approved sensitivity
+                }
+                is DocumentPreconsentSetting.ReaderIdentityBased -> {
+                    val requestComplexity = selection.getMaxSensitivity()
+
+                    val certChains = requester.requesterIdentities.map { it.certChain }
+                    if (certChains.isEmpty()) {
+                        // This selection doesn't work since the requester chain is missing
+                        continue@checkSelection
                     }
-                    is DocumentPreconsentSetting.ReaderIdentityBased -> {
-                        val requestComplexity = selection.getMaxSensitivity()
 
-                        val certChains = requester.requesterIdentities.map { it.certChain }
-                        if (certChains.isEmpty()) {
-                            // This selection doesn't work since the requester chain is missing
-                            continue@checkSelection
-                        }
-
-                        val isApproved = preconsentSetting.approvedReaders.any { approvedReader ->
-                            val complexityOk = if (approvedReader.approvedSensitivity == null) {
-                                true
-                            } else {
-                                requestComplexity != null && requestComplexity <= approvedReader.approvedSensitivity
-                            }
-                            
-                            if (!complexityOk) {
-                                return@any false
-                            }
-
-                            for (certChain in certChains) {
-                                val certs = certChain.certificates
-                                if (certs.isEmpty()) {
-                                    continue
-                                }
-
-                                // 1. Direct match by public key
-                                if (certs.any { it.ecPublicKey == approvedReader.certificate.ecPublicKey }) {
-                                    return@any true
-                                }
-
-                                // 2. Chain match by AKI/SKI
-                                val approvedSki = approvedReader.certificate.subjectKeyIdentifier
-                                if (approvedSki != null) {
-                                    if (certs.any { it.authorityKeyIdentifier?.contentEquals(approvedSki) == true }) {
-                                        return@any true
-                                    }
-                                }
-                            }
-
-                            false
+                    val isApproved = preconsentSetting.approvedReaders.any { approvedReader ->
+                        val complexityOk = if (approvedReader.approvedSensitivity == null) {
+                            true
+                        } else {
+                            requestComplexity != null && requestComplexity <= approvedReader.approvedSensitivity
                         }
                         
-                        if (!isApproved) {
-                            // This selection doesn't work since the requester is not approved
-                            continue@checkSelection
+                        if (!complexityOk) {
+                            return@any false
                         }
+
+                        for (certChain in certChains) {
+                            val certs = certChain.certificates
+                            if (certs.isEmpty()) {
+                                continue
+                            }
+
+                            // 1. Direct match by public key
+                            if (certs.any { it.ecPublicKey == approvedReader.certificate.ecPublicKey }) {
+                                return@any true
+                            }
+
+                            // 2. Chain match by AKI/SKI
+                            val approvedSki = approvedReader.certificate.subjectKeyIdentifier
+                            if (approvedSki != null) {
+                                if (certs.any { it.authorityKeyIdentifier?.contentEquals(approvedSki) == true }) {
+                                    return@any true
+                                }
+                            }
+                        }
+
+                        false
+                    }
+                    
+                    if (!isApproved) {
+                        // This selection doesn't work since the requester is not approved
+                        continue@checkSelection
                     }
                 }
-            } ?: continue@checkSelection
+            }
         }
 
         // If we get to here, all documents are go for pre-consent for this selection. Now we just

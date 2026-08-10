@@ -76,6 +76,12 @@ class MainActivity : FragmentActivity() {
                     app.viewDocument(documentId)
                 }
             }
+        } else if (intent.action == App.ACTION_VIEW_EVENT) {
+            val eventId = intent.getStringExtra("eventId").orEmpty()
+            lifecycle.coroutineScope.launch {
+                val app = App.getInstance()
+                app.viewEvent(eventId)
+            }
         } else if (intent.action == ACTION_VIEW_PENDING_VERIFICATION) {
             lifecycle.coroutineScope.launch {
                 val app = App.getInstance()
