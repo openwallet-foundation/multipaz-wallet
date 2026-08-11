@@ -4,7 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +44,7 @@ import org.multipaz.storage.Storage
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
+import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
@@ -62,6 +67,7 @@ private const val TAG = "AppNavHost"
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun AppNavHost(
+    app: App,
     walletClient: WalletClient,
     httpClientEngineFactory: HttpClientEngineFactory<*>,
     storage: Storage,
@@ -104,6 +110,35 @@ fun AppNavHost(
         SetupWelcomeScreenDestination
     }
     val backStack = rememberNavBackStack(startDestination)
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentDestination = backStack.lastOrNull()
+
+    DisposableEffect(lifecycleOwner, currentDestination) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    app.mainActivityResumed.value = true
+                    app.mainActivityCurrentDestination.value = currentDestination as? Destination
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    app.mainActivityResumed.value = false
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            app.mainActivityResumed.value = true
+            app.mainActivityCurrentDestination.value = currentDestination as? Destination
+        }
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            app.mainActivityResumed.value = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         // TODO: Only run this code the first time this screen is shown

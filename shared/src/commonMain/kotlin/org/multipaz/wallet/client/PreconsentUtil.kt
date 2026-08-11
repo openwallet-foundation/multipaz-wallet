@@ -1,5 +1,6 @@
 package org.multipaz.wallet.client
 
+import org.multipaz.document.Document
 import org.multipaz.presentment.CredentialQueryResult
 import org.multipaz.presentment.CredentialSelection
 import org.multipaz.request.Requester
@@ -26,6 +27,8 @@ private const val TAG = "PreconsentUtil"
  * @receiver the [CredentialQueryResult] containing the request and possible selections.
  * @param requester the [Requester] attempting to access the credentials, used to evaluate identity-based
  *                  pre-consent rules.
+ * @param preselectedDocuments an optional list of documents giving priority to the first document, then the
+ *                             second, and so on when evaluating selections.
  * @param domainRewriter a function that takes the current domain of a credential and returns the new
  *                       domain it should be mapped to. Defaults to returning the same domain.
  * @return the first [CredentialSelection] that satisfies all pre-consent rules and
@@ -33,9 +36,19 @@ private const val TAG = "PreconsentUtil"
  */
 suspend fun CredentialQueryResult.checkPreconsent(
     requester: Requester,
+    preselectedDocuments: List<Document> = emptyList(),
     domainRewriter: (domain: String) -> String = { domain -> domain  }
 ): CredentialSelection? {
-    val selections = getAllSelections()
+    var selections = getAllSelections()
+    if (preselectedDocuments.isNotEmpty()) {
+        val priorityMap = preselectedDocuments.mapIndexed { index, doc -> doc.identifier to index }.toMap()
+        selections = selections.sortedBy { selection ->
+            val minIndex = selection.matches.mapNotNull { match ->
+                priorityMap[match.credential.document.identifier]
+            }.minOrNull()
+            minIndex ?: Int.MAX_VALUE
+        }
+    }
     checkSelection@ for (selection in selections) {
         for (match in selection.matches) {
             val preconsentSetting = match.credential.document.preconsentSetting
@@ -140,4 +153,28 @@ suspend fun CredentialQueryResult.checkPreconsent(
         return selection.copy(matches = newMatches)
     }
     return null
+}
+
+/**
+ * Checks whether this [CredentialQueryResult] contains at least one credential selection (set) featuring
+ * any of the specified [preselectedDocuments].
+ *
+ * @receiver the [CredentialQueryResult] containing the request and candidate selections.
+ * @param preselectedDocuments a non-empty list of [Document]s to check for within the query selections.
+ * @return `true` if and only if at least one selection in [getAllSelections] contains a match featuring
+ *         at least one document in [preselectedDocuments]; `false` otherwise.
+ * @throws IllegalArgumentException if [preselectedDocuments] is empty.
+ */
+suspend fun CredentialQueryResult.containsPreselectedDocuments(
+    preselectedDocuments: List<Document>
+): Boolean {
+    require(preselectedDocuments.isNotEmpty()) {
+        "preselectedDocuments must not be empty"
+    }
+    val preselectedIdentifiers = preselectedDocuments.map { it.identifier }.toSet()
+    return getAllSelections().any { selection ->
+        selection.matches.any { match ->
+            preselectedIdentifiers.contains(match.credential.document.identifier)
+        }
+    }
 }

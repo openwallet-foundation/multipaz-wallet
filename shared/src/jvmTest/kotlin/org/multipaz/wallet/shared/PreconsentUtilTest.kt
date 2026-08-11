@@ -27,9 +27,13 @@ import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.util.truncateToWholeSeconds
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import org.multipaz.wallet.client.containsPreselectedDocuments
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class PreconsentUtilTest {
 
@@ -430,5 +434,133 @@ class PreconsentUtilTest {
         assertNotNull(selection2)
         assertEquals(cred1.identifier, selection2.matches.first().credential.identifier)
         assertEquals(3, selection2.matches.first().credential.usageCount)
+    }
+
+    @Test
+    fun testPreselectedDocumentsPrioritization() = runTest {
+        val harness = DocumentStoreTestHarness()
+        harness.initialize()
+        harness.provisionStandardDocuments()
+
+        val queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "mdl",
+                  "format": "mso_mdoc",
+                  "meta": {
+                    "doctype_value": "${DrivingLicense.MDL_DOCTYPE}"
+                  },
+                  "claims": [
+                    {"id": "b", "path": ["${DrivingLicense.MDL_NAMESPACE}", "age_over_18"]}
+                  ],
+                  "claim_sets": [ ["b"] ]
+                },
+                {
+                  "id": "pid",
+                  "format": "mso_mdoc",
+                  "meta": {
+                    "doctype_value": "${PhotoID.PHOTO_ID_DOCTYPE}"
+                  },
+                  "claims": [
+                    {"id": "b", "path": ["${PhotoID.ISO_23220_2_NAMESPACE}", "age_over_18"]}
+                  ],
+                  "claim_sets": [ ["b"] ]
+                }
+              ],
+              "credential_sets": [
+                { "options": [ ["mdl"], ["pid"] ] }
+              ]
+            }
+        """
+        val cpd = DcqlQuery.fromJsonString(queryJson).execute(presentmentSource = harness.presentmentSource)
+
+        harness.docMdl.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
+        harness.docPhotoId.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
+
+        val photoIdSelection = cpd.checkPreconsent(
+            requester = Requester(emptyList()),
+            preselectedDocuments = listOf(harness.docPhotoId)
+        )
+        assertNotNull(photoIdSelection)
+        assertEquals(harness.docPhotoId.identifier, photoIdSelection.matches.first().credential.document.identifier)
+
+        val mdlSelection = cpd.checkPreconsent(
+            requester = Requester(emptyList()),
+            preselectedDocuments = listOf(harness.docMdl, harness.docPhotoId)
+        )
+        assertNotNull(mdlSelection)
+        assertEquals(harness.docMdl.identifier, mdlSelection.matches.first().credential.document.identifier)
+    }
+
+    @Test
+    fun testContainsPreselectedDocumentsThrowsOnEmpty() = runTest {
+        val harness = DocumentStoreTestHarness()
+        harness.initialize()
+        harness.provisionStandardDocuments()
+
+        val queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "mdl",
+                  "format": "mso_mdoc",
+                  "meta": {
+                    "doctype_value": "${DrivingLicense.MDL_DOCTYPE}"
+                  },
+                  "claims": [
+                    {"id": "b", "path": ["${DrivingLicense.MDL_NAMESPACE}", "age_over_18"]}
+                  ],
+                  "claim_sets": [ ["b"] ]
+                }
+              ],
+              "credential_sets": [
+                { "options": [ ["mdl"] ] }
+              ]
+            }
+        """
+        val cpd = DcqlQuery.fromJsonString(queryJson).execute(presentmentSource = harness.presentmentSource)
+
+        assertFailsWith<IllegalArgumentException> {
+            cpd.containsPreselectedDocuments(emptyList())
+        }
+    }
+
+    @Test
+    fun testContainsPreselectedDocumentsMatchingAndNonMatching() = runTest {
+        val harness = DocumentStoreTestHarness()
+        harness.initialize()
+        harness.provisionStandardDocuments()
+
+        val queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "mdl",
+                  "format": "mso_mdoc",
+                  "meta": {
+                    "doctype_value": "${DrivingLicense.MDL_DOCTYPE}"
+                  },
+                  "claims": [
+                    {"id": "b", "path": ["${DrivingLicense.MDL_NAMESPACE}", "age_over_18"]}
+                  ],
+                  "claim_sets": [ ["b"] ]
+                }
+              ],
+              "credential_sets": [
+                { "options": [ ["mdl"] ] }
+              ]
+            }
+        """
+        val cpd = DcqlQuery.fromJsonString(queryJson).execute(presentmentSource = harness.presentmentSource)
+
+        // Matching document (docMdl is returned by query)
+        assertTrue(cpd.containsPreselectedDocuments(listOf(harness.docMdl)))
+
+        // Non-matching document (docPhotoId is not part of mdl query)
+        assertFalse(cpd.containsPreselectedDocuments(listOf(harness.docPhotoId)))
+
+        // List containing both a non-matching and a matching document
+        assertTrue(cpd.containsPreselectedDocuments(listOf(harness.docPhotoId, harness.docMdl)))
     }
 }

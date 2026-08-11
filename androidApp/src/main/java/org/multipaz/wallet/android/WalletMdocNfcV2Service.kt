@@ -24,11 +24,14 @@ class WalletMdocNfcV2Service(
         val t1 = Clock.System.now()
         Logger.i(TAG, "App initialized in ${(t1 - t0).inWholeMilliseconds} ms")
 
-        if (PresentmentActivity.presentmentModel.state.value is PresentmentModel.State.Reset) {
+        val focusedDocumentId = App.getInstance().focusedDocumentId
+        val focusedDocument = focusedDocumentId?.let { source.documentStore.lookupDocument(it) }
+        Logger.i(TAG, "Focused document at tap-time: $focusedDocumentId: ${focusedDocument?.displayName}")
+
+        if (!PresentmentActivity.presentmentModel.isActive) {
             PresentmentActivity.presentmentModel.reset(
                 source = source,
-                // TODO: if user is currently selecting a document, pass it here
-                preselectedDocuments = emptyList()
+                preselectedDocuments = focusedDocument?.let { listOf(it) } ?: emptyList()
             )
         }
 

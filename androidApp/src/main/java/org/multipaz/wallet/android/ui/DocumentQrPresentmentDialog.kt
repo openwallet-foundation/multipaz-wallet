@@ -233,9 +233,11 @@ private fun proximityPresentment(
 
             onTransactionUnderway()
 
+            val preselectedDocuments = document?.let { listOf(it) } ?: emptyList()
+            Logger.i(TAG, "preselectedDocuments: ${preselectedDocuments.map { it.identifier }}")
             PresentmentActivity.presentmentModel.reset(
                 source = source,
-                preselectedDocuments = document?.let { listOf(it) } ?: emptyList()
+                preselectedDocuments = preselectedDocuments
             )
             val intent = Intent(applicationContext, PresentmentActivity::class.java)
             intent.addFlags(
@@ -263,6 +265,7 @@ private fun proximityPresentment(
                 handover = Simple.NULL,
                 source = source,
                 keyAgreementPossible = listOf(eDeviceKeyCurve),
+                preselectedDocuments = preselectedDocuments,
                 onWaitingForRequest = { PresentmentActivity.presentmentModel.setWaitingForReader() },
                 onWaitingForUserInput = { PresentmentActivity.presentmentModel.setWaitingForUserInput() },
                 onDocumentsInFocus = { documents ->

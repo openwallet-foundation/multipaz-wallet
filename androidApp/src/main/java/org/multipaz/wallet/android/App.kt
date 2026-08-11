@@ -22,6 +22,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.sync.Mutex
@@ -73,13 +75,16 @@ import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
+import org.multipaz.wallet.android.navigation.Destination
 import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
 import org.multipaz.wallet.android.navigation.VerificationShowResponseDestination
+import org.multipaz.wallet.android.navigation.WalletDestination
 import org.multipaz.wallet.android.ui.CommunicatingWithBackendDialog
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.clearOnSignOut
 import org.multipaz.wallet.client.checkPreconsent
+import org.multipaz.wallet.client.containsPreselectedDocuments
 import org.multipaz.wallet.client.isProximityReader
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.verification.ProximityReaderModel
@@ -283,6 +288,18 @@ class App private constructor() {
         )
 
         PeriodicBookkeepingScheduler.schedulePeriodicBookkeeping(applicationContext)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            combine(
+                mainActivityResumed,
+                mainActivityCurrentDestination,
+                quickAccessWalletFocusedDocumentId
+            ) { _, _, _ ->
+                focusedDocumentId
+            }.distinctUntilChanged().collect { documentId ->
+                Logger.i(TAG, "focusedDocumentId changed to '$documentId'")
+            }
+        }
     }
 
     private data class PendingPreconsentNotification(
@@ -292,8 +309,22 @@ class App private constructor() {
     )
     private var pendingPreconsentNotification: PendingPreconsentNotification? = null
 
-    // Called by SimplePresentmentSource for consent prompt, including handling
-    // the cases where pre-consent is used.
+    /**
+     * Evaluated by [SimplePresentmentSource] to prompt for user consent or attempt auto-approval via preconsent.
+     *
+     * Preconsent is only processed for proximity readers ([Requester.isProximityReader]). Additionally, preconsent is
+     * allowed only if:
+     * - [preselectedDocuments] is empty (e.g. the user is outside the app when tapping), OR
+     * - at least one of the option sets in [ConsentData.credentialQueryResult] contains a document from [preselectedDocuments].
+     *
+     * If preselected documents are present but none match any candidate option set in the query result, preconsent
+     * is skipped so the user is presented with an explicit consent prompt rather than auto-presenting an out-of-focus
+     * document.
+     *
+     * Candidate selections evaluated by [checkPreconsent] are prioritized according to an effective document order
+     * combining any explicitly preselected/focused documents first, followed by the remaining documents ordered according
+     * to [DocumentModel].
+     */
     private suspend fun showConsentPromptFn(
         requester: Requester,
         trustedRequesterIdentity: TrustedRequesterIdentity?,
@@ -301,10 +332,24 @@ class App private constructor() {
         preselectedDocuments: List<Document>,
         onDocumentsInFocus: (documents: List<Document>) -> Unit
     ): CredentialSelection? {
-        // Process preconsent, but only for proximity readers.
-        if (requester.isProximityReader) {
+        Logger.i(TAG, "showConsentPromptFn: preselectedDocuments: ${preselectedDocuments.map {
+            it.identifier + ": " + it.displayName
+        }}")
+        // Process preconsent, but only for proximity readers, and only if preselectedDocuments is empty
+        // or if at least one candidate selection contains a preselected document.
+        val allowPreconsent = requester.isProximityReader && (
+            preselectedDocuments.isEmpty() ||
+                consentData.credentialQueryResult.containsPreselectedDocuments(preselectedDocuments)
+        )
+        if (allowPreconsent) {
+            val preselectedSet = preselectedDocuments.toSet()
+            val effectiveDocumentOrder = preselectedDocuments + documentModel.documentInfos.value
+                .map { it.document }
+                .filter { it !in preselectedSet }
+
             consentData.credentialQueryResult.checkPreconsent(
                 requester = requester,
+                preselectedDocuments = effectiveDocumentOrder,
                 domainRewriter = { domain ->
                     if (settingsModel.disableNoUserAuth.value) {
                         domain
@@ -493,6 +538,7 @@ class App private constructor() {
                 CommunicatingWithBackendDialog()
             }
             AppNavHost(
+                app = this,
                 walletClient = walletClient,
                 httpClientEngineFactory = Android,
                 storage = storage,
@@ -559,6 +605,35 @@ class App private constructor() {
     private val eventIdToViewChannel = Channel<String>(Channel.UNLIMITED)
 
     val requestVerificationFlow = MutableStateFlow<Boolean>(false)
+    val quickAccessWalletFocusedDocumentId = MutableStateFlow<String?>(null)
+    val mainActivityResumed = MutableStateFlow<Boolean>(false)
+    val mainActivityCurrentDestination = MutableStateFlow<Destination?>(null)
+
+    /**
+     * Gets the document identifier currently in focus for presentment, or `null` if no document is focused.
+     *
+     * If [MainActivity] is currently active ([mainActivityResumed] is `true`), this checks the current navigation
+     * destination ([mainActivityCurrentDestination]). If the destination is a [WalletDestination], it returns
+     * that destination's [WalletDestination.documentId].
+     *
+     * If [MainActivity] is not active, it falls back to returning [quickAccessWalletFocusedDocumentId], which is
+     * maintained by [WalletQuickAccessWalletService] when driving the Quick Access Wallet card chooser.
+     */
+    val focusedDocumentId: String?
+        get() {
+            val result = if (mainActivityResumed.value) {
+                val destination = mainActivityCurrentDestination.value
+                if (destination is WalletDestination) {
+                    destination.documentId
+                } else {
+                    null
+                }
+            } else {
+                quickAccessWalletFocusedDocumentId.value
+            }
+            Logger.d(TAG, "focusedDocumentId returning '$result'")
+            return result
+        }
 
     fun viewDocument(documentId: String) {
         CoroutineScope(Dispatchers.Default).launch {

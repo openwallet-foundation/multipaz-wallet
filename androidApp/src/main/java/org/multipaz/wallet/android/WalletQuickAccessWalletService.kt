@@ -46,16 +46,18 @@ class WalletQuickAccessWalletService: QuickAccessWalletService() {
     //   Launches PresentmentActivity in document-chooser mode
     //
     override fun getGestureTargetActivityPendingIntent(): PendingIntent {
-        val source = runBlocking {
+        val (source, app) = runBlocking {
             val t0 = Clock.System.now()
+            val app = App.getInstance()
             val source = App.getPresentmentSource()
             val t1 = Clock.System.now()
             Logger.i(TAG, "App initialized in ${(t1 - t0).inWholeMilliseconds} ms")
-            source
+            Pair(source, app)
         }
         return getPendingIntentForLaunchingQuickAccessWallet(
             source = source,
-            initiallySelectedDocumentId = null // TODO
+            initiallySelectedDocumentId = app.focusedDocumentId,
+            app = app
         )
     }
 
@@ -80,7 +82,8 @@ class WalletQuickAccessWalletService: QuickAccessWalletService() {
 
     private fun getPendingIntentForLaunchingQuickAccessWallet(
         source: PresentmentSource,
-        initiallySelectedDocumentId: String?
+        initiallySelectedDocumentId: String?,
+        app: App
     ): PendingIntent {
         return PresentmentActivity.getPendingIntent(
             source = source,
@@ -102,6 +105,9 @@ class WalletQuickAccessWalletService: QuickAccessWalletService() {
                 )
             },
             preferredService = ComponentName(applicationContext, WalletCombinedNfcService::class.java),
+            onDocumentSelected = { documentId ->
+                app.quickAccessWalletFocusedDocumentId.value = documentId
+            }
         )
     }
 }
