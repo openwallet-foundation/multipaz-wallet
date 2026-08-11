@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Nfc
 import androidx.compose.material.icons.outlined.NoAccounts
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +70,7 @@ fun SettingsScreen(
     onTrustedReadersClicked: () -> Unit,
     onExternalNfcReadersClicked: () -> Unit,
     onActivityLoggingClicked: () -> Unit,
+    onPreconsentDefaultsClicked: () -> Unit,
     onDeveloperSettingsClicked: () -> Unit,
     onAboutClicked: () -> Unit,
     showToast: (message: String) -> Unit
@@ -213,6 +215,14 @@ fun SettingsScreen(
                     text = stringResource(R.string.settings_screen_activity_logging_button_text),
                     image = {
                         Icon(Icons.Outlined.History, contentDescription = null)
+                    },
+                )
+                FloatingItemText(
+                    modifier = Modifier.clickable { onPreconsentDefaultsClicked() },
+                    showChevron = true,
+                    text = stringResource(R.string.settings_screen_preconsent_defaults),
+                    image = {
+                        Icon(Icons.Outlined.Lock, contentDescription = null)
                     },
                 )
                 if (settingsModel.devMode.collectAsState().value) {

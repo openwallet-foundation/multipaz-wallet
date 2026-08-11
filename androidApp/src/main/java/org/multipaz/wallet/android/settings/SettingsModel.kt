@@ -151,6 +151,7 @@ class SettingsModel private constructor(
         bind(verificationStoreResponse, "verificationStoreResponse", false)
         bind(selectedExternalNfcReaderId, "selectedExternalNfcReaderId", null)
         bind(disableNoUserAuth, "disableNoUserAuth", true)
+        bind(preconsentForNewDocuments, "preconsentForNewDocuments", true)
 
         Logger.isDebugEnabled = loggingDebugEnabled.value
         CoroutineScope(Dispatchers.Default).launch {
@@ -180,4 +181,5 @@ class SettingsModel private constructor(
     val verificationStoreResponse = MutableStateFlow<Boolean>(false)
     val selectedExternalNfcReaderId = MutableStateFlow<String?>(null)
     val disableNoUserAuth = MutableStateFlow<Boolean>(true)
+    val preconsentForNewDocuments = MutableStateFlow<Boolean>(true)
 }

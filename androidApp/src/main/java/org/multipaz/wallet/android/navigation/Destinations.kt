@@ -56,6 +56,9 @@ data object SetupActivityLoggingScreenDestination: Destination()
 data object SetupActivityLoggingLocationScreenDestination: Destination()
 
 @Serializable
+data object SetupPreconsentScreenDestination: Destination()
+
+@Serializable
 data object SetupDefaultWalletScreenDestination: Destination()
 
 @Serializable
@@ -100,6 +103,9 @@ data object AboutDestination: Destination()
 
 @Serializable
 data object SettingsDestination: Destination()
+
+@Serializable
+data object PreconsentDefaultsSettingsDestination: Destination()
 
 @Serializable
 data object ExternalNfcReadersDestination: Destination()

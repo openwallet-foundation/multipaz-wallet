@@ -57,12 +57,15 @@ import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import org.multipaz.util.truncateToWholeSeconds
 import org.multipaz.wallet.backend.WalletBackendBase
+import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.client.WalletClientSharedData
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.clearOnSignOut
+import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
+import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.toCbor
 import kotlin.random.Random
@@ -699,7 +702,6 @@ class WalletClientTest {
 
         // Wait for flow collection to react and clear documents
         testScheduler.advanceUntilIdle()
-
         assertEquals(0, documentStore.listDocuments().size)
         job.cancel()
     }
@@ -1677,6 +1679,141 @@ class WalletClientTest {
         // Calling getReaderKey() should clean up the stale key entry and return a valid key
         val (newKeyInfo, _) = client.getReaderKey(atTime = readerKeyTestData.currentTime)
         assertNotEquals(keyInfo.alias, newKeyInfo.alias)
+    }
+
+    @Test
+    fun testSyncWithSharedData_appliesInitialPreconsentSetting_neverRequireConsent() = runTest {
+        val storage = EphemeralStorage()
+        val secureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        val client = createWalletClientBase(storage, secureArea)
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val doc1 = getProvisionedDocument1()
+        val sharedData = WalletClientSharedData(
+            provisionedDocuments = listOf(doc1)
+        )
+
+        documentStore.syncWithSharedData(
+            sharedData = sharedData,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+            initialPreconsentSetting = DocumentPreconsentSetting.NeverRequireConsent
+        )
+
+        val doc = documentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier }
+        assertNotNull(doc)
+        assertEquals(DocumentPreconsentSetting.NeverRequireConsent, doc.preconsentSetting)
+    }
+
+    @Test
+    fun testSyncWithSharedData_appliesInitialPreconsentSetting_alwaysRequireConsent() = runTest {
+        val storage = EphemeralStorage()
+        val secureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        val client = createWalletClientBase(storage, secureArea)
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val doc1 = getProvisionedDocument1()
+        val sharedData = WalletClientSharedData(
+            provisionedDocuments = listOf(doc1)
+        )
+
+        documentStore.syncWithSharedData(
+            sharedData = sharedData,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+            initialPreconsentSetting = DocumentPreconsentSetting.AlwaysRequireConsent
+        )
+
+        val doc = documentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier }
+        assertNotNull(doc)
+        assertEquals(DocumentPreconsentSetting.AlwaysRequireConsent, doc.preconsentSetting)
+    }
+
+    @Test
+    fun testSyncWithSharedData_preservesExistingPreconsentSetting() = runTest {
+        val storage = EphemeralStorage()
+        val secureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        val client = createWalletClientBase(storage, secureArea)
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val doc1 = getProvisionedDocument1()
+        val sharedData = WalletClientSharedData(
+            provisionedDocuments = listOf(doc1)
+        )
+
+        // Initial sync with NeverRequireConsent
+        documentStore.syncWithSharedData(
+            sharedData = sharedData,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+            initialPreconsentSetting = DocumentPreconsentSetting.NeverRequireConsent
+        )
+
+        val doc = documentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier }!!
+        assertEquals(DocumentPreconsentSetting.NeverRequireConsent, doc.preconsentSetting)
+
+        // User explicitly changes setting to AlwaysRequireConsent
+        doc.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
+        assertEquals(DocumentPreconsentSetting.AlwaysRequireConsent, doc.preconsentSetting)
+
+        // Subsequent sync with NeverRequireConsent default should NOT overwrite existing setting
+        documentStore.syncWithSharedData(
+            sharedData = sharedData,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+            initialPreconsentSetting = DocumentPreconsentSetting.NeverRequireConsent
+        )
+
+        val docAfterSync = documentStore.listDocuments().find { it.provisionedDocumentIdentifier == doc1.identifier }!!
+        assertEquals(DocumentPreconsentSetting.AlwaysRequireConsent, docAfterSync.preconsentSetting)
+    }
+
+    @Test
+    fun testSyncWithSharedData_appliesInitialPreconsentSettingToMpzPass() = runTest {
+        val storage = EphemeralStorage()
+        val secureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        val client = createWalletClientBase(storage, secureArea)
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val pass1 = createPass("pass1", 1)
+        val sharedData = WalletClientSharedData().addMpzPass(pass1)
+
+        documentStore.syncWithSharedData(
+            sharedData = sharedData,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client,
+            initialPreconsentSetting = DocumentPreconsentSetting.NeverRequireConsent
+        )
+
+        val doc = documentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }
+        assertNotNull(doc)
+        assertEquals(DocumentPreconsentSetting.NeverRequireConsent, doc.preconsentSetting)
     }
 }
 

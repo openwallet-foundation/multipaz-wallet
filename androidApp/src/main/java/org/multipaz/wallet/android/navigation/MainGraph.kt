@@ -88,6 +88,9 @@ import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletB
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperModeDocumentationScreen
+import org.multipaz.wallet.android.ui.settings.PreconsentDefaultsSettingsScreen
+import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.wallet.client.runPeriodicBookkeeping
 import org.multipaz.wallet.android.ui.settings.EventListScreen
 import org.multipaz.wallet.android.ui.settings.EventViewerScreen
@@ -258,6 +261,11 @@ fun mainGraph(
                                         )
                                     )
                                 }
+                            }
+                            if (!settingsModel.preconsentForNewDocuments.value) {
+                                document.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
+                            } else {
+                                document.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
                             }
                             backStack.clear()
                             backStack.add(WalletDestination())
@@ -598,12 +606,18 @@ fun mainGraph(
                             )
                             try {
                                 walletClient.sharedData.value?.let {
+                                    val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
+                                        DocumentPreconsentSetting.NeverRequireConsent
+                                    } else {
+                                        DocumentPreconsentSetting.AlwaysRequireConsent
+                                    }
                                     documentStore.syncWithSharedData(
                                         sharedData = it,
                                         mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                                         mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                                         mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
                                         walletClient = walletClient,
+                                        initialPreconsentSetting = preconsentSetting,
                                     )
                                 }
                             } catch (e: Exception) {
@@ -625,6 +639,9 @@ fun mainGraph(
                     onActivityLoggingClicked = {
                         backStack.add(ActivityLoggingSettingsDestination)
                     },
+                    onPreconsentDefaultsClicked = {
+                        backStack.add(PreconsentDefaultsSettingsDestination)
+                    },
                     onDeveloperSettingsClicked = {
                         backStack.add(DeveloperSettingsDestination)
                     },
@@ -632,6 +649,12 @@ fun mainGraph(
                         backStack.add(AboutDestination)
                     },
                     showToast = showToast,
+                )
+            }
+            is PreconsentDefaultsSettingsDestination -> NavEntry(key) {
+                PreconsentDefaultsSettingsScreen(
+                    settingsModel = settingsModel,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is ExternalNfcReadersDestination -> NavEntry(key) {

@@ -128,6 +128,7 @@ suspend fun DocumentStore.syncWithSharedData(
     mpzPassSdJwtVcDomain: String,
     mpzPassKeylessSdJwtVcDomain: String,
     walletClient: WalletClient? = null,
+    initialPreconsentSetting: DocumentPreconsentSetting? = null,
 ) {
     syncMpzPasses(
         sharedData = sharedData,
@@ -135,10 +136,12 @@ suspend fun DocumentStore.syncWithSharedData(
         mpzPassSdJwtVcDomain = mpzPassSdJwtVcDomain,
         mpzPassKeylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain,
         walletClient = walletClient,
+        initialPreconsentSetting = initialPreconsentSetting,
     )
     syncProvisionedDocuments(
         sharedData = sharedData,
         walletClient = walletClient,
+        initialPreconsentSetting = initialPreconsentSetting,
     )
 }
 
@@ -148,6 +151,7 @@ private suspend fun DocumentStore.syncMpzPasses(
     mpzPassSdJwtVcDomain: String = "sdjwtvc",
     mpzPassKeylessSdJwtVcDomain: String = "sdjwtvc_keyless",
     walletClient: WalletClient? = null,
+    initialPreconsentSetting: DocumentPreconsentSetting? = null,
 ) {
     val mpzPasses = sharedData.getMpzPasses()
 
@@ -161,21 +165,30 @@ private suspend fun DocumentStore.syncMpzPasses(
         }
         try {
             if (documentForPass == null) {
-                importMpzPass(
+                val document = importMpzPass(
                     mpzPass = pass,
                     isoMdocDomain = mpzPassIsoMdocDomain,
                     sdJwtVcDomain = mpzPassSdJwtVcDomain,
                     keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
                 )
+                withContext(NonCancellable) {
+                    if (initialPreconsentSetting != null) {
+                        document.setPreconsentSetting(initialPreconsentSetting)
+                    }
+                }
                 Logger.i(TAG, "syncMpzPasses: Imported pass ${pass.uniqueId} at version ${pass.version}")
             } else if (documentForPass.mpzPassVersion!! < pass.version) {
                 val oldVersion = documentForPass.mpzPassVersion!!
-                importMpzPass(
+                val existingPreconsent = documentForPass.preconsentSetting
+                val document = importMpzPass(
                     mpzPass = pass,
                     isoMdocDomain = mpzPassIsoMdocDomain,
                     sdJwtVcDomain = mpzPassSdJwtVcDomain,
                     keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
                 )
+                withContext(NonCancellable) {
+                    document.setPreconsentSetting(existingPreconsent)
+                }
                 Logger.i(TAG, "syncMpzPasses: Updated pass ${pass.uniqueId} from version $oldVersion to ${pass.version}")
             }
         } catch (e: Exception) {
@@ -220,6 +233,7 @@ private suspend fun DocumentStore.syncMpzPasses(
 private suspend fun DocumentStore.syncProvisionedDocuments(
     sharedData: WalletClientSharedData,
     walletClient: WalletClient? = null,
+    initialPreconsentSetting: DocumentPreconsentSetting? = null,
 ) {
     Logger.i(TAG, "syncProvisionedDocuments: Running")
     val failedProvisionedDocuments = mutableListOf<WalletClientProvisionedDocument>()
@@ -239,6 +253,9 @@ private suspend fun DocumentStore.syncProvisionedDocuments(
                 withContext(NonCancellable) {
                     document.setProvisionedDocumentIdentifier(provisionedDocument.identifier)
                     document.setProvisionedDocumentSetupNeeded(true)
+                    if (initialPreconsentSetting != null) {
+                        document.setPreconsentSetting(initialPreconsentSetting)
+                    }
                 }
                 Logger.i(
                     TAG,

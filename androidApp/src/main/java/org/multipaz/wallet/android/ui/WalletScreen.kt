@@ -468,12 +468,18 @@ fun WalletScreen(
                             if (walletClient.signedInUser.value != null) {
                                 walletClient.refreshSharedData()
                                 walletClient.sharedData.value?.let {
+                                    val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
+                                        DocumentPreconsentSetting.NeverRequireConsent
+                                    } else {
+                                        DocumentPreconsentSetting.AlwaysRequireConsent
+                                    }
                                     documentStore.syncWithSharedData(
                                         sharedData = it,
                                         mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                                         mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                                         mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
                                         walletClient = walletClient,
+                                        initialPreconsentSetting = preconsentSetting,
                                     )
                                 }
                             }
@@ -630,7 +636,6 @@ private fun DocumentInfoContent(
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
     var showJustAdded by remember { mutableStateOf(justAdded) }
-    var showPreconsentTip by remember { mutableStateOf(justAdded && documentInfo.isProximityPresentable) }
 
     Crossfade(
         targetState = showJustAdded,
@@ -651,8 +656,6 @@ private fun DocumentInfoContent(
                 DocumentInfoContentReal(
                     documentInfo = documentInfo,
                     settingsModel = settingsModel,
-                    showPreconsentTip = showPreconsentTip,
-                    onDismissPreconsentTip = { showPreconsentTip = false },
                     onDocumentActivityClicked = onDocumentActivityClicked,
                     onDocumentInfoClicked = onDocumentInfoClicked,
                     onDocumentRemoveClicked = onDocumentRemoveClicked,
@@ -669,8 +672,6 @@ private fun DocumentInfoContent(
 private fun DocumentInfoContentReal(
     documentInfo: DocumentInfo,
     settingsModel: SettingsModel,
-    showPreconsentTip: Boolean,
-    onDismissPreconsentTip: () -> Unit,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -809,16 +810,6 @@ private fun DocumentInfoContentReal(
                 }
             }
         }
-        if (showPreconsentTip) {
-            Spacer(modifier = Modifier.height(12.dp))
-            PreconsentSpeechBubbleTip(
-                onClick = {
-                    onDismissPreconsentTip()
-                    onDocumentPreconsentSettingsClicked(documentInfo)
-                },
-                onDismiss = onDismissPreconsentTip
-            )
-        }
         Spacer(modifier = Modifier.height(20.dp))
 
         // Make Remove stand out by having it in its own list
@@ -950,88 +941,5 @@ private fun AppUpdateCard() {
                 Text(text = str)
             }
         }
-    }
-}
-
-@Composable
-private fun PreconsentSpeechBubbleTip(
-    onClick: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = SpeechBubbleShape(),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 18.dp, bottom = 14.dp, start = 14.dp, end = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.preconsent_tip_text),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = stringResource(R.string.preconsent_tip_dismiss_content_description),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-    }
-}
-
-private class SpeechBubbleShape(
-    private val cornerRadius: Dp = 14.dp,
-    private val arrowWidth: Dp = 14.dp,
-    private val arrowHeight: Dp = 8.dp,
-    private val arrowOffsetPx: Float = 48f
-) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
-    ): Outline {
-        val cr = with(density) { cornerRadius.toPx() }
-        val arrowW = with(density) { arrowWidth.toPx() }
-        val arrowH = with(density) { arrowHeight.toPx() }
-
-        val path = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    rect = Rect(0f, arrowH, size.width, size.height),
-                    cornerRadius = CornerRadius(cr, cr)
-                )
-            )
-            val arrowLeft = arrowOffsetPx.coerceAtLeast(cr + 8f)
-            moveTo(arrowLeft, arrowH)
-            lineTo(arrowLeft + arrowW / 2f, 0f)
-            lineTo(arrowLeft + arrowW, arrowH)
-            close()
-        }
-        return Outline.Generic(path)
     }
 }

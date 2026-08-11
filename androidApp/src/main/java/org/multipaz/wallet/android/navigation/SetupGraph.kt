@@ -23,6 +23,7 @@ import org.multipaz.wallet.android.ui.setup.SetupNotificationPermissionScreen
 import org.multipaz.wallet.android.ui.setup.SetupDefaultWalletScreen
 import org.multipaz.wallet.android.ui.setup.SetupDeviceCheckScreen
 import org.multipaz.wallet.android.ui.setup.SetupEulaScreen
+import org.multipaz.wallet.android.ui.setup.SetupPreconsentScreen
 import org.multipaz.wallet.android.ui.setup.SetupScreenLockCheckScreen
 import org.multipaz.wallet.android.ui.setup.SetupSignInScreen
 import org.multipaz.wallet.android.ui.setup.SetupWelcomeScreen
@@ -41,7 +42,7 @@ fun setupGraph(
     coroutineScope: CoroutineScope,
     context: Context,
     showToast: (message: String) -> Unit,
-    onAppJustLaunched: suspend (WalletClient, DocumentStore) -> Unit,
+    onAppJustLaunched: suspend (WalletClient, DocumentStore, SettingsModel) -> Unit,
     onSignIn: suspend (Context, WalletClient, SignInWithGoogle, MutableList<NavKey>, Boolean, Boolean) -> Unit,
     onSignOut: suspend (WalletClient, SettingsModel, SignInWithGoogle) -> Unit
 ): (NavKey) -> NavEntry<NavKey>? {
@@ -54,7 +55,7 @@ fun setupGraph(
         } else {
             settingsModel.firstTimeSetupDone.value = true
             coroutineScope.launch {
-                onAppJustLaunched(walletClient, documentStore)
+                onAppJustLaunched(walletClient, documentStore, settingsModel)
             }
             backStack.clear()
             backStack.add(WalletDestination())
@@ -158,13 +159,13 @@ fun setupGraph(
                     },
                     onDisableClicked = {
                         settingsModel.eventLoggingEnabled.value = false
-                        continueToWalletRoleOrMainGraph()
+                        backStack.add(SetupPreconsentScreenDestination)
                     }
                 )
             }
             is SetupActivityLoggingLocationScreenDestination -> NavEntry(key) {
-                val completeSetup = {
-                    continueToWalletRoleOrMainGraph()
+                val nextStep = {
+                    backStack.add(SetupPreconsentScreenDestination)
                 }
 
                 @OptIn(ExperimentalPermissionsApi::class)
@@ -172,7 +173,7 @@ fun setupGraph(
                     Manifest.permission.ACCESS_FINE_LOCATION
                 ) { isGranted ->
                     settingsModel.eventLoggingLocationEnabled.value = isGranted
-                    completeSetup()
+                    nextStep()
                 }
 
                 SetupActivityLoggingLocationScreen(
@@ -180,14 +181,22 @@ fun setupGraph(
                         @OptIn(ExperimentalPermissionsApi::class)
                         if (locationPermissionState.status.isGranted) {
                             settingsModel.eventLoggingLocationEnabled.value = true
-                            completeSetup()
+                            nextStep()
                         } else {
                             locationPermissionState.launchPermissionRequest()
                         }
                     },
                     onSkipClicked = {
                         settingsModel.eventLoggingLocationEnabled.value = false
-                        completeSetup()
+                        nextStep()
+                    }
+                )
+            }
+            is SetupPreconsentScreenDestination -> NavEntry(key) {
+                SetupPreconsentScreen(
+                    settingsModel = settingsModel,
+                    onContinueClicked = {
+                        continueToWalletRoleOrMainGraph()
                     }
                 )
             }
@@ -196,7 +205,7 @@ fun setupGraph(
                     onContinueClicked = {
                         settingsModel.firstTimeSetupDone.value = true
                         coroutineScope.launch {
-                            onAppJustLaunched(walletClient, documentStore)
+                            onAppJustLaunched(walletClient, documentStore, settingsModel)
                         }
                         backStack.clear()
                         backStack.add(WalletDestination())

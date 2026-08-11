@@ -43,6 +43,8 @@ import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.trustmanagement.CompositeTrustManager
+import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
@@ -145,7 +147,8 @@ fun AppNavHost(
         if (settingsModel.firstTimeSetupDone.value) {
             appJustLaunched(
                 walletClient = walletClient,
-                documentStore = documentStore
+                documentStore = documentStore,
+                settingsModel = settingsModel,
             )
         }
     }
@@ -197,6 +200,11 @@ fun AppNavHost(
                         sdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                         keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                     )
+                    if (!settingsModel.preconsentForNewDocuments.value) {
+                        document.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
+                    } else {
+                        document.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
+                    }
 
                     backStack.add(
                         WalletDestination(
@@ -386,20 +394,29 @@ internal suspend fun signOut(
 //
 internal suspend fun appJustLaunched(
     walletClient: WalletClient,
-    documentStore: DocumentStore
+    documentStore: DocumentStore,
+    settingsModel: SettingsModel,
 ) {
     Logger.i(TAG, "Running code the first time app is launched...")
     if (walletClient.signedInUser.value != null) {
         try {
             Logger.i(TAG, "Refreshing shared data with wallet backend at start-up")
             walletClient.refreshSharedData()
-            documentStore.syncWithSharedData(
-                sharedData = walletClient.sharedData.value!!,
-                mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
-                walletClient = walletClient,
-            )
+            walletClient.sharedData.value?.let { sharedData ->
+                val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
+                    DocumentPreconsentSetting.NeverRequireConsent
+                } else {
+                    DocumentPreconsentSetting.AlwaysRequireConsent
+                }
+                documentStore.syncWithSharedData(
+                    sharedData = sharedData,
+                    mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                    mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                    walletClient = walletClient,
+                    initialPreconsentSetting = preconsentSetting,
+                )
+            }
         } catch (e: WalletBackendNotSignedInException) {
             Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)
         } catch (e: WalletClientBackendUnreachableException) {
