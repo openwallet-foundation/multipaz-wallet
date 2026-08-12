@@ -163,6 +163,8 @@
     <string name="dev_settings_logging_debug_text">Enable debug to print out structures helpful for debugging. Warning: debug messages may contain PII.</string>
     <string name="dev_settings_disable_no_user_auth_title">Always require auth for presentment</string>
     <string name="dev_settings_disable_no_user_auth_text">If enabled, the wallet will not request `no_user_auth` credentials and if available, won\'t be used at presentment time</string>
+    <string name="dev_settings_use_nfc_v2_title">Use NFCv2 for presentment</string>
+    <string name="dev_settings_use_nfc_v2_text">If enabled, NFCv2 will be used during presentment scanning.</string>
     <string name="dev_settings_corrupt_key_title">Corrupt encryption key in Google Drive</string>
     <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted.</string>
     <string name="dev_settings_not_signed_in">User is not signed in</string>

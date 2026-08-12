@@ -247,7 +247,9 @@ fun VerificationProximityTransferScreen(
         }
     }
 
-    LaunchedEffect(initialScanMode, nfcTagReader, nfcOnly) {
+    val useNfcV2 = settingsModel.useNfcV2.collectAsState().value
+
+    LaunchedEffect(initialScanMode, nfcTagReader, nfcOnly, useNfcV2) {
         if (proximityReaderModel.state.value == ProximityReaderModel.State.IDLE && initialScanMode == ProximityScanMode.NFC && onNfcHandover != null) {
             if (nfcTagReader != null && !nfcTagReader.dialogAlwaysShown) {
                 withContext(promptModel) {
@@ -260,7 +262,7 @@ fun VerificationProximityTransferScreen(
                                     bleUseL2CAPInEngagement = true
                                 ),
                                 handoverOptions = MdocReaderNfcHandoverOptions(
-                                    useNfcV2 = true
+                                    useNfcV2 = useNfcV2
                                 ),
                                 transportFactory = MdocTransportFactory.Default,
                                 selectConnectionMethod = { connectionMethods -> connectionMethods.first() },

@@ -152,6 +152,7 @@ class SettingsModel private constructor(
         bind(selectedExternalNfcReaderId, "selectedExternalNfcReaderId", null)
         bind(disableNoUserAuth, "disableNoUserAuth", true)
         bind(preconsentForNewDocuments, "preconsentForNewDocuments", true)
+        bind(useNfcV2, "useNfcV2", true)
 
         Logger.isDebugEnabled = loggingDebugEnabled.value
         CoroutineScope(Dispatchers.Default).launch {
@@ -182,4 +183,5 @@ class SettingsModel private constructor(
     val selectedExternalNfcReaderId = MutableStateFlow<String?>(null)
     val disableNoUserAuth = MutableStateFlow<Boolean>(true)
     val preconsentForNewDocuments = MutableStateFlow<Boolean>(true)
+    val useNfcV2 = MutableStateFlow<Boolean>(true)
 }
