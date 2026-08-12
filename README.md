@@ -34,6 +34,10 @@ Multipaz Wallet prioritizes a clean, native experience across all supported plat
   * **Chevrons (`showChevron`):** List items display a trailing chevron (`showChevron = true` / `showChevron: true`) **only** if clicking the item navigates to another screen.
   * Chevrons are omitted (`showChevron = false` or omitted) for items that perform inline actions, toggle controls (such as switches), or open dialogs/confirmation sheets.
 
+* **Terminology (Passes vs. Documents):**
+  * We use the word **"pass"** for objects stored in the user's wallet and shown in the UI.
+  * We use the word **"document"** when referring to credentials/objects received from other wallets (e.g., during verification), or technical terms like ISO mdoc document types.
+
 ## Dev and Prod instances
 
 For development, we host a backend at https://dev.wallet.multipaz.org and this backend is
