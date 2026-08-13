@@ -68,6 +68,10 @@ import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.sdjwt.credential.SdJwtVcCredential
 import org.multipaz.util.Logger
 import org.multipaz.util.toHex
+import kotlin.time.Duration
+import org.multipaz.securearea.AndroidKeystoreKeyInfo
+import org.multipaz.securearea.software.SoftwareKeyInfo
+import org.multipaz.securearea.cloud.CloudKeyInfo
 import org.multipaz.wallet.android.ui.Note
 
 private const val TAG = "CredentialInfoScreen"
@@ -220,6 +224,7 @@ private fun CredentialInfoSection(
     }
 
     if (credentialInfo.credential is SecureAreaBoundCredential) {
+        val keyInfo = credentialInfo.keyInfo
         FloatingItemHeadingAndText(
             "Secure Area",
             (credentialInfo.credential as SecureAreaBoundCredential).secureArea.displayName
@@ -228,10 +233,89 @@ private fun CredentialInfoSection(
             "Secure Area Identifier",
             (credentialInfo.credential as SecureAreaBoundCredential).secureArea.identifier
         )
-        FloatingItemHeadingAndText(
-            "Device Key Algorithm",
-            credentialInfo.keyInfo!!.algorithm.description
-        )
+        if (keyInfo != null) {
+            FloatingItemHeadingAndText(
+                "Device Key Algorithm",
+                keyInfo.algorithm.description
+            )
+            when (keyInfo) {
+                is AndroidKeystoreKeyInfo -> {
+                    FloatingItemHeadingAndText(
+                        "Device Key in StrongBox",
+                        if (keyInfo.isStrongBoxBacked) "Yes" else "No"
+                    )
+                    FloatingItemHeadingAndText(
+                        "Device Key User Auth Required",
+                        if (keyInfo.isUserAuthenticationRequired) "Yes" else "No"
+                    )
+                    if (keyInfo.isUserAuthenticationRequired) {
+                        val timeoutText = if (keyInfo.userAuthenticationTimeout == Duration.ZERO) {
+                            "0 (Authenticate for every use)"
+                        } else {
+                            "${keyInfo.userAuthenticationTimeout.inWholeSeconds} s"
+                        }
+                        FloatingItemHeadingAndText("Device Key User Auth Timeout", timeoutText)
+                        val typesText = if (keyInfo.userAuthenticationTypes.isEmpty()) {
+                            "None"
+                        } else {
+                            keyInfo.userAuthenticationTypes.joinToString(", ") { it.name }
+                        }
+                        FloatingItemHeadingAndText("Device Key User Auth Types", typesText)
+                    }
+                    if (keyInfo.attestKeyAlias != null) {
+                        FloatingItemHeadingAndText("Device Key Attest Key Alias", keyInfo.attestKeyAlias!!)
+                    }
+                    if (keyInfo.validFrom != null) {
+                        FloatingItemHeadingAndText("Device Key Valid From", formattedDateTime(keyInfo.validFrom!!))
+                    }
+                    if (keyInfo.validUntil != null) {
+                        FloatingItemHeadingAndText("Device Key Valid Until", formattedDateTime(keyInfo.validUntil!!))
+                    }
+                }
+                is SoftwareKeyInfo -> {
+                    FloatingItemHeadingAndText(
+                        "Device Key Passphrase Protected",
+                        if (keyInfo.isPassphraseProtected) "Yes" else "No"
+                    )
+                    FloatingItemHeadingAndText(
+                        "Device Key User Auth Required",
+                        if (keyInfo.isUserAuthenticationRequired) "Yes" else "No"
+                    )
+                    if (keyInfo.isUserAuthenticationRequired) {
+                        val typesText = if (keyInfo.userAuthenticationTypes.isEmpty()) {
+                            "None"
+                        } else {
+                            keyInfo.userAuthenticationTypes.joinToString(", ") { it.name }
+                        }
+                        FloatingItemHeadingAndText("Device Key User Auth Types", typesText)
+                    }
+                }
+                is CloudKeyInfo -> {
+                    FloatingItemHeadingAndText(
+                        "Device Key Passphrase Required",
+                        if (keyInfo.isPassphraseRequired) "Yes" else "No"
+                    )
+                    FloatingItemHeadingAndText(
+                        "Device Key User Auth Required",
+                        if (keyInfo.isUserAuthenticationRequired) "Yes" else "No"
+                    )
+                    if (keyInfo.isUserAuthenticationRequired) {
+                        val typesText = if (keyInfo.userAuthenticationTypes.isEmpty()) {
+                            "None"
+                        } else {
+                            keyInfo.userAuthenticationTypes.joinToString(", ") { it.name }
+                        }
+                        FloatingItemHeadingAndText("Device Key User Auth Types", typesText)
+                    }
+                    if (keyInfo.validFrom != null) {
+                        FloatingItemHeadingAndText("Device Key Valid From", formattedDateTime(keyInfo.validFrom!!))
+                    }
+                    if (keyInfo.validUntil != null) {
+                        FloatingItemHeadingAndText("Device Key Valid Until", formattedDateTime(keyInfo.validUntil!!))
+                    }
+                }
+            }
+        }
         FloatingItemHeadingAndText("Device Key Invalidated",
             buildAnnotatedString {
                 if (credentialInfo.keyInvalidated) {
