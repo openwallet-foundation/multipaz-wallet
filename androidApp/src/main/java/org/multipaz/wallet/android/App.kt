@@ -64,8 +64,10 @@ import org.multipaz.provisioning.DocumentProvisioningSettings
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.request.Requester
 import org.multipaz.request.TrustedRequesterIdentity
+import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
 import org.multipaz.securearea.SecureArea
 import org.multipaz.securearea.SecureAreaRepository
+import org.multipaz.securearea.UserAuthenticationType
 import org.multipaz.securearea.software.SoftwareSecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
@@ -90,9 +92,13 @@ import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.ClientType
+import org.multipaz.wallet.shared.CredentialIssuerSecureAreaType
+import org.multipaz.wallet.shared.CredentialIssuerSettings
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromAndroidLocation
+import org.multipaz.wallet.shared.fromCbor
+import org.multipaz.wallet.shared.toCbor
 import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 
@@ -100,6 +106,7 @@ import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.worker.PeriodicBookkeepingScheduler
 import org.multipaz.revocation.CachingRevocationChecker
 import org.multipaz.revocation.RevocationChecker
+import kotlin.time.Duration.Companion.milliseconds
 
 class App private constructor() {
 
@@ -234,7 +241,41 @@ class App private constructor() {
                     sdJwtNoUserAuthDomain = Domains.DOMAIN_SDJWT_NO_USER_AUTH,
                     sdJwtKeylessDomain = Domains.DOMAIN_SDJWT_KEYLESS,
                     requestNoUserAuth = !settingsModel.disableNoUserAuth.value
-                )
+                ),
+                selectSecureArea = { appData, createKeySettings ->
+                    val settings = appData?.let {
+                        CredentialIssuerSettings.fromCbor(it.toByteArray())
+                    }
+                    val targetSecureArea = when (settings?.secureAreaToUse) {
+                        CredentialIssuerSecureAreaType.PLATFORM_SECURE_AREA, CredentialIssuerSecureAreaType.CLOUD_SECURE_AREA, null -> secureArea
+                    }
+                    val aks = settings?.androidKeySettings
+                    if (targetSecureArea == secureArea && aks != null) {
+                        val builder = AndroidKeystoreCreateKeySettings.Builder(createKeySettings.nonce)
+                            .setAlgorithm(aks.algorithm)
+                            .setUseStrongBox(aks.useStrongBox)
+                        if (createKeySettings.userAuthenticationRequired) {
+                            val authTypes = mutableSetOf<UserAuthenticationType>()
+                            if (aks.userAuthenticationLskf) {
+                                authTypes.add(UserAuthenticationType.LSKF)
+                            }
+                            if (aks.userAuthenticationBiometric) {
+                                authTypes.add(UserAuthenticationType.BIOMETRIC)
+                            }
+                            builder.setUserAuthenticationRequired(
+                                true,
+                                aks.userAuthenticationTimeoutMillis.milliseconds,
+                                authTypes
+                            )
+                        }
+                        if (createKeySettings.validFrom != null && createKeySettings.validUntil != null) {
+                            builder.setValidityPeriod(createKeySettings.validFrom!!, createKeySettings.validUntil!!)
+                        }
+                        Pair(targetSecureArea, builder.build())
+                    } else {
+                        Pair(targetSecureArea, createKeySettings)
+                    }
+                }
             ),
             httpClient = HttpClient(Android) {
                 followRedirects = false

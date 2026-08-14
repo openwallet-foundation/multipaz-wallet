@@ -154,6 +154,18 @@
         "id": "mDL"
       },
       {
+        "name": "Utopia Driving License (StrongBox)",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-mdl.png",
+        "type": "openid4vci",
+        "url": "https://issuer.multipaz.org/issuer",
+        "id": "mDL",
+        "settings": {
+          "android_key_settings": {
+            "use_strongbox": true
+          }
+        }
+      },
+      {
         "name": "Utopia PID",
         "icon_url": "https://issuer.multipaz.org/issuer/card-pid.png",
         "type": "openid4vci",

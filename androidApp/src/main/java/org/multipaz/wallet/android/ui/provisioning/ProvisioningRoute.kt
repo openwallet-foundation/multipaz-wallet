@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.io.bytestring.ByteString
 import org.multipaz.provisioning.ProvisioningMetadata
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.util.Logger
@@ -23,6 +24,8 @@ import org.multipaz.wallet.client.WalletClientProvisionedDocument
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
+import org.multipaz.wallet.shared.fromCbor
+import org.multipaz.wallet.shared.toCbor
 import kotlin.random.Random
 
 private const val TAG = "ProvisioningRoute"
@@ -54,6 +57,9 @@ fun ProvisioningRoute(
         modelResetAtStart.value = true
         if (credentialIssuer != null) {
             credentialIssuer as CredentialIssuerOpenID4VCI  // only one we support right now
+            val appData = credentialIssuer.credentialIssuerSettings?.let {
+                ByteString(it.toCbor())
+            }
             if (credentialIssuer.id != null) {
                 issuerUrl.value = credentialIssuer.url
                 try {
@@ -61,7 +67,8 @@ fun ProvisioningRoute(
                         issuerUrl = credentialIssuer.url,
                         credentialId = credentialIssuer.id!!,
                         clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
-                        backend = walletClient.getOpenID4VCIBackend()
+                        backend = walletClient.getOpenID4VCIBackend(),
+                        appData = appData
                     )
                 } catch (e: CancellationException) {
                     throw e
@@ -154,12 +161,16 @@ fun ProvisioningRoute(
                                 onCloseClicked()
                             },
                             onCredentialSelected = { selectedId ->
+                                val appData = credentialIssuer?.credentialIssuerSettings?.let {
+                                    ByteString(it.toCbor())
+                                }
                                 coroutineScope.launch {
                                     provisioningModel.launchOpenID4VCIProvisioning(
                                         issuerUrl = issuerUrl.value!!,
                                         credentialId = selectedId,
                                         clientPreferences = walletClient.getOpenID4VCIClientPreferences(),
-                                        backend = walletClient.getOpenID4VCIBackend()
+                                        backend = walletClient.getOpenID4VCIBackend(),
+                                        appData = appData
                                     )
                                 }
                             }

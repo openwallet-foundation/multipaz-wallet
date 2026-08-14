@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.annotation.CborSerializable
+import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X500Name
@@ -32,6 +33,9 @@ import org.multipaz.wallet.shared.ClientType
 import org.multipaz.wallet.shared.CreateVerificationLinkResult
 import org.multipaz.wallet.shared.CredentialIssuer
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
+import org.multipaz.wallet.shared.CredentialIssuerSecureAreaType
+import org.multipaz.wallet.shared.CredentialIssuerSettings
+import org.multipaz.wallet.shared.CredentialIssuerSettingsAndroidKeySettings
 import org.multipaz.wallet.shared.GetSharedDataResult
 import org.multipaz.wallet.shared.GoogleTokens
 import org.multipaz.wallet.shared.Session
@@ -690,12 +694,81 @@ abstract class WalletBackendBase: WalletBackend {
         }
     }
 
+    private suspend fun JsonObject?.long(name: String, default: Long = 0L): Long {
+        val value = this?.get(name) ?: return default
+        if (value !is JsonPrimitive) {
+            throw IllegalStateException("$name is not a number")
+        }
+        return value.content.toLongOrNull()
+            ?: throw IllegalStateException("$name is not a valid number")
+    }
+
     private suspend fun JsonObject?.string(name: String, default: String? = ""): String? {
         val value = this?.get(name) ?: return default
         if (value !is JsonPrimitive || !value.isString) {
             throw IllegalStateException("$name is not a string")
         }
         return value.content
+    }
+
+    private suspend fun JsonObject?.jsonObject(name: String): JsonObject? {
+        val value = this?.get(name) ?: return null
+        if (value !is JsonObject) {
+            throw IllegalStateException("$name is not a JSON object")
+        }
+        return value
+    }
+
+    private suspend fun JsonObject?.androidKeySettings(name: String = "android_key_settings"): CredentialIssuerSettingsAndroidKeySettings? {
+        val obj = this?.jsonObject(name) ?: return null
+        val useStrongBox = obj.bool("use_strongbox", false) || obj.bool("use_strong_box", false) || obj.bool("strongBox", false)
+        val algorithmName = obj.string("algorithm", null)
+        val algorithm = if (algorithmName != null) {
+            try {
+                Algorithm.valueOf(algorithmName.uppercase())
+            } catch (e: IllegalArgumentException) {
+                throw IllegalStateException("Unknown algorithm '$algorithmName' in $name")
+            }
+        } else {
+            Algorithm.ESP256
+        }
+        val userAuthTimeout = obj.long("user_authentication_timeout_millis", 0L)
+        val userAuthLskf = obj.bool("user_authentication_lskf", true)
+        val userAuthBiometric = obj.bool("user_authentication_biometric", true)
+        return CredentialIssuerSettingsAndroidKeySettings(
+            algorithm = algorithm,
+            useStrongBox = useStrongBox,
+            userAuthenticationTimeoutMillis = userAuthTimeout,
+            userAuthenticationLskf = userAuthLskf,
+            userAuthenticationBiometric = userAuthBiometric
+        )
+    }
+
+    private suspend fun JsonObject?.credentialIssuerSettings(name: String = "settings"): CredentialIssuerSettings? {
+        val settingsObj = this?.jsonObject(name)
+        if (settingsObj != null) {
+            val secureAreaString = settingsObj.string("secure_area", null)
+            val secureArea = when (secureAreaString?.lowercase()) {
+                null, "platform", "platform_secure_area" -> CredentialIssuerSecureAreaType.PLATFORM_SECURE_AREA
+                "cloud", "cloud_secure_area" -> CredentialIssuerSecureAreaType.CLOUD_SECURE_AREA
+                else -> throw IllegalStateException("Unknown secure area type '$secureAreaString' in $name")
+            }
+            val androidKeySettings = settingsObj.androidKeySettings("android_key_settings")
+            return CredentialIssuerSettings(
+                secureAreaToUse = secureArea,
+                androidKeySettings = androidKeySettings
+            )
+        }
+        val strongBox = this.bool("strongBox", false) || this.bool("use_strongbox", false)
+        if (strongBox) {
+            return CredentialIssuerSettings(
+                secureAreaToUse = CredentialIssuerSecureAreaType.PLATFORM_SECURE_AREA,
+                androidKeySettings = CredentialIssuerSettingsAndroidKeySettings(
+                    useStrongBox = true
+                )
+            )
+        }
+        return null
     }
 
     private suspend fun JsonObject?.trustEntries(name: String): List<TrustEntry> {
@@ -751,6 +824,7 @@ abstract class WalletBackendBase: WalletBackend {
                     ?: throw IllegalStateException("$name must have name set")
                 val iconUrl = item.string("icon_url")
                     ?: throw IllegalStateException("$name must have icon_url set")
+                val credentialIssuerSettings = item.credentialIssuerSettings("settings")
                 val issuer = when (type) {
                     "openid4vci" -> {
                         CredentialIssuerOpenID4VCI(
@@ -758,7 +832,8 @@ abstract class WalletBackendBase: WalletBackend {
                             iconUrl = iconUrl,
                             url = item.string("url")
                                 ?: throw IllegalStateException("OpenID4VCI issuer must have url set"),
-                            id = item.string("id", null)
+                            id = item.string("id", null),
+                            credentialIssuerSettings = credentialIssuerSettings
                         )
                     }
 

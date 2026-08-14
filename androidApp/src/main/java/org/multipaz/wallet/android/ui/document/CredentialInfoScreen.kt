@@ -12,6 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,14 +21,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.SpanStyle
@@ -88,9 +93,50 @@ fun CredentialInfoScreen(
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
     showToast: (message: String) -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+
     val documentInfos = documentModel.documentInfos.collectAsState().value
     val documentInfo = documentInfos.find { it.document.identifier == documentId }
     val credentialInfo = documentInfo?.credentialInfos?.find { it.credential.identifier == credentialId  }
+
+    if (showDeleteConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmationDialog = false },
+            title = {
+                Text(text = stringResource(R.string.credential_info_delete_pending_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.credential_info_delete_pending_text))
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteConfirmationDialog = false }
+                ) {
+                    Text(text = stringResource(R.string.credential_info_delete_pending_cancel))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmationDialog = false
+                        coroutineScope.launch {
+                            try {
+                                documentInfo?.document?.deleteCredential(credentialId)
+                                onBackClicked()
+                            } catch (e: Throwable) {
+                                if (e is CancellationException) throw e
+                                Logger.e(TAG, "Failed to delete credential $credentialId", e)
+                                showToast("Failed to delete credential: ${e.message}")
+                            }
+                        }
+                    }
+                ) {
+                    Text(text = stringResource(R.string.credential_info_delete_pending_confirm))
+                }
+            }
+        )
+    }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -108,6 +154,16 @@ fun CredentialInfoScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null
                         )
+                    }
+                },
+                actions = {
+                    if (credentialInfo != null && !credentialInfo.credential.isCertified) {
+                        IconButton(onClick = { showDeleteConfirmationDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(R.string.credential_info_delete_pending_content_description)
+                            )
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior
