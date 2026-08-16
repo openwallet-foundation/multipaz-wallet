@@ -1,5 +1,6 @@
 package org.multipaz.wallet.android.ui.settings
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -52,6 +53,7 @@ import org.multipaz.wallet.client.updateTrustEntry
 
 private const val TAG = "TrustEntryScreen"
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalResourceApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TrustEntryScreen(
