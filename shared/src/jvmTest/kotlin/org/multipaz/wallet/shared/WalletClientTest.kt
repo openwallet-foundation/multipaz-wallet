@@ -56,7 +56,9 @@ import org.multipaz.trustmanagement.TrustEntryX509Cert
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
 import org.multipaz.util.truncateToWholeSeconds
+import org.multipaz.wallet.backend.SharedData
 import org.multipaz.wallet.backend.WalletBackendBase
+import org.multipaz.wallet.backend.toCbor
 import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
@@ -413,10 +415,43 @@ class WalletClientTest {
         )
 
         val maxSizeBytes = BuildConfig.MAX_SHARED_DATA_BLOB_SIZE_KB * 1024
-        val oversizedData = ByteString(Random.nextBytes(maxSizeBytes + 1))
+
+        // 1. If existing data is small, storing data exceeding limit fails.
+        val oversizedData = ByteString(Random.nextBytes(maxSizeBytes + 2000))
         assertFailsWith(WalletBackendSharedDataTooLargeException::class) {
             client.putSharedData(oversizedData)
         }
+
+        // 2. Simulate existing shared data on the backend that already exceeds the limit.
+        val sharedDataTable = backendStorage.getTable(
+            WalletBackendBase.sharedDataTableSpec
+        )
+        val initialOversizedSharedData = SharedData(
+            walletServerEncryptionKeySha256 = ByteString(
+                Crypto.digest(Algorithm.SHA256, fooEncryptionKey.toByteArray())
+            ),
+            version = 1L,
+            data = ByteString(Random.nextBytes(maxSizeBytes + 2000))
+        )
+        sharedDataTable.update("g:${fooUser.id}", ByteString(initialOversizedSharedData.toCbor()))
+
+        // 3. Attempting to update with equal or larger size fails.
+        assertFailsWith(WalletBackendSharedDataTooLargeException::class) {
+            client.putSharedData(ByteString(Random.nextBytes(maxSizeBytes + 2000)))
+        }
+        assertFailsWith(WalletBackendSharedDataTooLargeException::class) {
+            client.putSharedData(ByteString(Random.nextBytes(maxSizeBytes + 3000)))
+        }
+
+        // 4. Replacing with smaller shared data (even if still exceeding maxSizeBytes) succeeds.
+        val smallerOversizedData = ByteString(Random.nextBytes(maxSizeBytes + 1000))
+        client.putSharedData(smallerOversizedData)
+        assertEquals(smallerOversizedData, client.getSharedData())
+
+        // 5. Replacing with data within limits succeeds.
+        val withinLimitData = ByteString(Random.nextBytes(maxSizeBytes / 2))
+        client.putSharedData(withinLimitData)
+        assertEquals(withinLimitData, client.getSharedData())
     }
 
 

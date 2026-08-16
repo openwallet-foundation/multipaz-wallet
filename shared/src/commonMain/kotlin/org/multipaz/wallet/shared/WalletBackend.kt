@@ -127,6 +127,8 @@ interface WalletBackend {
      *
      * @param data data to put.
      * @return the assigned version.
+     * @throws WalletBackendSharedDataTooLargeException if [data] exceeds the maximum allowed size
+     * and is not strictly smaller than existing shared data.
      */
     @RpcMethod
     suspend fun putSharedData(data: ByteString): Long

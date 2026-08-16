@@ -432,17 +432,27 @@ abstract class WalletBackendBase: WalletBackend {
     }
 
     override suspend fun putSharedData(data: ByteString): Long {
-        val maxSizeBytes = BuildConfig.MAX_SHARED_DATA_BLOB_SIZE_KB * 1024
-        if (data.size > maxSizeBytes) {
-            throw WalletBackendSharedDataTooLargeException(
-                "Shared data size (${data.size} bytes) exceeds maximum allowed size ($maxSizeBytes bytes)"
-            )
-        }
         val walletClient = loadRemoteWalletClient()
         if (walletClient.signedInUser == null) {
             throw WalletBackendNotSignedInException("User is not signed in")
         }
         val sharedData = loadOrCreateSharedData(walletClient.signedInUser.sharedDataKey)
+        val maxSizeBytes = BuildConfig.MAX_SHARED_DATA_BLOB_SIZE_KB * 1024
+        if (data.size > maxSizeBytes) {
+            if (data.size < sharedData.data.size) {
+                Logger.w(
+                    TAG,
+                    "${walletClient.signedInUser.sharedDataKey}: " +
+                            "Shared data size (${data.size} bytes) exceeds maximum allowed size " +
+                            "($maxSizeBytes bytes) but is smaller than existing size " +
+                            "(${sharedData.data.size} bytes); allowing update"
+                )
+            } else {
+                throw WalletBackendSharedDataTooLargeException(
+                    "Shared data size (${data.size} bytes) exceeds maximum allowed size ($maxSizeBytes bytes)"
+                )
+            }
+        }
         val newVersion = sharedData.version + 1L
         val newSharedData = sharedData.copy(
             version = newVersion,
@@ -656,7 +666,7 @@ abstract class WalletBackendBase: WalletBackend {
             supportPartitions = false
         )
 
-        private val sharedDataTableSpec = StorageTableSpec(
+        internal val sharedDataTableSpec = StorageTableSpec(
             name = "SharedData",
             supportExpiration = false,
             supportPartitions = false
