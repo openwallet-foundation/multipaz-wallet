@@ -159,7 +159,10 @@ import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 private const val TAG = "WalletScreen"
 
@@ -883,6 +886,9 @@ private fun EmptyWalletStateContent() {
     }
 }
 
+private val cachedLatestVersion = mutableStateOf<String?>(null)
+private var lastCheckedInstant: Instant? = null
+
 @Composable
 private fun AppUpdateCard() {
     // Uncomment below if working on this code from Android Studio.
@@ -898,25 +904,30 @@ private fun AppUpdateCard() {
         return
     }
 
-    val latestVersionString = remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(true) {
-        try {
-            val httpClient = HttpClient(Android)
-            val response = httpClient.get(updateUrl)
-            if (response.status == HttpStatusCode.OK) {
-                latestVersionString.value = response.readRawBytes().decodeToString().trim()
-                Logger.i(
-                    TAG, "Latest available version from $updateWebsiteUrl is ${latestVersionString.value} " +
-                            "and our version is $currentVersion")
+    LaunchedEffect(Unit) {
+        val now = Clock.System.now()
+        val lastChecked = lastCheckedInstant
+        if (lastChecked == null || now - lastChecked >= 30.minutes) {
+            lastCheckedInstant = now
+            try {
+                val httpClient = HttpClient(Android)
+                val response = httpClient.get(updateUrl)
+                if (response.status == HttpStatusCode.OK) {
+                    val version = response.readRawBytes().decodeToString().trim()
+                    cachedLatestVersion.value = version
+                    Logger.i(
+                        TAG, "Latest available version from $updateWebsiteUrl is $version " +
+                                "and our version is $currentVersion"
+                    )
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.e(TAG, "Error checking latest version from $updateWebsiteUrl", e)
             }
-        } catch (e: Throwable) {
-            Logger.e(TAG, "Error checking latest version from $updateWebsiteUrl", e)
         }
     }
 
-
-    latestVersionString.value?.let {
+    cachedLatestVersion.value?.let {
         // Our version numbers are so arranged that we can just compare strings.
         if (currentVersion < it) {
             InfoCard(
