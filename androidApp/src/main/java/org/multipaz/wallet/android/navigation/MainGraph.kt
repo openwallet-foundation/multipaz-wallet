@@ -253,6 +253,7 @@ fun mainGraph(
                                     }
                                 } catch (e: Exception) {
                                     if (e is CancellationException) throw e
+                                    Logger.e(TAG, "Error adding pass", e)
                                     errorDialogToAdd = ErrorDialogDestination(
                                         title = context.getString(R.string.provisioning_add_pass_to_shared_data_error_title),
                                         textMarkdown = context.getString(
@@ -422,6 +423,7 @@ fun mainGraph(
                                 }
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error deleting pass", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_delete_document_error_dialog_title),
@@ -768,6 +770,7 @@ fun mainGraph(
                                 eventLogger.deleteAllEvents()
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error deleting activity log", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_error_deleting_activity_log_title),
@@ -850,6 +853,7 @@ fun mainGraph(
                                 eventLogger.deleteAllEvents()
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error deleting all events in activity log", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_error_deleting_activity_log_title),
@@ -900,6 +904,7 @@ fun mainGraph(
                                 }
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error deleting events for a pass", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_error_delete_events_for_document_title),
@@ -949,6 +954,7 @@ fun mainGraph(
                                 backStack.removeAt(backStack.size - 1)
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error deleting event", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_error_delete_event_title),
@@ -1000,6 +1006,7 @@ fun mainGraph(
                                 )
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error corrupting encryption key", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_corrupt_key_error_title),
@@ -1165,6 +1172,7 @@ fun mainGraph(
                                 )
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error signing out", e)
                                 backStack.add(
                                     ErrorDialogDestination(
                                         title = context.getString(R.string.app_navigation_error_signing_out_title),
@@ -1453,6 +1461,7 @@ fun mainGraph(
                                 deleteVerification(storage, requestId)
                             } catch (e: Exception) {
                                 Logger.e(TAG, "Failed to delete pending request", e)
+                                Logger.e(TAG, "Error deleting pending request", e)
                                 showToast(context.getString(R.string.request_verification_failed_delete_request, e.message))
                             } finally {
                                 backStack.removeAt(backStack.size - 1)
