@@ -3,13 +3,16 @@ package org.multipaz.wallet.android.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,19 +31,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryViewer
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.trustmanagement.TrustEntryRical
 import org.multipaz.trustmanagement.TrustEntryVical
 import org.multipaz.trustmanagement.TrustEntryX509Cert
 import org.multipaz.trustmanagement.TrustManager
+import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryViewer
+import org.multipaz.wallet.client.TrustEntryUpdateResult
+import org.multipaz.wallet.client.updateTrustEntry
+
+private const val TAG = "TrustEntryScreen"
 
 @OptIn(ExperimentalResourceApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -53,16 +63,26 @@ fun TrustEntryScreen(
     onViewVicalEntry: (vicalCertNum: Int) -> Unit,
     onViewRicalEntry: (ricalCertNum: Int) -> Unit,
     onEditClicked: () -> Unit,
+    onShowInfoDialog: (title: String, textMarkdown: String) -> Unit,
+    onShowErrorDialog: (title: String, textMarkdown: String) -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit,
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
+    var isCheckingForUpdate by remember { mutableStateOf(false) }
 
     val info = trustManagerModel.trustManagerInfos.collectAsState().value?.find {
         it.entry.identifier == trustEntryId
     } ?: return
+
+    val updateUrl = when (info.entry) {
+        is TrustEntryVical -> info.signedVical?.vical?.vicalUrl
+        is TrustEntryRical -> info.signedRical?.rical?.latestRicalUrl
+        else -> null
+    }
 
     if (showDeleteConfirmationDialog) {
         AlertDialog(
@@ -134,6 +154,70 @@ fun TrustEntryScreen(
                 },
                 actions = {
                     if (trustManagerModel.trustManager is TrustManager) {
+                        if (!updateUrl.isNullOrBlank()) {
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        val trustManager = trustManagerModel.trustManager as? TrustManager ?: return@launch
+                                        isCheckingForUpdate = true
+                                        try {
+                                            when (val result = trustManager.updateTrustEntry(entry = info.entry)) {
+                                                is TrustEntryUpdateResult.AlreadyUpToDate -> {
+                                                    onShowInfoDialog(
+                                                        context.getString(R.string.trust_entry_update_already_latest_title),
+                                                        context.getString(R.string.trust_entry_update_already_latest_text)
+                                                    )
+                                                }
+                                                is TrustEntryUpdateResult.Updated -> {
+                                                    val msg = if (result.issueId != null) {
+                                                        context.getString(
+                                                            R.string.trust_entry_update_success_text_with_issue,
+                                                            result.listType,
+                                                            result.issueId
+                                                        )
+                                                    } else {
+                                                        context.getString(
+                                                            R.string.trust_entry_update_success_text,
+                                                            result.listType
+                                                        )
+                                                    }
+                                                    onShowInfoDialog(
+                                                        context.getString(R.string.trust_entry_update_success_title),
+                                                        msg
+                                                    )
+                                                }
+                                                is TrustEntryUpdateResult.NoUpdateUrl -> {}
+                                            }
+                                        } catch (e: Exception) {
+                                            if (e is CancellationException) throw e
+                                            Logger.w(TAG, "Error checking for update from $updateUrl", e)
+                                            onShowErrorDialog(
+                                                context.getString(R.string.trust_entry_update_failed_title),
+                                                context.getString(
+                                                    R.string.trust_entry_update_failed_text,
+                                                    e.message ?: e.toString()
+                                                )
+                                            )
+                                        } finally {
+                                            isCheckingForUpdate = false
+                                        }
+                                    }
+                                },
+                                enabled = !isCheckingForUpdate
+                            ) {
+                                if (isCheckingForUpdate) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Refresh,
+                                        contentDescription = stringResource(R.string.trust_entry_check_for_update)
+                                    )
+                                }
+                            }
+                        }
                         IconButton(
                             onClick = { onEditClicked() }
                         ) {

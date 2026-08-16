@@ -128,9 +128,11 @@ class App private constructor() {
     lateinit var walletClient: WalletClient
         private set
 
-    private lateinit var userIssuerTrustManager: TrustManager
+    lateinit var userIssuerTrustManager: TrustManager
+        private set
     private lateinit var issuerTrustManager: CompositeTrustManager
-    private lateinit var userReaderTrustManager: TrustManager
+    lateinit var userReaderTrustManager: TrustManager
+        private set
     private lateinit var readerTrustManager: CompositeTrustManager
     private lateinit var userIssuerTrustManagerModel: TrustManagerModel
     private lateinit var backendIssuerTrustManagerModel: TrustManagerModel

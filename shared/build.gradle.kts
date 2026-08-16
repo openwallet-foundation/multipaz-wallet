@@ -85,6 +85,9 @@ kotlin {
     val xcf = XCFramework()
     val iosTargets = listOf(iosX64(), iosArm64(), iosSimulatorArm64())
     iosTargets.forEach {
+        it.binaries.withType(org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable::class.java) {
+            linkerOpts("-lsqlite3", "-Wl,-rpath,/usr/lib/swift")
+        }
         it.binaries.framework {
             export(libs.multipaz)
             export(libs.multipaz.dcapi)

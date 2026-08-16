@@ -60,3 +60,6 @@ with the following changes
 * **Document exceptions in KDoc:** Every function or method must explicitly document the
   exceptions it throws using the `@throws` (or `@exception`) tag in its KDoc. This ensures that
   readers of the code know exactly what edge cases they are expected to handle.
+
+* **Log exceptions:** When catching an exception, always log it using `Logger.e()` or `Logger.w()`
+  depending on what is appropriate.

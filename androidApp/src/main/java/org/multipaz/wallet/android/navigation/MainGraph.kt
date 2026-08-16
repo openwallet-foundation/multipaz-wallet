@@ -52,6 +52,7 @@ import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
+import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
@@ -1046,6 +1047,10 @@ fun mainGraph(
                             val success = walletClient.runPeriodicBookkeeping(
                                 documentStore = documentStore,
                                 provisioningModel = provisioningModel,
+                                trustManagers = listOfNotNull(
+                                    userIssuerTrustManagerModel.trustManager as? TrustManager,
+                                    userReaderTrustManagerModel.trustManager as? TrustManager
+                                ),
                                 eventLogger = eventLogger
                             )
                             val msg = if (success) {
@@ -1322,6 +1327,22 @@ fun mainGraph(
                             TrustEntryEditDestination(
                                 trustManagerId = key.trustManagerId,
                                 trustEntryId = key.trustEntryId,
+                            )
+                        )
+                    },
+                    onShowInfoDialog = { title, textMarkdown ->
+                        backStack.add(
+                            InfoDialogDestination(
+                                title = title,
+                                textMarkdown = textMarkdown
+                            )
+                        )
+                    },
+                    onShowErrorDialog = { title, textMarkdown ->
+                        backStack.add(
+                            ErrorDialogDestination(
+                                title = title,
+                                textMarkdown = textMarkdown
                             )
                         )
                     },

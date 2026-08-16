@@ -290,6 +290,14 @@
     <string name="trust_entry_edit_discard_text">You have unsaved changes that will be lost if you leave this page.</string>
     <string name="trust_entry_edit_title">Edit entry</string>
     <string name="trust_entry_edit_back">Back</string>
+    <string name="trust_entry_check_for_update">Check for update</string>
+    <string name="trust_entry_update_already_latest_title">Already Up to Date</string>
+    <string name="trust_entry_update_already_latest_text">We already have the latest list.</string>
+    <string name="trust_entry_update_failed_title">Update Failed</string>
+    <string name="trust_entry_update_failed_text">An update was downloaded but something was wrong with it:\n\n%1$s</string>
+    <string name="trust_entry_update_success_title">Trust List Updated</string>
+    <string name="trust_entry_update_success_text">The %1$s was successfully updated.</string>
+    <string name="trust_entry_update_success_text_with_issue">The %1$s was updated to issue #%2$d.</string>
 
     <string name="app_navigation_error_importing_pass_title">Error importing pass</string>
     <string name="app_navigation_error_importing_pass_already_in_wallet">This pass is already in your wallet</string>

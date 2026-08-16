@@ -16,6 +16,7 @@ class PeriodicBookkeepingWorker(
         val success = app.walletClient.runPeriodicBookkeeping(
             documentStore = app.documentStore,
             provisioningModel = app.provisioningModel,
+            trustManagers = listOf(app.userIssuerTrustManager, app.userReaderTrustManager),
             eventLogger = app.eventLogger
         )
         return if (success) Result.success() else Result.retry()

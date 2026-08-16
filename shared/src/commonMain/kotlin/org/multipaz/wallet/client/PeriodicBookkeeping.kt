@@ -1,5 +1,6 @@
 package org.multipaz.wallet.client
 
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.document.Document
@@ -7,6 +8,7 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.eventlogger.EventLogger
 import org.multipaz.eventlogger.EventSimple
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendNotSignedInException
@@ -20,16 +22,21 @@ private const val TAG = "PeriodicBookkeeping"
  * 2. Refreshing shared data and syncing document store
  * 3. Refreshing document credentials for all provisioned documents
  * 4. Refreshing reader keys
- * 5. Logging a [EventSimple] with [PeriodicBookkeepingEventDetails] stored in [EventSimple.appData] via [eventLogger], if provided.
+ * 5. Refreshing RICAL and VICAL entries in provided [trustManagers]
+ * 6. Logging a [EventSimple] with [PeriodicBookkeepingEventDetails] stored in [EventSimple.appData] via [eventLogger], if provided.
  *
  * @param documentStore the [DocumentStore] containing provisioned documents.
  * @param provisioningModel the [ProvisioningModel] used to refresh OpenID4VCI credentials.
+ * @param trustManagers list of [TrustManager] instances whose VICAL/RICAL entries should be checked for updates.
+ * @param httpClient optional [HttpClient] used to fetch trust list updates over HTTP/HTTPS.
  * @param eventLogger optional [EventLogger] to record the bookkeeping event.
  * @return `true` if all tasks completed without error, or `false` if one or more tasks failed/were unreachable.
  */
 suspend fun WalletClient.runPeriodicBookkeeping(
     documentStore: DocumentStore,
     provisioningModel: ProvisioningModel,
+    trustManagers: List<TrustManager> = emptyList(),
+    httpClient: HttpClient = HttpClient(),
     eventLogger: EventLogger? = null,
 ): Boolean {
     Logger.i(TAG, "Starting periodic bookkeeping...")
@@ -128,11 +135,28 @@ suspend fun WalletClient.runPeriodicBookkeeping(
         Logger.w(TAG, "Failed refreshing reader keys", e)
     }
 
+    // 5. Refresh RICAL and VICAL entries in trust managers
+    for (trustManager in trustManagers) {
+        try {
+            Logger.i(TAG, "Refreshing trust entries in '${trustManager.identifier}'...")
+            val updatedCount = trustManager.updateEntries(httpClient = httpClient)
+            if (updatedCount > 0) {
+                Logger.i(TAG, "Updated $updatedCount trust entries in '${trustManager.identifier}'")
+            } else {
+                Logger.i(TAG, "Trust entries in '${trustManager.identifier}' are already up to date")
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.w(TAG, "Failed refreshing trust entries in '${trustManager.identifier}'", e)
+            success = false
+        }
+    }
+
     val endTime = Clock.System.now()
     val runtimeDuration = endTime - startTime
     val runtimeDurationMs = runtimeDuration.inWholeMilliseconds
 
-    // 5. Log EventSimple containing PeriodicBookkeepingEventDetails in appData
+    // 6. Log EventSimple containing PeriodicBookkeepingEventDetails in appData
     if (eventLogger != null) {
         try {
             val details = PeriodicBookkeepingEventDetails(
