@@ -41,3 +41,5 @@ When Developer Mode is enabled, tapping the top bar title on specific screens op
 - **Custom OpenID4VCI Issuer URL**: In the **Add to Wallet** screen, an **Enter Issuer URL** option appears to manually specify custom credential issuers.
 - **User Defined Verification Query**: In the verifier's **Select Verification Type** screen, a **User Defined Query** option enables testing arbitrary or custom verification requests.
 - **NFC-Only Presentment Scan**: Long-pressing the NFC button in the verifier screen initiates an NFC-only presentment scan mode.
+- **Inspect Placeholder Document**: When a focused document is syncing and setup is needed in the main wallet screen, long-pressing the setup item navigates to **Document Info Extras** to inspect document tags and metadata.
+

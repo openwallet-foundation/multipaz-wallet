@@ -332,6 +332,9 @@ fun mainGraph(
                         onDocumentInfoClicked = { documentInfo ->
                             backStack.add(DocumentInfoDestination(documentInfo.document.identifier))
                         },
+                        onDocumentInfoExtrasClicked = { documentInfo ->
+                            backStack.add(DocumentInfoExtrasDestination(documentInfo.document.identifier))
+                        },
                         onDocumentRemoveClicked = { documentInfo ->
                             backStack.add(
                                 RemoveDocumentConfirmationDialogDestination(

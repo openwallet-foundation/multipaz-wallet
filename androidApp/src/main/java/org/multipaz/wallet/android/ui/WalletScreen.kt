@@ -184,6 +184,7 @@ fun WalletScreen(
     onDocumentQrClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentInfoExtrasClicked: (documentInfo: DocumentInfo) -> Unit = {},
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -550,6 +551,7 @@ fun WalletScreen(
                                 justAdded = justAdded,
                                 onDocumentActivityClicked = onDocumentActivityClicked,
                                 onDocumentInfoClicked = onDocumentInfoClicked,
+                                onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
                                 onDocumentRemoveClicked = onDocumentRemoveClicked,
                                 onDocumentSetupClicked = onDocumentSetupClicked,
                                 onDocumentSyncClicked = onDocumentSyncClicked,
@@ -633,6 +635,7 @@ private fun DocumentInfoContent(
     justAdded: Boolean,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentInfoExtrasClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -661,6 +664,7 @@ private fun DocumentInfoContent(
                     settingsModel = settingsModel,
                     onDocumentActivityClicked = onDocumentActivityClicked,
                     onDocumentInfoClicked = onDocumentInfoClicked,
+                    onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
                     onDocumentRemoveClicked = onDocumentRemoveClicked,
                     onDocumentSetupClicked = onDocumentSetupClicked,
                     onDocumentSyncClicked = onDocumentSyncClicked,
@@ -677,6 +681,7 @@ private fun DocumentInfoContentReal(
     settingsModel: SettingsModel,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentInfoExtrasClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -726,7 +731,9 @@ private fun DocumentInfoContentReal(
             val typeDisplayName = documentInfo.document.typeDisplayName
                 ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
             if (documentInfo.document.isSyncing) {
-                val syncedSecondaryText = if (documentInfo.document.provisionedDocumentSetupNeeded) {
+                val devMode = settingsModel.devMode.collectAsState().value
+                val setupNeeded = documentInfo.document.provisionedDocumentSetupNeeded
+                val syncedSecondaryText = if (setupNeeded) {
                     stringResource(R.string.wallet_screen_setup)
                 } else {
                     // TODO: Update to "Available across N devices" when we keep better track of
@@ -734,13 +741,18 @@ private fun DocumentInfoContentReal(
                     stringResource(R.string.wallet_screen_ready_to_use_on_this_device)
                 }
                 FloatingItemText(
-                    modifier = Modifier.clickable {
-                        if (documentInfo.document.provisionedDocumentSetupNeeded) {
-                            onDocumentSetupClicked(documentInfo)
-                        } else {
-                            onDocumentSyncClicked(documentInfo)
-                        }
-                    },
+                    modifier = Modifier.combinedClickable(
+                        onClick = {
+                            if (setupNeeded) {
+                                onDocumentSetupClicked(documentInfo)
+                            } else {
+                                onDocumentSyncClicked(documentInfo)
+                            }
+                        },
+                        onLongClick = if (devMode && setupNeeded) {
+                            { onDocumentInfoExtrasClicked(documentInfo) }
+                        } else null
+                    ),
                     showChevron = true,
                     text = stringResource(R.string.wallet_screen_syncs_to_account),
                     secondary = syncedSecondaryText,
