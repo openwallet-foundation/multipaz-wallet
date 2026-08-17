@@ -73,13 +73,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
+import org.multipaz.cbor.Cbor
 import org.multipaz.compose.datetime.durationFromNowText
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.documenttype.DocumentTypeRepository
+import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.wallet.client.verification.toCbor
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.nfc.ExternalNfcReaderState
 import org.multipaz.nfc.ExternalNfcReaderStore
@@ -445,6 +448,18 @@ fun RequestVerificationScreen(
                                         if (presentmentRecord != null) {
                                             completedList.value = completedList.value.filter { it.requestId != item.requestId }
                                             CoroutineScope(Dispatchers.IO).launch {
+                                                if (item.storeResponse && !item.logged) {
+                                                    try {
+                                                        val event = EventVerification(
+                                                            appData = mapOf("query" to Cbor.decode(item.query.toCbor())),
+                                                            presentmentRecord = presentmentRecord
+                                                        )
+                                                        eventLogger.addEvent(event)
+                                                    } catch (e: Exception) {
+                                                        if (e is CancellationException) throw e
+                                                        Logger.e(TAG, "Failed to log verification event on review", e)
+                                                    }
+                                                }
                                                 try {
                                                     deleteVerification(storage, item.requestId)
                                                 } catch (e: Exception) {

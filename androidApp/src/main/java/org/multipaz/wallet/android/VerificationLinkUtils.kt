@@ -363,26 +363,20 @@ suspend fun checkVerificationResults(
                 val decryptedResponse = updated.decryptResponse()
                 val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
                 val presentmentRecord = updated.session.processDcResponse(dcResponse = dcResponse)
-                val timeForChecking = updated.responseReceivedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
-                    ?: Instant.fromEpochMilliseconds(updated.creationTimeMillis)
-                val verifiedPresentations = presentmentRecord.verify(
-                    atTime = timeForChecking,
-                    documentTypeRepository = documentTypeRepository,
-                    zkSystemRepository = zkSystemRepository
-                )
-                val queryResult = updated.query.processVerifiedPresentations(
-                    verifiedPresentation = verifiedPresentations,
-                    issuerTrustManager = issuerTrustManager
-                )
 
-                if (updated.storeResponse) {
-                    val event = EventVerification(
-                        appData = mapOf("query" to Cbor.decode(updated.query.toCbor())),
-                        presentmentRecord = presentmentRecord
-                    )
-                    eventLogger.addEvent(event)
-                    val finalUpdated = updated.copy(logged = true)
-                    table.update(updated.requestId, ByteString(finalUpdated.toCbor()))
+                if (updated.storeResponse && !updated.logged) {
+                    try {
+                        val event = EventVerification(
+                            appData = mapOf("query" to Cbor.decode(updated.query.toCbor())),
+                            presentmentRecord = presentmentRecord
+                        )
+                        eventLogger.addEvent(event)
+                        val finalUpdated = updated.copy(logged = true)
+                        table.update(updated.requestId, ByteString(finalUpdated.toCbor()))
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.e(TAG, "Failed to log event in checkVerificationResults for ${verification.requestId}", e)
+                    }
                 }
 
                 onResponseReceived(updated)

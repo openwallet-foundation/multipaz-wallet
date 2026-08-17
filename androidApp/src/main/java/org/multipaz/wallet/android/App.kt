@@ -483,7 +483,7 @@ class App private constructor() {
                 }
             }
         }
-        if (!settingsModel.eventLoggingEnabled.value) {
+        if (event !is EventVerification && !settingsModel.eventLoggingEnabled.value) {
             return null
         }
         val map = mutableMapOf<String, DataItem>()
