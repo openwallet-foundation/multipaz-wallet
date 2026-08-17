@@ -48,6 +48,7 @@ import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.RefreshReason
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.signin.SignInWithGoogleDismissedException
@@ -55,13 +56,11 @@ import org.multipaz.wallet.android.signin.rememberSignInWithGoogle
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.WalletClientSignedInUser
-import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.revocation.RevocationChecker
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import org.multipaz.wallet.shared.WalletBackendEncryptionKeyMismatchException
-import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import kotlin.time.Clock
 
 private const val TAG = "AppNavHost"
@@ -145,11 +144,7 @@ fun AppNavHost(
     LaunchedEffect(Unit) {
         // TODO: Only run this code the first time this screen is shown
         if (settingsModel.firstTimeSetupDone.value) {
-            appJustLaunched(
-                walletClient = walletClient,
-                documentStore = documentStore,
-                settingsModel = settingsModel,
-            )
+            appJustLaunched(app)
         }
     }
 
@@ -260,11 +255,12 @@ fun AppNavHost(
         coroutineScope = coroutineScope,
         context = context,
         showToast = showToast,
-        onAppJustLaunched = ::appJustLaunched,
+        onAppJustLaunched = { appJustLaunched(app) },
         onSignIn = ::signIn,
         onSignOut = ::signOut
     )
     val mainEntryProvider = mainGraph(
+        app = app,
         backStack = backStack,
         verticalCardListState = verticalCardListState,
         walletClient = walletClient,
@@ -392,58 +388,7 @@ internal suspend fun signOut(
 // Code which runs when the app has just launched..
 //
 //
-internal suspend fun appJustLaunched(
-    walletClient: WalletClient,
-    documentStore: DocumentStore,
-    settingsModel: SettingsModel,
-) {
+internal suspend fun appJustLaunched(app: App) {
     Logger.i(TAG, "Running code the first time app is launched...")
-    if (walletClient.signedInUser.value != null) {
-        try {
-            Logger.i(TAG, "Refreshing shared data with wallet backend at start-up")
-            walletClient.refreshSharedData()
-            walletClient.sharedData.value?.let { sharedData ->
-                val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
-                    DocumentPreconsentSetting.NeverRequireConsent
-                } else {
-                    DocumentPreconsentSetting.AlwaysRequireConsent
-                }
-                documentStore.syncWithSharedData(
-                    sharedData = sharedData,
-                    mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                    mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
-                    walletClient = walletClient,
-                    initialPreconsentSetting = preconsentSetting,
-                )
-            }
-        } catch (e: WalletBackendNotSignedInException) {
-            Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)
-        } catch (e: WalletClientBackendUnreachableException) {
-            Logger.i(TAG, "Failed refreshing shared data with wallet backend at start-up, it's unreachable", e)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Logger.w(TAG, "Unexpected exception refreshing shared data at start-up", e)
-        }
-    }
-
-    try {
-        Logger.i(TAG, "Refreshing public data with wallet backend at start-up")
-        walletClient.refreshPublicData()
-    } catch (e: WalletClientBackendUnreachableException) {
-        Logger.i(TAG, "Failed refreshing public data with wallet backend at start-up, it's unreachable", e)
-    } catch (e: Exception) {
-        if (e is CancellationException) throw e
-        Logger.w(TAG, "Unexpected exception refreshing public data at start-up", e)
-    }
-
-    try {
-        Logger.i(TAG, "Refreshing reader keys at start-up")
-        walletClient.refreshReaderKeys()
-    } catch (e: WalletClientBackendUnreachableException) {
-        Logger.i(TAG, "Failed refreshing reader keys with wallet backend at start-up, it's unreachable", e)
-    } catch (e: Exception) {
-        if (e is CancellationException) throw e
-        Logger.w(TAG, "Unexpected exception refreshing reader keys at start-up", e)
-    }
+    app.refreshWallet(reason = RefreshReason.STARTUP)
 }

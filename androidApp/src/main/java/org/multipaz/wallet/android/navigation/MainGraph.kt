@@ -55,7 +55,9 @@ import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
+import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.RefreshReason
 import org.multipaz.wallet.android.deleteVerification
 import org.multipaz.wallet.android.encodeCardArt
 import org.multipaz.wallet.android.generateVerificationLink
@@ -92,7 +94,6 @@ import org.multipaz.wallet.android.ui.settings.DeveloperModeDocumentationScreen
 import org.multipaz.wallet.android.ui.settings.PreconsentDefaultsSettingsScreen
 import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.setPreconsentSetting
-import org.multipaz.wallet.client.runPeriodicBookkeeping
 import org.multipaz.wallet.android.ui.settings.EventListScreen
 import org.multipaz.wallet.android.ui.settings.EventViewerScreen
 import org.multipaz.nfc.ExternalNfcReaderStore
@@ -147,6 +148,7 @@ private const val TAG = "MainGraph"
 
 @SuppressLint("LocalContextGetResourceValueCall")
 fun mainGraph(
+    app: App,
     backStack: MutableList<NavKey>,
     verticalCardListState: VerticalCardListState,
     walletClient: WalletClient,
@@ -368,20 +370,7 @@ fun mainGraph(
                             backStack.removeAt(backStack.size - 1)
                         },
                         onRefresh = {
-                            checkVerificationResults(
-                                walletClient = walletClient,
-                                storage = storage,
-                                eventLogger = eventLogger,
-                                documentTypeRepository = documentTypeRepository,
-                                zkSystemRepository = zkSystemRepository,
-                                issuerTrustManager = issuerTrustManager,
-                                onResponseReceived = { verification ->
-                                    postNotification(
-                                        context = context,
-                                        verification = verification
-                                    )
-                                }
-                            )
+                            app.refreshWallet(reason = RefreshReason.USER_PULL_TO_REFRESH)
                         },
                         showToast = showToast
                     )
@@ -1047,14 +1036,8 @@ fun mainGraph(
                     },
                     onRunPeriodicBookkeeping = {
                         coroutineScope.launch {
-                            val success = walletClient.runPeriodicBookkeeping(
-                                documentStore = documentStore,
-                                provisioningModel = provisioningModel,
-                                trustManagers = listOfNotNull(
-                                    userIssuerTrustManagerModel.trustManager as? TrustManager,
-                                    userReaderTrustManagerModel.trustManager as? TrustManager
-                                ),
-                                eventLogger = eventLogger
+                            val success = app.refreshWallet(
+                                reason = RefreshReason.DEVELOPER_SETTINGS
                             )
                             val msg = if (success) {
                                 context.getString(R.string.dev_settings_periodic_bookkeeping_success)

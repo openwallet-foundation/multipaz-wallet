@@ -42,7 +42,7 @@ fun setupGraph(
     coroutineScope: CoroutineScope,
     context: Context,
     showToast: (message: String) -> Unit,
-    onAppJustLaunched: suspend (WalletClient, DocumentStore, SettingsModel) -> Unit,
+    onAppJustLaunched: suspend () -> Unit,
     onSignIn: suspend (Context, WalletClient, SignInWithGoogle, MutableList<NavKey>, Boolean, Boolean) -> Unit,
     onSignOut: suspend (WalletClient, SettingsModel, SignInWithGoogle) -> Unit
 ): (NavKey) -> NavEntry<NavKey>? {
@@ -55,7 +55,7 @@ fun setupGraph(
         } else {
             settingsModel.firstTimeSetupDone.value = true
             coroutineScope.launch {
-                onAppJustLaunched(walletClient, documentStore, settingsModel)
+                onAppJustLaunched()
             }
             backStack.clear()
             backStack.add(WalletDestination())
@@ -205,7 +205,7 @@ fun setupGraph(
                     onContinueClicked = {
                         settingsModel.firstTimeSetupDone.value = true
                         coroutineScope.launch {
-                            onAppJustLaunched(walletClient, documentStore, settingsModel)
+                            onAppJustLaunched()
                         }
                         backStack.clear()
                         backStack.add(WalletDestination())

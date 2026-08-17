@@ -22,7 +22,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Sync
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.PeriodicBookkeepingEventDetails
-import org.multipaz.wallet.client.fromDataItem
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -897,18 +896,7 @@ private fun EventViewerSimple(
     )
 
     val details: PeriodicBookkeepingEventDetails? = remember(event) {
-        // Fall back to "DailyBookkeepingEventDetails" for backwards compatibility when it was called "daily" instead of "periodic" (will be removed in the future).
-        val dataItem = event.appData["PeriodicBookkeepingEventDetails"]
-            ?: event.appData["DailyBookkeepingEventDetails"]
-        if (dataItem != null) {
-            try {
-                PeriodicBookkeepingEventDetails.fromDataItem(dataItem)
-            } catch (_: Exception) {
-                null
-            }
-        } else {
-            null
-        }
+        PeriodicBookkeepingEventDetails.fromEventSimple(event)
     }
 
     val title = if (details != null) {
@@ -926,7 +914,7 @@ private fun EventViewerSimple(
             modifier = Modifier.size(64.dp),
             imageVector = Icons.Outlined.Sync,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = if (details?.success == false) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
         )
         Text(
             text = title,
@@ -949,22 +937,80 @@ private fun EventViewerSimple(
                 text = eventDateTimeString
             )
             if (details != null) {
+                val triggerText = when (details.trigger) {
+                    "startup" -> stringResource(R.string.event_viewer_refresh_trigger_startup)
+                    "pull_to_refresh" -> stringResource(R.string.event_viewer_refresh_trigger_pull_to_refresh)
+                    "periodic_worker" -> stringResource(R.string.event_viewer_refresh_trigger_periodic_worker)
+                    "developer_settings" -> stringResource(R.string.event_viewer_refresh_trigger_developer_settings)
+                    else -> stringResource(R.string.event_viewer_refresh_trigger_unknown)
+                }
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_refresh_trigger),
+                    text = triggerText
+                )
+                FloatingItemHeadingAndText(
+                    heading = stringResource(R.string.event_viewer_refresh_status),
+                    text = if (details.success) {
+                        stringResource(R.string.event_viewer_refresh_status_success)
+                    } else {
+                        stringResource(R.string.event_viewer_refresh_status_failed)
+                    }
+                )
+                val publicDataText = if (details.publicDataError != null) {
+                    "${stringResource(R.string.event_viewer_failed)} (${details.publicDataError})"
+                } else if (details.publicDataRefreshed) {
+                    stringResource(R.string.event_viewer_yes)
+                } else {
+                    stringResource(R.string.event_viewer_no)
+                }
                 FloatingItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_public_data_refreshed),
-                    text = if (details.publicDataRefreshed) stringResource(R.string.event_viewer_yes) else stringResource(R.string.event_viewer_no)
+                    text = publicDataText
                 )
+                val sharedDataText = if (details.sharedDataError != null) {
+                    "${stringResource(R.string.event_viewer_failed)} (${details.sharedDataError})"
+                } else if (details.sharedDataRefreshed) {
+                    stringResource(R.string.event_viewer_yes)
+                } else {
+                    stringResource(R.string.event_viewer_no)
+                }
                 FloatingItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_shared_data_refreshed),
-                    text = if (details.sharedDataRefreshed) stringResource(R.string.event_viewer_yes) else stringResource(R.string.event_viewer_no)
+                    text = sharedDataText
                 )
+                val credsText = if (details.totalDocumentsChecked > 0) {
+                    "${details.refreshedCredentialsCount} (${details.refreshedDocumentsCount}/${details.totalDocumentsChecked} passes)"
+                } else {
+                    details.refreshedCredentialsCount.toString()
+                }
                 FloatingItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_refreshed_credentials_count),
-                    text = details.refreshedCredentialsCount.toString()
+                    text = credsText
                 )
+                val readerKeysText = if (details.readerKeysError != null) {
+                    "${stringResource(R.string.event_viewer_failed)} (${details.readerKeysError})"
+                } else if (details.readerKeysRefreshedCount > 0) {
+                    details.readerKeysRefreshedCount.toString()
+                } else {
+                    stringResource(R.string.event_viewer_no)
+                }
                 FloatingItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_reader_keys_refreshed),
-                    text = if (details.readerKeysRefreshed) stringResource(R.string.event_viewer_yes) else stringResource(R.string.event_viewer_no)
+                    text = readerKeysText
                 )
+                if (details.trustManagersChecked.isNotEmpty() || details.updatedTrustEntriesCount > 0) {
+                    FloatingItemHeadingAndText(
+                        heading = stringResource(R.string.event_viewer_trust_entries_updated),
+                        text = details.updatedTrustEntriesCount.toString()
+                    )
+                }
+                val allErrors = details.credentialRefreshErrors + details.trustManagerErrors
+                if (allErrors.isNotEmpty()) {
+                    FloatingItemHeadingAndText(
+                        heading = stringResource(R.string.event_viewer_errors),
+                        text = allErrors.joinToString("\n")
+                    )
+                }
                 FloatingItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_runtime_duration),
                     text = stringResource(R.string.event_viewer_runtime_duration_seconds, details.runtimeDurationMs / 1000.0)

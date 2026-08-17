@@ -156,7 +156,6 @@ import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.isSyncing
 import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
-import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import kotlin.time.Clock
@@ -468,26 +467,6 @@ fun WalletScreen(
                     isRefreshing = true
                     coroutineScope.launch {
                         try {
-                            walletClient.refreshPublicData()
-                            if (walletClient.signedInUser.value != null) {
-                                walletClient.refreshSharedData()
-                                walletClient.sharedData.value?.let {
-                                    val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
-                                        DocumentPreconsentSetting.NeverRequireConsent
-                                    } else {
-                                        DocumentPreconsentSetting.AlwaysRequireConsent
-                                    }
-                                    documentStore.syncWithSharedData(
-                                        sharedData = it,
-                                        mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
-                                        mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
-                                        walletClient = walletClient,
-                                        initialPreconsentSetting = preconsentSetting,
-                                    )
-                                }
-                            }
-                            walletClient.refreshReaderKeys()
                             onRefresh()
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e

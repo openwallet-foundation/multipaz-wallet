@@ -1134,7 +1134,7 @@ class WalletClient private constructor(
     private suspend fun ensureReplenished(
         readerIdentityId: String? = null,
         atTime: Instant = Clock.System.now()
-    ) {
+    ): Int {
         check(lock.isLocked) { "Called without holding lock" }
         check(secureArea != null) { "SecureArea is null" }
 
@@ -1188,7 +1188,7 @@ class WalletClient private constructor(
                 certifiedKeys!!.remove(it.first)
             }
             Logger.i(TAG, "Not replenishing reader keys")
-            return
+            return 0
         }
         val numKeysNeeded = numReaderKeys - numGoodKeys
 
@@ -1246,6 +1246,7 @@ class WalletClient private constructor(
             certifiedKeysTable.delete(it.first)
             certifiedKeys!!.remove(it.first)
         }
+        return readerCertifications.size
     }
 
     /**
@@ -1363,12 +1364,14 @@ class WalletClient private constructor(
 
     /**
      * Refreshes reader keys.
+     *
+     * @return the number of reader keys that were newly certified / replenished.
      */
-    suspend fun refreshReaderKeys() {
+    suspend fun refreshReaderKeys(): Int {
         if (numReaderKeys == 0) {
-            return
+            return 0
         }
-        lock.withLock {
+        return lock.withLock {
             ensureReplenished()
         }
     }

@@ -43,6 +43,7 @@ object PeriodicBookkeepingScheduler {
         val intervalHours = BuildConfig.PERIODIC_BOOKKEEPING_INTERVAL_HOURS
         val periodicRequest = PeriodicWorkRequestBuilder<PeriodicBookkeepingWorker>(intervalHours, TimeUnit.HOURS)
             .setConstraints(constraints)
+            .setInitialDelay(intervalHours, TimeUnit.HOURS)
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(

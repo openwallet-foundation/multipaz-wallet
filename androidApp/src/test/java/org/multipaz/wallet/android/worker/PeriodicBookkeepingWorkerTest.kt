@@ -1,11 +1,12 @@
 package org.multipaz.wallet.android.worker
 
+import kotlinx.io.bytestring.ByteString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.multipaz.eventlogger.EventSimple
 import org.multipaz.wallet.client.PeriodicBookkeepingEventDetails
-import org.multipaz.wallet.client.fromDataItem
 import org.multipaz.wallet.client.toDataItem
 import kotlin.time.Clock
 
@@ -25,47 +26,41 @@ class PeriodicBookkeepingWorkerTest {
     @Test
     fun testPeriodicBookkeepingEventDetailsInAppData() {
         val details = PeriodicBookkeepingEventDetails(
+            trigger = "startup",
+            success = true,
             publicDataRefreshed = true,
+            publicDataError = null,
             sharedDataRefreshed = false,
+            sharedDataError = null,
             refreshedCredentialsCount = 2,
-            readerKeysRefreshed = true,
+            totalDocumentsChecked = 3,
+            refreshedDocumentsCount = 1,
+            credentialRefreshErrors = listOf("doc1: warning"),
+            readerKeysRefreshedCount = 4,
+            readerKeysError = null,
+            updatedTrustEntriesCount = 4,
+            trustManagersChecked = listOf("tm1", "tm2"),
+            trustManagerErrors = emptyList(),
             runtimeDurationMs = 1500L
         )
         val event = EventSimple(
             timestamp = Clock.System.now(),
-            data = kotlinx.io.bytestring.ByteString(),
-            appData = mapOf("PeriodicBookkeepingEventDetails" to details.toDataItem())
+            data = ByteString(),
+            appData = mapOf(PeriodicBookkeepingEventDetails.EVENT_APP_DATA_KEY to details.toDataItem())
         )
-        assertNotNull(event)
-        val dataItem = event.appData["PeriodicBookkeepingEventDetails"]
-        assertNotNull(dataItem)
-        val restoredDetails = PeriodicBookkeepingEventDetails.fromDataItem(dataItem!!)
+        val restoredDetails = PeriodicBookkeepingEventDetails.fromEventSimple(event)
+        assertNotNull(restoredDetails)
+        assertEquals("startup", restoredDetails!!.trigger)
+        assertTrue(restoredDetails.success)
         assertEquals(true, restoredDetails.publicDataRefreshed)
         assertEquals(false, restoredDetails.sharedDataRefreshed)
         assertEquals(2, restoredDetails.refreshedCredentialsCount)
-        assertEquals(true, restoredDetails.readerKeysRefreshed)
-        assertEquals(1500L, restoredDetails.runtimeDurationMs)
-    }
-
-    @Test
-    fun testBackwardsCompatibilityDailyBookkeepingEventDetails() {
-        val details = PeriodicBookkeepingEventDetails(
-            publicDataRefreshed = true,
-            sharedDataRefreshed = false,
-            refreshedCredentialsCount = 2,
-            readerKeysRefreshed = true,
-            runtimeDurationMs = 1500L
-        )
-        val event = EventSimple(
-            timestamp = Clock.System.now(),
-            data = kotlinx.io.bytestring.ByteString(),
-            appData = mapOf("DailyBookkeepingEventDetails" to details.toDataItem())
-        )
-        val dataItem = event.appData["PeriodicBookkeepingEventDetails"]
-            ?: event.appData["DailyBookkeepingEventDetails"]
-        assertNotNull(dataItem)
-        val restoredDetails = PeriodicBookkeepingEventDetails.fromDataItem(dataItem!!)
-        assertEquals(true, restoredDetails.publicDataRefreshed)
+        assertEquals(3, restoredDetails.totalDocumentsChecked)
+        assertEquals(1, restoredDetails.refreshedDocumentsCount)
+        assertEquals(listOf("doc1: warning"), restoredDetails.credentialRefreshErrors)
+        assertEquals(4, restoredDetails.readerKeysRefreshedCount)
+        assertEquals(4, restoredDetails.updatedTrustEntriesCount)
+        assertEquals(listOf("tm1", "tm2"), restoredDetails.trustManagersChecked)
         assertEquals(1500L, restoredDetails.runtimeDurationMs)
     }
 }

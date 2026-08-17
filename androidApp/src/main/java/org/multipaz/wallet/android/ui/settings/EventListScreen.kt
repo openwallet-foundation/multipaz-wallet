@@ -15,7 +15,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Sync
 import org.multipaz.wallet.client.PeriodicBookkeepingEventDetails
-import org.multipaz.wallet.client.fromDataItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -294,18 +293,7 @@ private fun EventItemSimple(
 ) {
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val details: PeriodicBookkeepingEventDetails? = remember(event) {
-        // Fall back to "DailyBookkeepingEventDetails" for backwards compatibility when it was called "daily" instead of "periodic" (will be removed in the future).
-        val dataItem = event.appData["PeriodicBookkeepingEventDetails"]
-            ?: event.appData["DailyBookkeepingEventDetails"]
-        if (dataItem != null) {
-            try {
-                PeriodicBookkeepingEventDetails.fromDataItem(dataItem)
-            } catch (_: Exception) {
-                null
-            }
-        } else {
-            null
-        }
+        PeriodicBookkeepingEventDetails.fromEventSimple(event)
     }
 
     val title = if (details != null) {
@@ -315,11 +303,30 @@ private fun EventItemSimple(
     }
 
     val summary = if (details != null) {
-        "$eventDateTimeString • " + stringResource(
-            R.string.event_simple_periodic_bookkeeping_summary,
-            details.refreshedCredentialsCount,
-            details.runtimeDurationMs / 1000.0
-        )
+        val triggerLabel = when (details.trigger) {
+            "startup" -> stringResource(R.string.event_viewer_refresh_trigger_startup)
+            "pull_to_refresh" -> stringResource(R.string.event_viewer_refresh_trigger_pull_to_refresh)
+            "periodic_worker" -> stringResource(R.string.event_viewer_refresh_trigger_periodic_worker)
+            "developer_settings" -> stringResource(R.string.event_viewer_refresh_trigger_developer_settings)
+            else -> null
+        }
+        val summaryDetail = if (details.refreshedCredentialsCount > 0) {
+            stringResource(
+                R.string.event_simple_periodic_bookkeeping_summary,
+                details.refreshedCredentialsCount,
+                details.runtimeDurationMs / 1000.0
+            )
+        } else {
+            stringResource(
+                R.string.event_simple_periodic_bookkeeping_summary_up_to_date,
+                details.runtimeDurationMs / 1000.0
+            )
+        }
+        if (triggerLabel != null) {
+            "$eventDateTimeString • $triggerLabel • $summaryDetail"
+        } else {
+            "$eventDateTimeString • $summaryDetail"
+        }
     } else {
         eventDateTimeString
     }

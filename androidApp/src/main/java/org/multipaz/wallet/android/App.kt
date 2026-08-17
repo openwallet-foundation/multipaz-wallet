@@ -106,7 +106,19 @@ import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.worker.PeriodicBookkeepingScheduler
 import org.multipaz.revocation.CachingRevocationChecker
 import org.multipaz.revocation.RevocationChecker
+import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.runPeriodicBookkeeping
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+
+enum class RefreshReason {
+    STARTUP,
+    USER_PULL_TO_REFRESH,
+    PERIODIC_WORKER,
+    DEVELOPER_SETTINGS,
+}
 
 class App private constructor() {
 
@@ -693,6 +705,71 @@ class App private constructor() {
     fun viewRequestVerificationScreen() {
         settingsModel.verificationIsInPerson.value = false
         requestVerificationFlow.value = true
+    }
+
+    private val refreshMutex = Mutex()
+    private var lastRefreshTimestamp: Instant? = null
+
+    suspend fun refreshWallet(
+        reason: RefreshReason = RefreshReason.PERIODIC_WORKER,
+    ): Boolean = refreshMutex.withLock {
+        Logger.i(TAG, "refreshWallet: starting refresh (reason=$reason)")
+        val now = Clock.System.now()
+
+        // Debounce periodic background worker if we recently ran a refresh (e.g. within 15 minutes)
+        if (reason == RefreshReason.PERIODIC_WORKER) {
+            val last = lastRefreshTimestamp
+            if (last != null && (now - last) < 15.minutes) {
+                Logger.i(TAG, "refreshWallet: skipping periodic worker run, last refresh was ${now - last} ago")
+                return@withLock true
+            }
+        }
+
+        val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
+            DocumentPreconsentSetting.NeverRequireConsent
+        } else {
+            DocumentPreconsentSetting.AlwaysRequireConsent
+        }
+
+        val trigger = when (reason) {
+            RefreshReason.STARTUP -> "startup"
+            RefreshReason.USER_PULL_TO_REFRESH -> "pull_to_refresh"
+            RefreshReason.PERIODIC_WORKER -> "periodic_worker"
+            RefreshReason.DEVELOPER_SETTINGS -> "developer_settings"
+        }
+
+        val success = walletClient.runPeriodicBookkeeping(
+            documentStore = documentStore,
+            provisioningModel = provisioningModel,
+            trustManagers = listOf(userIssuerTrustManager, userReaderTrustManager),
+            eventLogger = eventLogger,
+            initialPreconsentSetting = preconsentSetting,
+            trigger = trigger,
+        )
+
+        try {
+            checkVerificationResults(
+                walletClient = walletClient,
+                storage = storage,
+                eventLogger = eventLogger,
+                documentTypeRepository = documentTypeRepository,
+                zkSystemRepository = zkSystemRepository,
+                issuerTrustManager = issuerTrustManager,
+                onResponseReceived = { verification ->
+                    postNotification(
+                        context = applicationContext,
+                        verification = verification
+                    )
+                }
+            )
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.w(TAG, "Error checking verification results during refresh", e)
+        }
+
+        lastRefreshTimestamp = Clock.System.now()
+        Logger.i(TAG, "refreshWallet: completed (reason=$reason, success=$success)")
+        success
     }
 
     companion object {
