@@ -259,13 +259,23 @@ suspend fun getPendingVerifications(storage: Storage): List<LinkVerification> {
 
 suspend fun getCompletedVerifications(storage: Storage): List<LinkVerification> {
     val table = storage.getTable(linkVerificationsTableSpec)
+    val now = Clock.System.now().toEpochMilliseconds()
     val all = table.enumerateWithData().map { (key, data) ->
         key to LinkVerification.fromCbor(data.toByteArray())
     }
     val completed = mutableListOf<LinkVerification>()
     for ((key, verification) in all) {
         if (!verification.isPending) {
-            completed.add(verification)
+            if (verification.creationTimeMillis + VERIFICATION_LINK_EXPIRATION.inWholeMilliseconds <= now) {
+                try {
+                    table.delete(key)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Logger.e(TAG, "Failed to delete expired verification $key", e)
+                }
+            } else {
+                completed.add(verification)
+            }
         }
     }
     return completed.sortedByDescending { it.responseReceivedAtMillis ?: it.creationTimeMillis }

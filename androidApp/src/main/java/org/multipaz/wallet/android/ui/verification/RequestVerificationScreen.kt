@@ -63,6 +63,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -202,12 +204,12 @@ fun RequestVerificationScreen(
                     val updatedPending = withContext(Dispatchers.Default) {
                         getPendingVerifications(storage)
                     }
-                    val updatedCompleted = withContext(Dispatchers.Default) {
-                        getCompletedVerifications(storage)
-                    }
                     pendingList.value = updatedPending
-                    completedList.value = updatedCompleted
                 }
+                val updatedCompleted = withContext(Dispatchers.Default) {
+                    getCompletedVerifications(storage)
+                }
+                completedList.value = updatedCompleted
                 delay(3000)
             }
         }
@@ -441,12 +443,25 @@ fun RequestVerificationScreen(
                                 FloatingItemHeadingAndContent(
                                     modifier = Modifier.clickable {
                                         if (presentmentRecord != null) {
-                                            coroutineScope.launch {
+                                            completedList.value = completedList.value.filter { it.requestId != item.requestId }
+                                            CoroutineScope(Dispatchers.IO).launch {
                                                 try {
-                                                    walletClient.deleteVerificationResponse(item.requestId)
                                                     deleteVerification(storage, item.requestId)
                                                 } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
                                                     Logger.e(TAG, "Failed to delete verification on click", e)
+                                                }
+                                                try {
+                                                    walletClient.deleteVerificationRequest(item.requestId)
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    Logger.w(TAG, "Failed to delete verification request from server", e)
+                                                }
+                                                try {
+                                                    walletClient.deleteVerificationResponse(item.requestId)
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    // Already deleted when polled, ignore
                                                 }
                                             }
                                             onViewVerificationClicked(
