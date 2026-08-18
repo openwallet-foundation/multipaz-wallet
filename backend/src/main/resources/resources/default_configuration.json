@@ -148,14 +148,14 @@
     "credential_issuers": [
       {
         "name": "Utopia Driving License",
-        "icon_url": "https://issuer.multipaz.org/issuer/card-mdl.png",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-mdl.jpg",
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "mDL"
       },
       {
         "name": "Utopia Driving License (StrongBox)",
-        "icon_url": "https://issuer.multipaz.org/issuer/card-mdl.png",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-mdl.jpg",
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "mDL",
@@ -167,28 +167,28 @@
       },
       {
         "name": "Utopia PID",
-        "icon_url": "https://issuer.multipaz.org/issuer/card-pid.png",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-pid.jpg",
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "pid_mdoc"
       },
       {
         "name": "Utopia Age Verification",
-        "icon_url": "https://issuer.multipaz.org/issuer/card-age-verification.png",
+        "icon_url": "https://issuer.multipaz.org/issuer/card-age-verification.jpg",
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "mDoc-AgeVerification"
       },
       {
         "name": "Utopia Payment Card",
-        "icon_url": "https://issuer.multipaz.org/issuer/card_payment_sca_v2.png",
+        "icon_url": "https://issuer.multipaz.org/issuer/card_payment_sca_v2.jpg",
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "payment_sca_mdoc"
       },
       {
         "name": "Utopia Wholesale Loyalty Card",
-        "icon_url": "https://issuer.multipaz.org/issuer/card_utopia_wholesale.png",
+        "icon_url": "https://issuer.multipaz.org/issuer/card_utopia_wholesale.jpg",
         "type": "openid4vci",
         "url": "https://issuer.multipaz.org/issuer",
         "id": "utopia_wholesale"
