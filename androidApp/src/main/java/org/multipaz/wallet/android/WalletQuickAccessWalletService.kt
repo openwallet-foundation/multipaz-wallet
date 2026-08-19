@@ -79,35 +79,35 @@ class WalletQuickAccessWalletService: QuickAccessWalletService() {
             /* flags = */ PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
+}
 
-    private fun getPendingIntentForLaunchingQuickAccessWallet(
-        source: PresentmentSource,
-        initiallySelectedDocumentId: String?,
-        app: App
-    ): PendingIntent {
-        return PresentmentActivity.getPendingIntent(
-            source = source,
-            initiallySelectedDocumentId = initiallySelectedDocumentId,
-            openWalletAppPendingIntentFn = { document ->
-                PendingIntent.getActivity(
-                    /* context = */ applicationContext,
-                    /* requestCode = */ 0,
-                    /* intent = */ Intent(applicationContext, MainActivity::class.java).apply {
-                        addFlags(
-                            Intent.FLAG_ACTIVITY_NEW_TASK or
-                                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        )
-                        action = App.ACTION_VIEW_DOCUMENT
-                        putExtra("documentId", document.identifier)
-                    },
-                    /* flags = */ PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-            },
-            preferredService = ComponentName(applicationContext, WalletCombinedNfcService::class.java),
-            onDocumentSelected = { documentId ->
-                app.quickAccessWalletFocusedDocumentId.value = documentId
-            }
-        )
-    }
+fun getPendingIntentForLaunchingQuickAccessWallet(
+    source: PresentmentSource,
+    initiallySelectedDocumentId: String?,
+    app: App
+): PendingIntent {
+    return PresentmentActivity.getPendingIntent(
+        source = source,
+        initiallySelectedDocumentId = initiallySelectedDocumentId,
+        openWalletAppPendingIntentFn = { document ->
+            PendingIntent.getActivity(
+                /* context = */ applicationContext,
+                /* requestCode = */ 0,
+                /* intent = */ Intent(applicationContext, MainActivity::class.java).apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
+                    action = App.ACTION_VIEW_DOCUMENT
+                    putExtra("documentId", document.identifier)
+                },
+                /* flags = */ PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        },
+        preferredService = ComponentName(applicationContext, WalletCombinedNfcService::class.java),
+        onDocumentSelected = { documentId ->
+            app.quickAccessWalletFocusedDocumentId.value = documentId
+        }
+    )
 }

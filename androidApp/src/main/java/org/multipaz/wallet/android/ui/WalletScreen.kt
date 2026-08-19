@@ -148,6 +148,7 @@ import org.multipaz.compose.cards.InfoCard
 import org.multipaz.document.DocumentStore
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.getPendingIntentForLaunchingQuickAccessWallet
 import org.multipaz.wallet.android.hasPortrait
 import org.multipaz.wallet.android.isProximityPresentable
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -253,27 +254,12 @@ fun WalletScreen(
                                         if (settingsModel.devMode.value) {
                                             coroutineScope.launch {
                                                 try {
+                                                    val app = App.getInstance()
                                                     val source = App.getPresentmentSource()
-                                                    val pendingIntent = PresentmentActivity.getPendingIntent(
+                                                    val pendingIntent = getPendingIntentForLaunchingQuickAccessWallet(
                                                         source = source,
                                                         initiallySelectedDocumentId = null,
-                                                        openWalletAppPendingIntentFn = { document ->
-                                                            PendingIntent.getActivity(
-                                                                /* context = */ context,
-                                                                /* requestCode = */ 0,
-                                                                /* intent = */ Intent(context, MainActivity::class.java).apply {
-                                                                    addFlags(
-                                                                        Intent.FLAG_ACTIVITY_NEW_TASK or
-                                                                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                                                                Intent.FLAG_ACTIVITY_SINGLE_TOP
-                                                                    )
-                                                                    action = App.ACTION_VIEW_DOCUMENT
-                                                                    putExtra("documentId", document.identifier)
-                                                                },
-                                                                /* flags = */ PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                                            )
-                                                        },
-                                                        preferredService = ComponentName(context, WalletCombinedNfcService::class.java),
+                                                        app = app
                                                     )
                                                     pendingIntent.send()
                                                 } catch (e: Exception) {
