@@ -104,7 +104,7 @@ sealed class DocumentQuery {
 
                     val docRequestInfo = DocRequestInfo(
                         alternativeDataElements = alternativeDataElements,
-                        docFormat = "sd-jwt+kb",
+                        docFormat = "dc+sd-jwt",
                         dataElementIdentifierMapping = mapping
                     )
                     deviceRequest.addDocRequest(
