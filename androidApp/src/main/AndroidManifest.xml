@@ -55,6 +55,8 @@
             android:name=".MainActivity"
             android:theme="@style/Theme.MultipazWallet"
             android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:launchMode="singleTask">
             <intent-filter>
@@ -125,6 +127,8 @@
             android:name=".MdocUrlVerificationActivity"
             android:theme="@style/NavigationActivityTheme"
             android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:launchMode="singleInstance"
             android:taskAffinity=".verification"
@@ -144,12 +148,16 @@
             android:name=".VerificationLinkQrCodeDisplayActivity"
             android:theme="@style/Theme.Transparent"
             android:exported="false"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:excludeFromRecents="true" />
 
         <activity
             android:name=".WalletCredentialManagerPresentmentActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:theme="@style/NavigationActivityTheme"
             android:launchMode="singleInstance"
@@ -164,6 +172,8 @@
         <activity
             android:name=".WalletUriSchemePresentmentActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
             android:theme="@style/NavigationActivityTheme"
             android:launchMode="singleInstance"
