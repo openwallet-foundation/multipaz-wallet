@@ -28,7 +28,8 @@ private const val TAG = "PreconsentUtil"
  * @param requester the [Requester] attempting to access the credentials, used to evaluate identity-based
  *                  pre-consent rules.
  * @param preselectedDocuments an optional list of documents giving priority to the first document, then the
- *                             second, and so on when evaluating selections.
+ *                             second, and so on when evaluating selections. When non-empty, only candidate
+ *                             selections containing at least one of these documents will be considered.
  * @param domainRewriter a function that takes the current domain of a credential and returns the new
  *                       domain it should be mapped to. Defaults to returning the same domain.
  * @return the first [CredentialSelection] that satisfies all pre-consent rules and
@@ -42,12 +43,16 @@ suspend fun CredentialQueryResult.checkPreconsent(
     var selections = getAllSelections()
     if (preselectedDocuments.isNotEmpty()) {
         val priorityMap = preselectedDocuments.mapIndexed { index, doc -> doc.identifier to index }.toMap()
-        selections = selections.sortedBy { selection ->
-            val minIndex = selection.matches.mapNotNull { match ->
-                priorityMap[match.credential.document.identifier]
-            }.minOrNull()
-            minIndex ?: Int.MAX_VALUE
-        }
+        selections = selections
+            .filter { selection ->
+                selection.matches.any { priorityMap.containsKey(it.credential.document.identifier) }
+            }
+            .sortedBy { selection ->
+                val minIndex = selection.matches.mapNotNull { match ->
+                    priorityMap[match.credential.document.identifier]
+                }.minOrNull()
+                minIndex ?: Int.MAX_VALUE
+            }
     }
     checkSelection@ for (selection in selections) {
         for (match in selection.matches) {

@@ -352,7 +352,9 @@ class App private constructor() {
             ) { _, _, _ ->
                 focusedDocumentId
             }.distinctUntilChanged().collect { documentId ->
-                Logger.i(TAG, "focusedDocumentId changed to '$documentId'")
+                documentId?.let {
+                    Logger.i(TAG, "focusedDocumentId changed to $it: ${documentStore.lookupDocument(it)?.displayName}")
+                } ?: Logger.i(TAG, "focusedDocumentId unset")
             }
         }
     }
@@ -372,13 +374,12 @@ class App private constructor() {
      * - [preselectedDocuments] is empty (e.g. the user is outside the app when tapping), OR
      * - at least one of the option sets in [ConsentData.credentialQueryResult] contains a document from [preselectedDocuments].
      *
-     * If preselected documents are present but none match any candidate option set in the query result, preconsent
-     * is skipped so the user is presented with an explicit consent prompt rather than auto-presenting an out-of-focus
-     * document.
+     * If preselected documents are present and match the query result, only candidate selections containing those
+     * preselected documents are evaluated for preconsent. If preconsent is not approved for the preselected documents,
+     * preconsent is skipped and an explicit consent prompt is displayed for them.
      *
-     * Candidate selections evaluated by [checkPreconsent] are prioritized according to an effective document order
-     * combining any explicitly preselected/focused documents first, followed by the remaining documents ordered according
-     * to [DocumentModel].
+     * When no documents are preselected, candidate selections evaluated by [checkPreconsent] are prioritized according
+     * to the document order in [DocumentModel].
      */
     private suspend fun showConsentPromptFn(
         requester: Requester,
@@ -397,14 +398,15 @@ class App private constructor() {
                 consentData.credentialQueryResult.containsPreselectedDocuments(preselectedDocuments)
         )
         if (allowPreconsent) {
-            val preselectedSet = preselectedDocuments.toSet()
-            val effectiveDocumentOrder = preselectedDocuments + documentModel.documentInfos.value
-                .map { it.document }
-                .filter { it !in preselectedSet }
+            val documentsToCheck = if (preselectedDocuments.isNotEmpty()) {
+                preselectedDocuments
+            } else {
+                documentModel.documentInfos.value.map { it.document }
+            }
 
             consentData.credentialQueryResult.checkPreconsent(
                 requester = requester,
-                preselectedDocuments = effectiveDocumentOrder,
+                preselectedDocuments = documentsToCheck,
                 domainRewriter = { domain ->
                     if (settingsModel.disableNoUserAuth.value) {
                         domain
@@ -686,7 +688,7 @@ class App private constructor() {
             } else {
                 quickAccessWalletFocusedDocumentId.value
             }
-            Logger.d(TAG, "focusedDocumentId returning '$result'")
+            Logger.d(TAG, "focusedDocumentId returning $result")
             return result
         }
 

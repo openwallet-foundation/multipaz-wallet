@@ -563,4 +563,64 @@ class PreconsentUtilTest {
         // List containing both a non-matching and a matching document
         assertTrue(cpd.containsPreselectedDocuments(listOf(harness.docPhotoId, harness.docMdl)))
     }
+
+    @Test
+    fun testPreselectedDocumentRequiresConsentDoesNotFallbackToUnselected() = runTest {
+        val harness = DocumentStoreTestHarness()
+        harness.initialize()
+        harness.provisionStandardDocuments()
+
+        val queryJson = """
+            {
+              "credentials": [
+                {
+                  "id": "mdl",
+                  "format": "mso_mdoc",
+                  "meta": {
+                    "doctype_value": "${DrivingLicense.MDL_DOCTYPE}"
+                  },
+                  "claims": [
+                    {"id": "b", "path": ["${DrivingLicense.MDL_NAMESPACE}", "age_over_18"]}
+                  ],
+                  "claim_sets": [ ["b"] ]
+                },
+                {
+                  "id": "pid",
+                  "format": "mso_mdoc",
+                  "meta": {
+                    "doctype_value": "${PhotoID.PHOTO_ID_DOCTYPE}"
+                  },
+                  "claims": [
+                    {"id": "b", "path": ["${PhotoID.ISO_23220_2_NAMESPACE}", "age_over_18"]}
+                  ],
+                  "claim_sets": [ ["b"] ]
+                }
+              ],
+              "credential_sets": [
+                { "options": [ ["mdl"], ["pid"] ] }
+              ]
+            }
+        """
+        val cpd = DcqlQuery.fromJsonString(queryJson).execute(presentmentSource = harness.presentmentSource)
+
+        // PhotoID requires consent, mDL has pre-consent enabled
+        harness.docPhotoId.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
+        harness.docMdl.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
+
+        // When PhotoID is preselected, checkPreconsent should return null and not fall back to mDL
+        val selection = cpd.checkPreconsent(
+            requester = Requester(emptyList()),
+            preselectedDocuments = listOf(harness.docPhotoId)
+        )
+        assertEquals(null, selection)
+
+        // But when no document is preselected, checkPreconsent falls back to mDL which allows preconsent
+        val defaultSelection = cpd.checkPreconsent(
+            requester = Requester(emptyList()),
+            preselectedDocuments = emptyList()
+        )
+        assertNotNull(defaultSelection)
+        assertEquals(harness.docMdl.identifier, defaultSelection.matches.first().credential.document.identifier)
+    }
 }
+
