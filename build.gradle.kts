@@ -78,7 +78,7 @@ val developerModeAvailable: Boolean by extra {
 
 val periodicBookkeepingIntervalHours: Long by extra {
     val str = System.getenv("MULTIPAZ_WALLET_PERIODIC_BOOKKEEPING_INTERVAL_HOURS")
-    str?.toLongOrNull() ?: 6L
+    str?.toLongOrNull() ?: 24L
 }
 
 val maxCardArtSizeInSharedDataKb: Int by extra {

@@ -48,7 +48,6 @@ import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
-import org.multipaz.wallet.android.RefreshReason
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
 import org.multipaz.wallet.android.signin.SignInWithGoogleDismissedException
@@ -390,5 +389,5 @@ internal suspend fun signOut(
 //
 internal suspend fun appJustLaunched(app: App) {
     Logger.i(TAG, "Running code the first time app is launched...")
-    app.refreshWallet(reason = RefreshReason.STARTUP)
+    app.syncAtStartup()
 }

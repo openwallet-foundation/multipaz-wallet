@@ -107,14 +107,16 @@ import org.multipaz.wallet.android.worker.PeriodicBookkeepingScheduler
 import org.multipaz.revocation.CachingRevocationChecker
 import org.multipaz.revocation.RevocationChecker
 import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.WalletClientBackendUnreachableException
 import org.multipaz.wallet.client.runPeriodicBookkeeping
+import org.multipaz.wallet.client.syncWithSharedData
+import org.multipaz.wallet.shared.WalletBackendNotSignedInException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 enum class RefreshReason {
-    STARTUP,
     USER_PULL_TO_REFRESH,
     PERIODIC_WORKER,
     DEVELOPER_SETTINGS,
@@ -734,7 +736,6 @@ class App private constructor() {
         }
 
         val trigger = when (reason) {
-            RefreshReason.STARTUP -> "startup"
             RefreshReason.USER_PULL_TO_REFRESH -> "pull_to_refresh"
             RefreshReason.PERIODIC_WORKER -> "periodic_worker"
             RefreshReason.DEVELOPER_SETTINGS -> "developer_settings"
@@ -772,6 +773,48 @@ class App private constructor() {
         lastRefreshTimestamp = Clock.System.now()
         Logger.i(TAG, "refreshWallet: completed (reason=$reason, success=$success)")
         success
+    }
+
+    suspend fun syncAtStartup() {
+        Logger.i(TAG, "syncAtStartup: starting lightweight startup sync...")
+        if (walletClient.signedInUser.value != null) {
+            try {
+                Logger.i(TAG, "Refreshing shared data with wallet backend at start-up")
+                walletClient.refreshSharedData()
+                val preconsentSetting = if (settingsModel.preconsentForNewDocuments.value) {
+                    DocumentPreconsentSetting.NeverRequireConsent
+                } else {
+                    DocumentPreconsentSetting.AlwaysRequireConsent
+                }
+                walletClient.sharedData.value?.let { sharedData ->
+                    documentStore.syncWithSharedData(
+                        sharedData = sharedData,
+                        mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
+                        mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
+                        mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                        walletClient = walletClient,
+                        initialPreconsentSetting = preconsentSetting,
+                    )
+                }
+            } catch (e: WalletBackendNotSignedInException) {
+                Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)
+            } catch (e: WalletClientBackendUnreachableException) {
+                Logger.i(TAG, "Failed refreshing with wallet backend at start-up, it's unreachable", e)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Unexpected exception at start-up while refreshing shared data", e)
+            }
+        }
+        try {
+            Logger.i(TAG, "Refreshing public data with wallet backend at start-up")
+            walletClient.refreshPublicData()
+        } catch (e: WalletClientBackendUnreachableException) {
+            Logger.i(TAG, "Failed refreshing with wallet backend at start-up, it's unreachable", e)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.w(TAG, "Unexpected exception at start-up while refreshing public data", e)
+        }
+        Logger.i(TAG, "syncAtStartup: completed lightweight startup sync")
     }
 
     companion object {
