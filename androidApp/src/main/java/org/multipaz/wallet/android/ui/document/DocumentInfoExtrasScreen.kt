@@ -17,7 +17,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -35,13 +34,16 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.toCdn
-import org.multipaz.compose.datetime.formattedDateTime
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemCenteredText
@@ -49,8 +51,6 @@ import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
-import org.multipaz.compose.text.fromMarkdown
-import org.multipaz.credential.Credential
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.tags.Tags
@@ -61,15 +61,16 @@ import kotlin.time.Instant
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentInfoExtrasScreen(
-    documentId: String,
     documentModel: DocumentModel,
-    onBackClicked: () -> Unit,
+    documentId: String,
     onRefreshCredentialsClicked: () -> Unit,
+    onBackClicked: () -> Unit,
     onCredentialClicked: (String) -> Unit
 ) {
+    val hazeState = remember { HazeState() }
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
-    val documentInfos = documentModel.documentInfos.collectAsState().value
+    val documentInfos by documentModel.documentInfos.collectAsState()
     val documentInfo = documentInfos.find { it.document.identifier == documentId }
 
     val credentialsByDomain = documentInfo
@@ -89,17 +90,12 @@ fun DocumentInfoExtrasScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.document_info_credentials_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
                     IconButton(onClick = onRefreshCredentialsClicked) {
@@ -109,18 +105,24 @@ fun DocumentInfoExtrasScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .hazeSource(hazeState)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
             Note(
                 markdownString = "This screen contains low-level information about the pass, " +
                         "including its backing credentials, organized by domain."

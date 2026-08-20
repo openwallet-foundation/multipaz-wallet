@@ -16,13 +16,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -36,12 +37,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import org.multipaz.provisioning.AuthorizationChallenge
 import org.multipaz.provisioning.AuthorizationResponse
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.AppTopAppBar
 import org.multipaz.wallet.client.WalletClient
 
 private const val TAG = "AuthorizationScreen"
@@ -54,6 +58,7 @@ fun AuthorizationScreenOAuth(
     challenge: AuthorizationChallenge.OAuth,
     onCloseClicked: () -> Unit,
 ) {
+    val hazeState = remember { HazeState() }
     var preferences by remember { mutableStateOf<OpenID4VCIClientPreferences?>(null) }
 
     LaunchedEffect(Unit) {
@@ -62,7 +67,7 @@ fun AuthorizationScreenOAuth(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onCloseClicked) {
@@ -71,17 +76,24 @@ fun AuthorizationScreenOAuth(
                             contentDescription = stringResource(R.string.provisioning_auth_oauth_cancel_description)
                         )
                     }
-                }
+                },
+                hazeState = hazeState
             )
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             preferences?.let {
                 EvidenceRequestOAuthBrowser(
                     url = challenge.url,

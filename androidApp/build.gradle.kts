@@ -119,6 +119,8 @@ dependencies {
     implementation(libs.accompanist.drawablepainter)
     implementation(libs.accompanist.permissions)
     implementation(libs.bouncy.castle.bcprov)
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

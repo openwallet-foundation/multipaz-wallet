@@ -43,7 +43,6 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Sync
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FabPosition
@@ -59,6 +58,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
@@ -66,6 +69,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -84,10 +88,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -167,7 +167,11 @@ import kotlin.time.Instant
 private const val TAG = "WalletScreen"
 
 @SuppressLint("LocalContextGetResourceValueCall")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalPermissionsApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalPermissionsApi::class
+)
 @Composable
 fun WalletScreen(
     verticalCardListState: VerticalCardListState,
@@ -194,6 +198,7 @@ fun WalletScreen(
     showToast: (message: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val hazeState = remember { HazeState() }
     var devModeNumTimesPressed by remember { mutableIntStateOf(0) }
     var isRefreshing by remember { mutableStateOf(false) }
     val blePermissionState = rememberBluetoothPermissionState()
@@ -218,7 +223,8 @@ fun WalletScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            AppCenterAlignedTopAppBar(
+                hazeState = hazeState,
                 title = {
                     AnimatedVisibility(
                         visible = titleAndFabVisible,
@@ -423,9 +429,9 @@ fun WalletScreen(
         Column(
             modifier = Modifier
                 .padding(
-                    top = innerPadding.calculateTopPadding(),
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
                     end = innerPadding.calculateEndPadding(LocalLayoutDirection.current)
+                    // Omitting top padding so the card list extends up under the CenterAlignedTopAppBar
                     // Omitting the bottom padding since we want to draw under the navigation bar
                 )
                 .fillMaxSize(),
@@ -434,6 +440,7 @@ fun WalletScreen(
             if (!blePermissionState.isGranted) {
                 WarningCard(
                     modifier = Modifier
+                        .padding(top = innerPadding.calculateTopPadding())
                         .padding(16.dp)
                         .clickable {
                             coroutineScope.launch {
@@ -447,6 +454,7 @@ fun WalletScreen(
 
             AppUpdateCard()
 
+            val pullToRefreshState = rememberPullToRefreshState()
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = {
@@ -463,92 +471,73 @@ fun WalletScreen(
                         }
                     }
                 },
-                modifier = Modifier.weight(1f).fillMaxWidth()
-            ) {
-                val nestedScrollDispatcher = remember { NestedScrollDispatcher() }
-                var estimatedScroll by remember { mutableFloatStateOf(0f) }
-                val nestedScrollConnection = remember {
-                    object : NestedScrollConnection {
-                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                            if (available.y > 0 && estimatedScroll <= 0f) {
-                                // We are at the top and pulling down.
-                                // Forward this drag to the parent PullToRefreshBox to manually trigger overscroll!
-                                return nestedScrollDispatcher.dispatchPostScroll(
-                                    consumed = Offset.Zero,
-                                    available = available,
-                                    source = source
-                                )
+                state = pullToRefreshState,
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        state = pullToRefreshState,
+                        isRefreshing = isRefreshing,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .graphicsLayer {
+                                translationY = with(density) { innerPadding.calculateTopPadding().toPx() }
                             }
-                            return Offset.Zero
-                        }
-
-                        override fun onPostScroll(
-                            consumed: Offset,
-                            available: Offset,
-                            source: NestedScrollSource
-                        ): Offset {
-                            estimatedScroll -= consumed.y
-                            if (estimatedScroll < 0f) estimatedScroll = 0f
-                            return Offset.Zero
-                        }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .nestedScroll(nestedScrollConnection, nestedScrollDispatcher)
-                ) {
-                    val cardInfos by documentModel.documentInfos.collectAsState()
-                    VerticalCardList(
-                        modifier = Modifier.fillMaxSize(),
-                        cardInfos = cardInfos,
-                        focusedCard = focusedDocument,
-                        allowCardReordering = true,
-                        showStackWhileFocused = false,
-                        cardMaxHeight = maxCardHeight,
-                        state = verticalCardListState,
-                        showCardInfo = { cardInfo ->
-                            val documentInfo = cardInfo as DocumentInfo
-                            DocumentInfoContent(
-                                documentInfo = documentInfo,
-                                settingsModel = settingsModel,
-                                justAdded = justAdded,
-                                onDocumentActivityClicked = onDocumentActivityClicked,
-                                onDocumentInfoClicked = onDocumentInfoClicked,
-                                onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
-                                onDocumentRemoveClicked = onDocumentRemoveClicked,
-                                onDocumentSetupClicked = onDocumentSetupClicked,
-                                onDocumentSyncClicked = onDocumentSyncClicked,
-                                onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
-                            )
-                        },
-                        emptyContent = {
-                            EmptyWalletStateContent()
-                        },
-                        onCardReordered = { cardInfo, newIndex ->
-                            val documentInfo = cardInfo as DocumentInfo
-                            coroutineScope.launch {
-                                try {
-                                    documentModel.setDocumentPosition(
-                                        documentInfo = documentInfo,
-                                        position = newIndex
-                                    )
-                                } catch (e: IllegalArgumentException) {
-                                    Logger.e(TAG, "Error setting document position", e)
-                                }
-                            }
-                        },
-                        onCardFocused = { cardInfo ->
-                            val documentInfo = cardInfo as DocumentInfo
-                            onDocumentClicked(documentInfo)
-                        },
-                        onCardFocusedTapped =  { cardInfo ->
-                            onBackClicked()
-                        },
-                        onCardFocusedStackTapped =  { cardInfo -> }
                     )
-                }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .hazeSource(hazeState)
+            ) {
+                val cardInfos by documentModel.documentInfos.collectAsState()
+                VerticalCardList(
+                    modifier = Modifier.fillMaxSize(),
+                    cardInfos = cardInfos,
+                    focusedCard = focusedDocument,
+                    allowCardReordering = true,
+                    showStackWhileFocused = false,
+                    cardMaxHeight = maxCardHeight,
+                    paddingTop = innerPadding.calculateTopPadding(),
+                    state = verticalCardListState,
+                    showCardInfo = { cardInfo ->
+                        val documentInfo = cardInfo as DocumentInfo
+                        DocumentInfoContent(
+                            documentInfo = documentInfo,
+                            settingsModel = settingsModel,
+                            justAdded = justAdded,
+                            onDocumentActivityClicked = onDocumentActivityClicked,
+                            onDocumentInfoClicked = onDocumentInfoClicked,
+                            onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
+                            onDocumentRemoveClicked = onDocumentRemoveClicked,
+                            onDocumentSetupClicked = onDocumentSetupClicked,
+                            onDocumentSyncClicked = onDocumentSyncClicked,
+                            onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
+                        )
+                    },
+                    emptyContent = {
+                        EmptyWalletStateContent()
+                    },
+                    onCardReordered = { cardInfo, newIndex ->
+                        val documentInfo = cardInfo as DocumentInfo
+                        coroutineScope.launch {
+                            try {
+                                documentModel.setDocumentPosition(
+                                    documentInfo = documentInfo,
+                                    position = newIndex
+                                )
+                            } catch (e: IllegalArgumentException) {
+                                Logger.e(TAG, "Error setting document position", e)
+                            }
+                        }
+                    },
+                    onCardFocused = { cardInfo ->
+                        val documentInfo = cardInfo as DocumentInfo
+                        onDocumentClicked(documentInfo)
+                    },
+                    onCardFocusedTapped =  { cardInfo ->
+                        onBackClicked()
+                    },
+                    onCardFocusedStackTapped =  { cardInfo -> }
+                )
             }
         }
     }

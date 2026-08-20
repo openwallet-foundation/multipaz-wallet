@@ -43,6 +43,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.time.Instant
@@ -53,6 +55,8 @@ import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.shared.ClientType
@@ -66,6 +70,7 @@ fun DeviceSessionsScreen(
     walletClient: WalletClient,
     onBackClicked: () -> Unit
 ) {
+    val hazeState = remember { HazeState() }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val signedInData = walletClient.signedInUser.collectAsState().value
@@ -99,8 +104,8 @@ fun DeviceSessionsScreen(
                 sessions.value = walletClient.getSessions(locale)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                Logger.e(TAG, "Failed to load device sessions", e)
-                error.value = e.message ?: "Failed to load device sessions"
+                Logger.e(TAG, "Failed to get sessions", e)
+                error.value = e.message
             } finally {
                 isLoading.value = false
             }
@@ -117,17 +122,12 @@ fun DeviceSessionsScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.device_sessions_screen_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
                     IconButton(
@@ -140,18 +140,25 @@ fun DeviceSessionsScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         },
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             val accountIdentifier = signedInData?.id ?: stringResource(R.string.device_sessions_screen_your_account)
             Note(stringResource(R.string.device_sessions_screen_blurb, accountIdentifier))
 

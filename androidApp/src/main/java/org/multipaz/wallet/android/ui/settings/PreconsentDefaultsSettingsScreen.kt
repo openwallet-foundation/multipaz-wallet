@@ -14,10 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,15 +22,20 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import org.multipaz.compose.items.FloatingItemContainer
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.InfoNote
 import org.multipaz.wallet.android.ui.Note
 
@@ -43,6 +45,7 @@ fun PreconsentDefaultsSettingsScreen(
     settingsModel: SettingsModel,
     onBackClicked: () -> Unit
 ) {
+    val hazeState = remember { HazeState() }
     val preconsentForNewDocuments = settingsModel.preconsentForNewDocuments.collectAsState().value
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
@@ -51,30 +54,31 @@ fun PreconsentDefaultsSettingsScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.preconsent_defaults_screen_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         },
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .hazeSource(hazeState)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.preconsent_defaults_screen_blurb))
 
             FloatingItemList {

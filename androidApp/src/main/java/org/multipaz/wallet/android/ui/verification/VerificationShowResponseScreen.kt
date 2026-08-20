@@ -32,7 +32,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -45,6 +44,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -171,13 +174,14 @@ fun VerificationShowResponseScreen(
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
 
+    val hazeState = remember { HazeState() }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.verification_show_response_title),
@@ -187,12 +191,7 @@ fun VerificationShowResponseScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
                     if (eventIdentifier != null) {
@@ -224,18 +223,24 @@ fun VerificationShowResponseScreen(
                         }
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             if (parsingResponseFailed.value != null) {
                 ShowParsingFailedError(parsingResponseFailed.value!!)
             } else {

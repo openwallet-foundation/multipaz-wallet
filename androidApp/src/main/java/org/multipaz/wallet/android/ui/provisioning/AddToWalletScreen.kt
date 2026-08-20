@@ -19,7 +19,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
@@ -54,6 +55,8 @@ import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.shared.CredentialIssuer
@@ -72,6 +75,7 @@ fun AddToWalletScreen(
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
+    val hazeState = remember { HazeState() }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var credentialIssuers by remember { mutableStateOf<List<CredentialIssuer>?>(null) }
@@ -166,32 +170,34 @@ fun AddToWalletScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.provisioning_add_to_wallet_screen_screen_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+                .fillMaxSize()
+                .hazeSource(hazeState)
                 .verticalScroll(scrollState),
         ) {
             val iconSize = 24.dp
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
                 Note(
                     stringResource(R.string.provisioning_add_to_wallet_screen_explainer)
                 )

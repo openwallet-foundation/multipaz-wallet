@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -47,6 +47,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -72,6 +74,8 @@ import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isProximityPresentment
 import org.multipaz.wallet.android.getDisplayName
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverDocumentQueryResult
 import org.multipaz.wallet.client.verification.AgeOverQuery
@@ -99,6 +103,7 @@ fun VerificationEventListScreen(
     onEventClicked: (event: EventVerification) -> Unit,
     onBackClicked: () -> Unit
 ) {
+    val hazeState = remember { HazeState() }
     val coroutineScope = rememberCoroutineScope()
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
@@ -114,7 +119,7 @@ fun VerificationEventListScreen(
         if (currentEvents != null) {
             for (event in currentEvents) {
                 if (eventDataMap.containsKey(event.identifier)) continue
-                launch(Dispatchers.Default) {
+                coroutineScope.launch(Dispatchers.Default) {
                     val data = try {
                         val queryDataItem = event.appData["query"]
                         if (queryDataItem != null) {
@@ -161,17 +166,12 @@ fun VerificationEventListScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.verification_history_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
                     IconButton(
@@ -184,7 +184,8 @@ fun VerificationEventListScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         }
     ) { innerPadding ->
@@ -192,6 +193,7 @@ fun VerificationEventListScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .hazeSource(hazeState)
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
@@ -200,11 +202,17 @@ fun VerificationEventListScreen(
         } else {
             Column(
                 modifier = Modifier
-                    .padding(innerPadding)
-                    .padding(16.dp)
-                    .verticalScroll(scrollState),
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .verticalScroll(scrollState)
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
                 Note(
                     markdownString = stringResource(R.string.verification_history_note)
                 )

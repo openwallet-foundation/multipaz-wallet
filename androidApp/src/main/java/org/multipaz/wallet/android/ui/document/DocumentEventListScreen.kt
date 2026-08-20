@@ -39,15 +39,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
+import org.multipaz.datetime.formatLocalized
 import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
-import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
 import org.multipaz.eventlogger.EventProvisioning
@@ -57,6 +59,8 @@ import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
 import org.multipaz.wallet.android.isForDocumentId
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,17 +75,16 @@ fun DocumentEventListScreen(
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
+    val hazeState = remember { HazeState() }
     val coroutineScope = rememberCoroutineScope()
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
     val scrollState = rememberScrollState()
 
-    val documentEvents = events?.sortedByDescending { it.timestamp }?.filter { event ->
-        event.isForDocumentId(documentId)
-    }
-    val documentInfo = documentModel.documentInfos.collectAsState().value.find {
-        it.document.identifier == documentId
-    }
+    val documentInfos by documentModel.documentInfos.collectAsState()
+    val documentInfo = documentInfos.find { it.document.identifier == documentId }
+    val documentEvents = events?.filter { it.isForDocumentId(documentId) }?.sortedByDescending { it.timestamp }
+
     val typeDisplayName = documentInfo?.document?.typeDisplayName.orEmpty()
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -90,17 +93,12 @@ fun DocumentEventListScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.document_event_list_screen_title, typeDisplayName))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
                     IconButton(
@@ -113,7 +111,8 @@ fun DocumentEventListScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         }
     ) { innerPadding ->
@@ -121,12 +120,18 @@ fun DocumentEventListScreen(
         //
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(
                 markdownString = stringResource(R.string.document_event_list_screen_explainer)
             )

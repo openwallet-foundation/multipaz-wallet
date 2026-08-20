@@ -38,8 +38,8 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.multipaz.compose.webview.MarkdownText
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.MarkdownView
 import kotlin.math.min
 
 @SuppressLint("LocalContextGetResourceValueCall")
@@ -168,9 +168,9 @@ fun SetupEulaScreen(
                 Column(
                     modifier = Modifier.verticalScroll(scrollState)
                 ) {
-                    MarkdownText(
+                    MarkdownView(
                         modifier = Modifier.padding(vertical = 16.dp),
-                        content = eulaText!!
+                        markdown = eulaText!!
                     )
                 }
             }

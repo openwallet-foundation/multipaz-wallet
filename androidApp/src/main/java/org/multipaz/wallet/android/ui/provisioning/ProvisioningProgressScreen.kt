@@ -16,24 +16,28 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.AppTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProvisioningProgressScreen(
     onCloseClicked: () -> Unit,
 ) {
+    val hazeState = remember { HazeState() }
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopAppBar(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onCloseClicked) {
@@ -42,12 +46,15 @@ fun ProvisioningProgressScreen(
                             contentDescription = stringResource(R.string.provisioning_progress_cancel_description)
                         )
                     }
-                }
+                },
+                hazeState = hazeState
             )
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

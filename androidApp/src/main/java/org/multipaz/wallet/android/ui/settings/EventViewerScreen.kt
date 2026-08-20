@@ -118,6 +118,10 @@ import org.multipaz.wallet.shared.Location
 import org.multipaz.wallet.shared.fromDataItem
 import org.multipaz.wallet.android.isProximityPresentment
 import org.multipaz.wallet.android.shareEvent
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlin.time.Clock
 
 private const val TAG = "EventViewerScreen"
@@ -139,6 +143,7 @@ fun EventViewerScreen(
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
 ) {
+    val hazeState = remember { HazeState() }
     val localContext = LocalContext.current
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
@@ -151,17 +156,12 @@ fun EventViewerScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(stringResource(R.string.event_viewer_screen_title_text))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
                     IconButton(
@@ -191,7 +191,8 @@ fun EventViewerScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         }
     ) { innerPadding ->
@@ -199,12 +200,18 @@ fun EventViewerScreen(
         //
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             when (val currentEvents = events) {
                 null -> {
                     CircularProgressIndicator()

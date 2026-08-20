@@ -21,11 +21,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import org.multipaz.claim.JsonClaim
@@ -34,23 +36,25 @@ import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemHeadingAndDate
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isProximityPresentable
 import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentInfoScreen(
-    documentId: String,
     documentModel: DocumentModel,
+    documentId: String,
     settingsModel: SettingsModel,
     onBackClicked: () -> Unit,
     onDeveloperExtrasClicked: () -> Unit,
 ) {
+    val hazeState = remember { HazeState() }
     val devMode = settingsModel.devMode.collectAsState().value
     val documentInfo = documentModel.documentInfos.collectAsState().value.find {
         it.document.identifier == documentId
@@ -65,7 +69,7 @@ fun DocumentInfoScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(
                         text = stringResource(R.string.doc_info_screen_title, typeDisplayName),
@@ -75,24 +79,25 @@ fun DocumentInfoScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    AppBackButton(onClick = onBackClicked)
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
+                .hazeSource(hazeState)
                 .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
         ) {
+            Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
             val hint = if (documentInfo.isProximityPresentable) {
                 stringResource(R.string.doc_info_screen_usage_info)
             } else {

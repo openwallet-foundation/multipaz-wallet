@@ -1,7 +1,9 @@
 package org.multipaz.wallet.android.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,7 +14,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,7 +31,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryEditor
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.trustmanagement.TrustManager
@@ -46,6 +50,7 @@ fun TrustEntryEditScreen(
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit,
 ) {
+    val hazeState = remember { HazeState() }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     var showConfirmationBeforeExiting by remember { mutableStateOf(false) }
@@ -69,10 +74,8 @@ fun TrustEntryEditScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        coroutineScope.launch {
-                            showConfirmationBeforeExiting = false
-                            onBackClicked()
-                        }
+                        showConfirmationBeforeExiting = false
+                        onBackClicked()
                     }
                 ) {
                     Text(text = stringResource(R.string.trust_entry_edit_discard_confirm))
@@ -93,7 +96,7 @@ fun TrustEntryEditScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            MediumTopAppBar(
+            AppMediumTopAppBar(
                 title = {
                     Text(text = stringResource(R.string.trust_entry_edit_title))
                 },
@@ -130,17 +133,23 @@ fun TrustEntryEditScreen(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                hazeState = hazeState
             )
         },
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .verticalScroll(scrollState)
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             TrustEntryEditor(
                 trustEntryInfo = info,
                 imageLoader = imageLoader,
