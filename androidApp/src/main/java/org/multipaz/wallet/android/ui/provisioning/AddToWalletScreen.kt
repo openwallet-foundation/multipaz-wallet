@@ -7,27 +7,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.FileUpload
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import coil3.ImageLoader
@@ -51,7 +44,6 @@ import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.pickers.rememberFilePicker
-import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -71,7 +63,8 @@ fun AddToWalletScreen(
     imageLoader: ImageLoader,
     onCredentialIssuerClicked: (credentialIssuer: CredentialIssuer) -> Unit,
     onImportMpzPass: (encodedMpzPass: ByteString) -> Unit,
-    onCredentialIssuerUrl: (issuerUrl: String) -> Unit,
+    onScanCredentialOfferClicked: () -> Unit,
+    onEnterIssuerUrlClicked: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -90,61 +83,6 @@ fun AddToWalletScreen(
             errorLoading = e
         }
     }
-
-    val showOpenID4VCIServerUrlDialog = remember { mutableStateOf(false) }
-    if (showOpenID4VCIServerUrlDialog.value) {
-        val issuingServerUrl = remember { mutableStateOf(settingsModel.provisioningServerUrl.value) }
-        AlertDialog(
-            onDismissRequest = { showOpenID4VCIServerUrlDialog.value = false },
-            title = { Text(stringResource(R.string.provisioning_add_to_wallet_screen_issuer_server_dialog_title)) },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showOpenID4VCIServerUrlDialog.value = false
-                    }
-                ) {
-                    Text(stringResource(R.string.provisioning_add_to_wallet_screen_issuer_server_dialog_cancel))
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        settingsModel.provisioningServerUrl.value = issuingServerUrl.value
-                        showOpenID4VCIServerUrlDialog.value = false
-                        onCredentialIssuerUrl(issuingServerUrl.value)
-                    }) {
-                    Text(stringResource(R.string.provisioning_add_to_wallet_screen_issuer_server_dialog_connect))
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    TextField(
-                        modifier = Modifier.padding(4.dp),
-                        value = issuingServerUrl.value,
-                        onValueChange = { issuingServerUrl.value = it },
-                        singleLine = true,
-                        label = {
-                            Text(stringResource(R.string.provisioning_add_to_wallet_screen_issuer_server_dialog_url_label))
-                        }
-                    )
-
-                    val resetToDefaultText = stringResource(R.string.provisioning_add_to_wallet_screen_issuer_server_dialog_reset)
-                    Text(
-                        text = AnnotatedString.fromMarkdown(
-                            markdownString = "[$resetToDefaultText](reset://)",
-                            linkInteractionListener = {
-                                settingsModel.provisioningServerUrl.value = SettingsModel.DEFAULT_PROVISIONING_SERVER_URL
-                                issuingServerUrl.value = SettingsModel.DEFAULT_PROVISIONING_SERVER_URL
-                            }
-                        )
-                    )
-                }
-            }
-        )
-    }
-
 
     val importMpzPassFilePicker = rememberFilePicker(
         // Android derives a file's MIME type from its extension, and `.mpzpass` is not in the OS
@@ -235,6 +173,7 @@ fun AddToWalletScreen(
                 FloatingItemList {
                     FloatingItemText(
                         modifier = Modifier.clickable { importMpzPassFilePicker.launch() },
+                        showChevron = true,
                         text = stringResource(R.string.provisioning_add_to_wallet_screen_import_pass),
                         image = {
                             Icon(
@@ -245,25 +184,32 @@ fun AddToWalletScreen(
                             )
                         }
                     )
-                }
-
-                if (settingsModel.devMode.collectAsState().value) {
-                    FloatingItemList {
-                        FloatingItemText(
-                            modifier = Modifier.clickable {
-                                showOpenID4VCIServerUrlDialog.value = true
-                            },
-                            text = stringResource(R.string.provisioning_add_to_wallet_screen_enter_issuer_url_item),
-                            image = {
-                                Icon(
-                                    modifier = Modifier
-                                        .width(1.586 * iconSize).height(iconSize),
-                                    imageVector = Icons.Outlined.AccountBalance,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                    }
+                    FloatingItemText(
+                        modifier = Modifier.clickable { onScanCredentialOfferClicked() },
+                        showChevron = true,
+                        text = stringResource(R.string.provisioning_add_to_wallet_screen_scan_credential_offer),
+                        image = {
+                            Icon(
+                                modifier = Modifier
+                                    .width(1.586 * iconSize).height(iconSize),
+                                imageVector = Icons.Outlined.QrCode2,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    FloatingItemText(
+                        modifier = Modifier.clickable { onEnterIssuerUrlClicked() },
+                        showChevron = true,
+                        text = stringResource(R.string.provisioning_add_to_wallet_screen_enter_issuer_url_item),
+                        image = {
+                            Icon(
+                                modifier = Modifier
+                                    .width(1.586 * iconSize).height(iconSize),
+                                imageVector = Icons.Outlined.AccountBalance,
+                                contentDescription = null
+                            )
+                        }
+                    )
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }

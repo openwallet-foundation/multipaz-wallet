@@ -84,7 +84,9 @@ import org.multipaz.wallet.android.ui.document.ManageTrustedReadersAddReaderDial
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersScreen
 import org.multipaz.wallet.android.ui.document.PreconsentSettingsScreen
 import org.multipaz.wallet.android.ui.provisioning.AddToWalletScreen
+import org.multipaz.wallet.android.ui.provisioning.EnterIssuerUrlScreen
 import org.multipaz.wallet.android.ui.provisioning.ProvisioningRoute
+import org.multipaz.wallet.android.ui.provisioning.ScanCredentialOfferScreen
 import org.multipaz.wallet.android.ui.settings.AboutScreen
 import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
@@ -557,7 +559,34 @@ fun mainGraph(
                             mpzPassesToImportChannel.send(encodedMpzPass)
                         }
                     },
-                    onCredentialIssuerUrl = { issuerUrl ->
+                    onScanCredentialOfferClicked = {
+                        backStack.add(ScanCredentialOfferDestination)
+                    },
+                    onEnterIssuerUrlClicked = {
+                        backStack.add(EnterIssuerUrlDestination)
+                    },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    showToast = showToast
+                )
+            }
+            is ScanCredentialOfferDestination -> NavEntry(key) {
+                ScanCredentialOfferScreen(
+                    onCredentialOfferScanned = { offerUri ->
+                        backStack.removeAt(backStack.size - 1)
+                        backStack.add(
+                            ProvisioningDestination(
+                                openID4VCICredentialOfferUri = offerUri
+                            )
+                        )
+                    },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is EnterIssuerUrlDestination -> NavEntry(key) {
+                EnterIssuerUrlScreen(
+                    settingsModel = settingsModel,
+                    onConnect = { issuerUrl ->
+                        backStack.removeAt(backStack.size - 1)
                         backStack.add(
                             ProvisioningDestination(
                                 credentialIssuer = null,
@@ -565,8 +594,7 @@ fun mainGraph(
                             )
                         )
                     },
-                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
-                    showToast = showToast
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is AboutDestination -> NavEntry(key) {

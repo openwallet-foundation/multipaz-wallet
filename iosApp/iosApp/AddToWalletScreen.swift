@@ -82,7 +82,7 @@ struct AddToWalletScreen: View {
                 }
             }
         }
-        .alert("Enter the URL for the issuer", isPresented: $showUrlDialog) {
+        .alert("Issuer URL", isPresented: $showUrlDialog) {
             TextField("Issuer server URL", text: $customIssuerUrl)
                 .keyboardType(.URL)
                 .autocapitalization(.none)
@@ -97,6 +97,8 @@ struct AddToWalletScreen: View {
                 viewModel.push(.provisioning(issuerUrl: defaultUrl, credentialId: nil))
             }
             Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter the URL of an OpenID4VCI server to inquire about the credentials it supports and start the provisioning process.")
         }
     }
 }

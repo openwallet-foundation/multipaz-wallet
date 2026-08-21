@@ -215,13 +215,16 @@ fun ProvisioningRoute(
                 is ProvisioningModel.CredentialsIssued -> {
                     LaunchedEffect(Unit) {
                         val document = provisioningState.document
+                        val metadata = provisioningModel.metadata.value
+                        val url = metadata?.url ?: issuerUrl.value ?: ""
+                        val credentialId = metadata?.credentials?.keys?.firstOrNull() ?: ""
                         val provisionedDocument = WalletClientProvisionedDocumentOpenID4VCI(
                             identifier = Random.nextBytes(16).toBase64Url(),
                             cardArt = document.cardArt,
                             displayName = document.displayName,
                             typeDisplayName = document.typeDisplayName,
-                            url = provisioningModel.metadata.value!!.url,
-                            credentialId = provisioningModel.metadata.value!!.credentials.keys.first()
+                            url = url,
+                            credentialId = credentialId
                         )
                         onComplete(
                             provisioningState.document,

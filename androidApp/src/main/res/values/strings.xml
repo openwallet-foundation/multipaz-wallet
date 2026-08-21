@@ -431,12 +431,18 @@
     <string name="provisioning_add_to_wallet_screen_error_loading">Error loading issuers. Are you online?</string>
     <string name="provisioning_add_to_wallet_screen_loading">Loading issuers</string>
     <string name="provisioning_add_to_wallet_screen_import_pass">Import pass from file</string>
-    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_title">Enter the URL for the issuer</string>
+    <string name="provisioning_add_to_wallet_screen_scan_credential_offer">Scan credential offer</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_title">Enter Issuer URL</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_text">Enter the URL of an OpenID4VCI server to inquire about the credentials it supports and start the provisioning process.</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_cancel">Cancel</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_connect">Connect</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_url_label">Issuer server URL</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_reset">Reset to default</string>
-    <string name="provisioning_add_to_wallet_screen_enter_issuer_url_item">Enter Issuer URL…</string>
+    <string name="provisioning_add_to_wallet_screen_enter_issuer_url_item">Enter Issuer URL</string>
+
+    <string name="scan_credential_offer_screen_title">Scan credential offer</string>
+    <string name="scan_credential_offer_camera_permission_required">Camera permission is required</string>
+    <string name="scan_credential_offer_grant_permission">Grant Permission</string>
     <string name="provisioning_auth_oauth_cancel_description">Cancel</string>
     <string name="provisioning_auth_pin_title">PIN required</string>
     <string name="provisioning_auth_passphrase_title">Passphrase required</string>

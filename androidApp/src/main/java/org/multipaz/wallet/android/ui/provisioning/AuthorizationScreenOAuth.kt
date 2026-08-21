@@ -4,8 +4,6 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.Bundle
-import androidx.browser.customtabs.CustomTabsCallback
 import androidx.browser.customtabs.CustomTabsClient
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.browser.customtabs.CustomTabsServiceConnection
@@ -14,16 +12,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -85,15 +81,12 @@ fun AuthorizationScreenOAuth(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 16.dp
-                ),
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
+            CircularProgressIndicator(modifier = Modifier.size(48.dp))
+
             preferences?.let {
                 EvidenceRequestOAuthBrowser(
                     url = challenge.url,
@@ -105,9 +98,6 @@ fun AuthorizationScreenOAuth(
                                 parameterizedRedirectUrl = invokedUrl
                             )
                         )
-                    },
-                    onTabClosed = {
-                        onCloseClicked()
                     }
                 )
             }
@@ -115,42 +105,15 @@ fun AuthorizationScreenOAuth(
     }
 }
 
-
 @Composable
 private fun EvidenceRequestOAuthBrowser(
     url: String,
     waitForRedirect: suspend () -> String,
-    onRedirectReceived: suspend (redirectUrk: String) -> Unit,
-    onTabClosed: () -> Unit,
+    onRedirectReceived: suspend (redirectUrl: String) -> Unit,
 ) {
     val context = LocalContext.current
-    // Partial-height Custom Tabs (bottom sheet presentation) require a CustomTabsSession
-    // obtained by binding to the browser's Custom Tabs service. Without a session,
-    // setInitialActivityHeightPx() is silently ignored and the tab opens full screen.
-    // The session starts as null and is set asynchronously once the service connects.
     var session by remember { mutableStateOf<CustomTabsSession?>(null) }
-    var receivedRedirect by remember { mutableStateOf(false) }
 
-    val callback = remember {
-        object : CustomTabsCallback() {
-            override fun onNavigationEvent(navigationEvent: Int, extras: Bundle?) {
-                super.onNavigationEvent(navigationEvent, extras)
-                if (navigationEvent == TAB_HIDDEN) {
-                    if (!receivedRedirect) {
-                        onTabClosed()
-                    }
-                }
-            }
-        }
-    }
-
-    // Connection callback for the Custom Tabs service binding. This is invoked
-    // asynchronously by the system after bindCustomTabsService() is called:
-    // - onCustomTabsServiceConnected: the browser service is ready. We call warmup()
-    //   to pre-initialize the browser rendering engine and create a CustomTabsSession
-    //   that enables partial-height presentation.
-    // - onServiceDisconnected: the browser service process crashed or was killed.
-    //   We null out the session to prevent using a stale reference.
     val connection = remember {
         object : CustomTabsServiceConnection() {
             override fun onCustomTabsServiceConnected(
@@ -158,7 +121,7 @@ private fun EvidenceRequestOAuthBrowser(
                 client: CustomTabsClient
             ) {
                 client.warmup(0)
-                session = client.newSession(callback)
+                session = client.newSession(null)
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
@@ -167,9 +130,6 @@ private fun EvidenceRequestOAuthBrowser(
         }
     }
 
-    // Bind to the Custom Tabs service when this composable enters composition,
-    // and unbind when it leaves. The binding is async: the connection callback
-    // above will fire once the service is ready, populating the session state.
     DisposableEffect(Unit) {
         val packageName = CustomTabsClient.getPackageName(context, null)
         if (packageName != null) {
@@ -190,13 +150,10 @@ private fun EvidenceRequestOAuthBrowser(
     // pipeline.
     LaunchedEffect(url) {
         val redirectResult = waitForRedirect()
-        receivedRedirect = true
         onRedirectReceived(redirectResult)
     }
 
-    // Launch the Custom Tab once the session is available. This effect is keyed on
-    // both url and session: it skips (returns) while session is null, and re-runs
-    // once the service connection provides a session.
+    // Launch the Custom Tab once the session is available.
     LaunchedEffect(url, session) {
         val currentSession = session ?: return@LaunchedEffect
         val activity = context.findActivity()
@@ -208,7 +165,7 @@ private fun EvidenceRequestOAuthBrowser(
         val customTabsIntent = CustomTabsIntent.Builder(currentSession)
             .build()
         customTabsIntent.intent.data = url.toUri()
-        activity.startActivityForResult(customTabsIntent.intent, 0)
+        activity.startActivity(customTabsIntent.intent)
     }
 }
 

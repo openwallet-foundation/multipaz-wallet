@@ -190,11 +190,11 @@ val AddToWalletScreen = FC<AddToWalletScreenProps> { props ->
                         className = ClassName("space-y-2")
                         h2 {
                             className = ClassName("text-2xl font-bold text-slate-900 dark:text-white")
-                            +"Custom Issuer URL"
+                            +"Issuer URL"
                         }
                         p {
                             className = ClassName("text-sm text-slate-500 dark:text-slate-400")
-                            +"Enter the URL of the provisioning server you want to connect to."
+                            +"Enter the URL of an OpenID4VCI server to inquire about the credentials it supports and start the provisioning process."
                         }
                     }
 
