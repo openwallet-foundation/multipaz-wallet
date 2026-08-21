@@ -53,7 +53,7 @@ import org.multipaz.wallet.client.setPreconsentSetting
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PreconsentSettingsScreen(
+fun DocumentPreconsentSettingsScreen(
     documentId: String,
     documentModel: DocumentModel,
     onBackClicked: () -> Unit,

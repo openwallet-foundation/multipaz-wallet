@@ -76,7 +76,7 @@ fun SettingsScreen(
     onTrustedReadersClicked: () -> Unit,
     onExternalNfcReadersClicked: () -> Unit,
     onActivityLoggingClicked: () -> Unit,
-    onPreconsentDefaultsClicked: () -> Unit,
+    onPreconsentSettingsClicked: () -> Unit,
     onDeveloperSettingsClicked: () -> Unit,
     onAboutClicked: () -> Unit,
     showToast: (message: String) -> Unit
@@ -227,9 +227,9 @@ fun SettingsScreen(
                     },
                 )
                 FloatingItemText(
-                    modifier = Modifier.clickable { onPreconsentDefaultsClicked() },
+                    modifier = Modifier.clickable { onPreconsentSettingsClicked() },
                     showChevron = true,
-                    text = stringResource(R.string.settings_screen_preconsent_defaults),
+                    text = stringResource(R.string.settings_screen_preconsent_settings),
                     image = {
                         Icon(Icons.Outlined.Lock, contentDescription = null)
                     },

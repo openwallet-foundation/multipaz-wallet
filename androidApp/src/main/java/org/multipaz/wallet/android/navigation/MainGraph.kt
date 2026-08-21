@@ -82,7 +82,7 @@ import org.multipaz.wallet.android.ui.document.DocumentInfoExtrasScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoScreen
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersAddReaderDialog
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersScreen
-import org.multipaz.wallet.android.ui.document.PreconsentSettingsScreen
+import org.multipaz.wallet.android.ui.document.DocumentPreconsentSettingsScreen
 import org.multipaz.wallet.android.ui.provisioning.AddToWalletScreen
 import org.multipaz.wallet.android.ui.provisioning.EnterIssuerUrlScreen
 import org.multipaz.wallet.android.ui.provisioning.ProvisioningRoute
@@ -93,7 +93,7 @@ import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletB
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperModeDocumentationScreen
-import org.multipaz.wallet.android.ui.settings.PreconsentDefaultsSettingsScreen
+import org.multipaz.wallet.android.ui.settings.PreconsentSettingsScreen
 import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.wallet.android.ui.settings.EventListScreen
@@ -366,7 +366,7 @@ fun mainGraph(
                             backStack.add(DeviceSessionsDestination)
                         },
                         onDocumentPreconsentSettingsClicked = { documentInfo ->
-                            backStack.add(PreconsentSettingsDestination(documentInfo.document.identifier))
+                            backStack.add(DocumentPreconsentSettingsDestination(documentInfo.document.identifier))
                         },
                         onBackClicked = {
                             backStack.removeAt(backStack.size - 1)
@@ -484,8 +484,8 @@ fun mainGraph(
                     }
                 )
             }
-            is PreconsentSettingsDestination -> NavEntry(key) {
-                PreconsentSettingsScreen(
+            is DocumentPreconsentSettingsDestination -> NavEntry(key) {
+                DocumentPreconsentSettingsScreen(
                     documentId = key.documentId,
                     documentModel = documentModel,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
@@ -662,8 +662,8 @@ fun mainGraph(
                     onActivityLoggingClicked = {
                         backStack.add(ActivityLoggingSettingsDestination)
                     },
-                    onPreconsentDefaultsClicked = {
-                        backStack.add(PreconsentDefaultsSettingsDestination)
+                    onPreconsentSettingsClicked = {
+                        backStack.add(PreconsentSettingsDestination)
                     },
                     onDeveloperSettingsClicked = {
                         backStack.add(DeveloperSettingsDestination)
@@ -674,10 +674,42 @@ fun mainGraph(
                     showToast = showToast,
                 )
             }
-            is PreconsentDefaultsSettingsDestination -> NavEntry(key) {
-                PreconsentDefaultsSettingsScreen(
+            is PreconsentSettingsDestination -> NavEntry(key) {
+                PreconsentSettingsScreen(
                     settingsModel = settingsModel,
-                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onApplyToAllClicked = {
+                        backStack.add(ApplyPreconsentSettingsToAllConfirmationDialogDestination)
+                    }
+                )
+            }
+            is ApplyPreconsentSettingsToAllConfirmationDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                ConfirmationDialog(
+                    title = stringResource(R.string.app_navigation_preconsent_apply_to_all_title),
+                    textMarkdown = stringResource(R.string.app_navigation_preconsent_apply_to_all_text),
+                    confirmButtonText = stringResource(R.string.app_navigation_preconsent_apply_to_all_confirm),
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmClicked = {
+                        coroutineScope.launch {
+                            try {
+                                val setting = if (settingsModel.preconsentForNewDocuments.value) {
+                                    DocumentPreconsentSetting.NeverRequireConsent
+                                } else {
+                                    DocumentPreconsentSetting.AlwaysRequireConsent
+                                }
+                                for (document in documentStore.listDocuments()) {
+                                    document.setPreconsentSetting(setting)
+                                }
+                            } catch (e: Throwable) {
+                                if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error applying pre-consent setting to all documents", e)
+                            }
+                            backStack.removeAt(backStack.size - 1)
+                        }
+                    }
                 )
             }
             is ExternalNfcReadersDestination -> NavEntry(key) {

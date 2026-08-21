@@ -105,7 +105,10 @@ data object AboutDestination: Destination()
 data object SettingsDestination: Destination()
 
 @Serializable
-data object PreconsentDefaultsSettingsDestination: Destination()
+data object PreconsentSettingsDestination: Destination()
+
+@Serializable
+data object ApplyPreconsentSettingsToAllConfirmationDialogDestination: Destination()
 
 @Serializable
 data object ExternalNfcReadersDestination: Destination()
@@ -265,7 +268,7 @@ data class CredentialInfoDestination(
 ): Destination()
 
 @Serializable
-data class PreconsentSettingsDestination(
+data class DocumentPreconsentSettingsDestination(
     val documentId: String
 ): Destination()
 

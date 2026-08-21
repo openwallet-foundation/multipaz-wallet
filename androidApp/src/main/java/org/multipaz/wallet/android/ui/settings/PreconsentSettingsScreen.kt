@@ -13,7 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -41,9 +44,10 @@ import org.multipaz.wallet.android.ui.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PreconsentDefaultsSettingsScreen(
+fun PreconsentSettingsScreen(
     settingsModel: SettingsModel,
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
+    onApplyToAllClicked: () -> Unit
 ) {
     val hazeState = remember { HazeState() }
     val preconsentForNewDocuments = settingsModel.preconsentForNewDocuments.collectAsState().value
@@ -56,10 +60,18 @@ fun PreconsentDefaultsSettingsScreen(
         topBar = {
             AppMediumTopAppBar(
                 title = {
-                    Text(stringResource(R.string.preconsent_defaults_screen_title))
+                    Text(stringResource(R.string.preconsent_settings_screen_title))
                 },
                 navigationIcon = {
                     AppBackButton(onClick = onBackClicked)
+                },
+                actions = {
+                    IconButton(onClick = onApplyToAllClicked) {
+                        Icon(
+                            imageVector = Icons.Outlined.Sync,
+                            contentDescription = stringResource(R.string.preconsent_settings_sync_button_content_description)
+                        )
+                    }
                 },
                 scrollBehavior = scrollBehavior,
                 hazeState = hazeState

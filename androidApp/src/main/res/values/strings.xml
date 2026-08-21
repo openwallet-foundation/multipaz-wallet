@@ -782,16 +782,20 @@
     <string name="document_info_refresh_credentials_content_description">Refresh credentials</string>
     <string name="document_info_developer_extras_content_description">Developer Extras</string>
 
-    <!-- Pre-consent defaults -->
-    <string name="settings_screen_preconsent_defaults">Pre-consent defaults</string>
-    <string name="preconsent_defaults_screen_title">Pre-consent defaults</string>
+    <!-- Pre-consent settings -->
+    <string name="settings_screen_preconsent_settings">Pre-consent settings</string>
+    <string name="preconsent_settings_screen_title">Pre-consent settings</string>
+    <string name="preconsent_settings_sync_button_content_description">Apply to all passes</string>
+    <string name="app_navigation_preconsent_apply_to_all_title">Apply to all passes?</string>
+    <string name="app_navigation_preconsent_apply_to_all_text">Do you want to apply the default pre-consent setting to all passes in your wallet? This will overwrite individual settings for each pass.</string>
+    <string name="app_navigation_preconsent_apply_to_all_confirm">Apply</string>
     <string name="preconsent_defaults_screen_blurb">Choose the default behavior for new passes added to your wallet. This setting determines whether new passes can automatically share information with verifiers in person without asking for explicit approval every time.</string>
     <string name="preconsent_defaults_option_enabled_title">Enable pre-consent by default</string>
     <string name="preconsent_defaults_option_enabled_description">New passes will be configured to allow pre-consent for in-person sharing requests.</string>
     <string name="preconsent_defaults_option_disabled_title">Always require explicit consent</string>
     <string name="preconsent_defaults_option_disabled_description">New passes will always ask for your explicit approval before sharing any information.</string>
     <string name="preconsent_defaults_per_document_note">Note: You can customize the pre-consent rules for any pass at any time with greater detail (such as limiting auto-sharing to age checks only or specific trusted verifiers) from each pass\'s settings screen.</string>
-    <string name="setup_preconsent_title">Pre-consent defaults</string>
+    <string name="setup_preconsent_title">Pre-consent settings</string>
     <string name="setup_preconsent_text">Configure default pre-consent behavior when adding new passes to your wallet.</string>
     <string name="setup_preconsent_continue">Continue</string>
 </resources>
