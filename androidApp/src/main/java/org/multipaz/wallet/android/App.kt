@@ -3,10 +3,14 @@ package org.multipaz.wallet.android
 import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
@@ -537,38 +541,43 @@ class App private constructor() {
         }
         val currentBranding = Branding.Current.collectAsState().value
         currentBranding.theme {
-            PromptDialogs(
-                promptModel = promptModel,
-                imageLoader = imageLoader
-            )
-            if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
-                CommunicatingWithBackendDialog()
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                PromptDialogs(
+                    promptModel = promptModel,
+                    imageLoader = imageLoader
+                )
+                if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
+                    CommunicatingWithBackendDialog()
+                }
+                MdocUrlVerificationNavHost(
+                    mdocUrl = mdocUrl,
+                    walletClient = walletClient,
+                    secureArea = secureArea,
+                    promptModel = promptModel,
+                    documentStore = documentStore,
+                    documentModel = documentModel,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
+                    settingsModel = settingsModel,
+                    externalNfcReaderStore = externalNfcReaderStore,
+                    eventLogger = eventLogger,
+                    provisioningModel = provisioningModel,
+                    proximityReaderModel = proximityReaderModel,
+                    imageLoader = imageLoader,
+                    userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+                    backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+                    userReaderTrustManagerModel = userReaderTrustManagerModel,
+                    backendReaderTrustManagerModel = backendReaderTrustManagerModel,
+                    issuerTrustManager = issuerTrustManager,
+                    readerTrustManager = readerTrustManager,
+                    revocationChecker = revocationChecker,
+                    showToast = ::showToast,
+                    onFinish = { (context as? android.app.Activity)?.finish() }
+                )
             }
-            MdocUrlVerificationNavHost(
-                mdocUrl = mdocUrl,
-                walletClient = walletClient,
-                secureArea = secureArea,
-                promptModel = promptModel,
-                documentStore = documentStore,
-                documentModel = documentModel,
-                documentTypeRepository = documentTypeRepository,
-                zkSystemRepository = zkSystemRepository,
-                settingsModel = settingsModel,
-                externalNfcReaderStore = externalNfcReaderStore,
-                eventLogger = eventLogger,
-                provisioningModel = provisioningModel,
-                proximityReaderModel = proximityReaderModel,
-                imageLoader = imageLoader,
-                userIssuerTrustManagerModel = userIssuerTrustManagerModel,
-                backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
-                userReaderTrustManagerModel = userReaderTrustManagerModel,
-                backendReaderTrustManagerModel = backendReaderTrustManagerModel,
-                issuerTrustManager = issuerTrustManager,
-                readerTrustManager = readerTrustManager,
-                revocationChecker = revocationChecker,
-                showToast = ::showToast,
-                onFinish = { (context as? android.app.Activity)?.finish() }
-            )
         }
     }
 
@@ -589,44 +598,49 @@ class App private constructor() {
 
         val currentBranding = Branding.Current.collectAsState().value
         currentBranding.theme {
-            PromptDialogs(
-                promptModel = promptModel,
-                imageLoader = imageLoader
-            )
-            if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
-                CommunicatingWithBackendDialog()
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                PromptDialogs(
+                    promptModel = promptModel,
+                    imageLoader = imageLoader
+                )
+                if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
+                    CommunicatingWithBackendDialog()
+                }
+                AppNavHost(
+                    app = this,
+                    walletClient = walletClient,
+                    httpClientEngineFactory = Android,
+                    storage = storage,
+                    secureArea = secureArea,
+                    promptModel = promptModel,
+                    documentStore = documentStore,
+                    documentModel = documentModel,
+                    documentTypeRepository = documentTypeRepository,
+                    zkSystemRepository = zkSystemRepository,
+                    settingsModel = settingsModel,
+                    externalNfcReaderStore = externalNfcReaderStore,
+                    eventLogger = eventLogger,
+                    provisioningModel = provisioningModel,
+                    proximityReaderModel = proximityReaderModel,
+                    imageLoader = imageLoader,
+                    userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+                    backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+                    userReaderTrustManagerModel = userReaderTrustManagerModel,
+                    backendReaderTrustManagerModel = backendReaderTrustManagerModel,
+                    issuerTrustManager = issuerTrustManager,
+                    readerTrustManager = readerTrustManager,
+                    revocationChecker = revocationChecker,
+                    mpzPassesToImportChannel = mpzPassesToImportChannel,
+                    credentialOffers = credentialOffers,
+                    documentIdToViewChannel = documentIdToViewChannel,
+                    eventIdToViewChannel = eventIdToViewChannel,
+                    requestVerificationFlow = requestVerificationFlow,
+                    showToast = ::showToast
+                )
             }
-            AppNavHost(
-                app = this,
-                walletClient = walletClient,
-                httpClientEngineFactory = Android,
-                storage = storage,
-                secureArea = secureArea,
-                promptModel = promptModel,
-                documentStore = documentStore,
-                documentModel = documentModel,
-                documentTypeRepository = documentTypeRepository,
-                zkSystemRepository = zkSystemRepository,
-                settingsModel = settingsModel,
-                externalNfcReaderStore = externalNfcReaderStore,
-                eventLogger = eventLogger,
-                provisioningModel = provisioningModel,
-                proximityReaderModel = proximityReaderModel,
-                imageLoader = imageLoader,
-                userIssuerTrustManagerModel = userIssuerTrustManagerModel,
-                backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
-                userReaderTrustManagerModel = userReaderTrustManagerModel,
-                backendReaderTrustManagerModel = backendReaderTrustManagerModel,
-                issuerTrustManager = issuerTrustManager,
-                readerTrustManager = readerTrustManager,
-                revocationChecker = revocationChecker,
-                mpzPassesToImportChannel = mpzPassesToImportChannel,
-                credentialOffers = credentialOffers,
-                documentIdToViewChannel = documentIdToViewChannel,
-                eventIdToViewChannel = eventIdToViewChannel,
-                requestVerificationFlow = requestVerificationFlow,
-                showToast = ::showToast
-            )
         }
     }
 
