@@ -1,5 +1,6 @@
 import SwiftUI
 import Multipaz
+import UniformTypeIdentifiers
 
 struct AddToWalletScreen: View {
     @Environment(ViewModel.self) private var viewModel
@@ -7,8 +8,9 @@ struct AddToWalletScreen: View {
     @State private var credentialIssuers: [CredentialIssuer]? = nil
     @State private var errorLoading: Error? = nil
     
-    @State private var showUrlDialog = false
-    @State private var customIssuerUrl = ""
+    @State private var showFilePicker = false
+    @State private var importErrorMessage: String? = nil
+    @State private var showImportErrorAlert = false
     
     var body: some View {
         ScrollView {
@@ -51,23 +53,77 @@ struct AddToWalletScreen: View {
                 }
                 .padding(.horizontal)
                 
-                if viewModel.settings.devMode {
-                    FloatingItemList {
-                        FloatingItemText(
-                            text: "Enter Issuer URL…",
-                            image: { Image(systemName: "building.columns") }
-                        ).onTapGesture {
-                            customIssuerUrl = viewModel.settings.provisioningServerUrl
-                            showUrlDialog = true
-                        }
+                FloatingItemList {
+                    FloatingItemText(
+                        text: "Import pass from file",
+                        showChevron: true,
+                        image: { Image(systemName: "square.and.arrow.down") }
+                    ).onTapGesture {
+                        showFilePicker = true
                     }
-                    .padding(.horizontal)
+                    
+                    FloatingItemText(
+                        text: "Scan credential offer",
+                        showChevron: true,
+                        image: { Image(systemName: "qrcode.viewfinder") }
+                    ).onTapGesture {
+                        viewModel.push(.scanCredentialOffer)
+                    }
+                    
+                    FloatingItemText(
+                        text: "Enter issuer URL",
+                        showChevron: true,
+                        image: { Image(systemName: "building.columns") }
+                    ).onTapGesture {
+                        viewModel.push(.enterIssuerUrl)
+                    }
                 }
+                .padding(.horizontal)
             }
             .padding(.vertical)
         }
         .navigationTitle("Add to wallet")
         .navigationBarTitleDisplayMode(.inline)
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.item, .data],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                let shouldStopAccessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if shouldStopAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                do {
+                    let data = try Data(contentsOf: url)
+                    Task {
+                        do {
+                            try await viewModel.importAndShowMpzPass(data: data)
+                        } catch {
+                            await MainActor.run {
+                                self.importErrorMessage = error.localizedDescription
+                                self.showImportErrorAlert = true
+                            }
+                        }
+                    }
+                } catch {
+                    self.importErrorMessage = error.localizedDescription
+                    self.showImportErrorAlert = true
+                }
+            case .failure(let error):
+                self.importErrorMessage = error.localizedDescription
+                self.showImportErrorAlert = true
+            }
+        }
+        .alert("Error importing pass", isPresented: $showImportErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importErrorMessage ?? "Something went wrong")
+        }
         .onAppear {
             Task {
                 do {
@@ -81,24 +137,6 @@ struct AddToWalletScreen: View {
                     }
                 }
             }
-        }
-        .alert("Issuer URL", isPresented: $showUrlDialog) {
-            TextField("Issuer server URL", text: $customIssuerUrl)
-                .keyboardType(.URL)
-                .autocapitalization(.none)
-            Button("Connect") {
-                viewModel.settings.provisioningServerUrl = customIssuerUrl
-                viewModel.push(.provisioning(issuerUrl: customIssuerUrl, credentialId: nil))
-            }
-            Button("Reset to default") {
-                let defaultUrl = "https://issuer.multipaz.org/issuer"
-                viewModel.settings.provisioningServerUrl = defaultUrl
-                customIssuerUrl = defaultUrl
-                viewModel.push(.provisioning(issuerUrl: defaultUrl, credentialId: nil))
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Enter the URL of an OpenID4VCI server to inquire about the credentials it supports and start the provisioning process.")
         }
     }
 }

@@ -16,6 +16,7 @@ class ViewModel {
 
     var storage: Storage!
     var secureArea: SecureArea!
+    var softwareSecureArea: SoftwareSecureArea!
     var secureAreaRepository: SecureAreaRepository!
     var documentTypeRepository: DocumentTypeRepository!
     var documentStore: DocumentStore!
@@ -76,8 +77,10 @@ class ViewModel {
             clientPlatform: getIosClientPlatform()
         )
         
+        softwareSecureArea = try! await SoftwareSecureArea.companion.create(storage: storage)
         secureAreaRepository = SecureAreaRepository.Builder()
             .add(secureArea: secureArea)
+            .add(secureArea: softwareSecureArea)
             .build()
         documentTypeRepository = DocumentTypeRepository()
         documentTypeRepository.addKnownTypes(locale: currentLocale)
@@ -284,20 +287,14 @@ class ViewModel {
             }
         )
         
-        if walletClient.signedInUser.value != nil {
-            do {
-                try await walletClient.refreshSharedData()
-                await self.syncSharedData()
-            } catch {
-                print("Error refreshing shared data at startup: \(error)")
-            }
-        }
+        await self.syncAtStartup()
         
         Task {
             var previousUser: WalletClientSignedInUser? = walletClient.signedInUser.value
             self.signedInUser = previousUser
             for await signedInUser in walletClient.signedInUser {
                 let userJustSignedOut = previousUser != nil && signedInUser == nil
+                let userJustSignedIn = previousUser == nil && signedInUser != nil
                 previousUser = signedInUser
                 self.signedInUser = signedInUser
                 
@@ -310,11 +307,26 @@ class ViewModel {
                     } catch {
                         print("Error clearing documents on sign-out: \(error)")
                     }
+                } else if userJustSignedIn {
+                    Task {
+                        await self.syncSharedData()
+                    }
                 }
             }
         }
 
         isLoading = false
+    }
+    
+    func syncAtStartup() async {
+        if walletClient.signedInUser.value != nil {
+            await self.syncSharedData()
+        }
+        do {
+            let _ = try await walletClient.refreshPublicData()
+        } catch {
+            print("Error refreshing public data at startup: \(error)")
+        }
     }
     
     private var isSyncingSharedData = false
@@ -323,6 +335,16 @@ class ViewModel {
         if isSyncingSharedData { return }
         isSyncingSharedData = true
         defer { isSyncingSharedData = false }
+
+        if walletClient.signedInUser.value == nil {
+            return
+        }
+
+        do {
+            try await walletClient.refreshSharedData()
+        } catch {
+            print("Failed to refreshSharedData before sync: \(error)")
+        }
 
         guard let sharedData = walletClient.sharedData.value else { return }
         do {
@@ -337,6 +359,62 @@ class ViewModel {
         } catch {
             print("Failed to syncWithSharedData: \(error)")
         }
+    }
+
+    func refreshWallet() async {
+        do {
+            let _ = try await walletClient.refreshPublicData()
+            if walletClient.signedInUser.value != nil {
+                await syncSharedData()
+            }
+            try await walletClient.refreshReaderKeys()
+        } catch {
+            print("Error refreshing wallet: \(error)")
+        }
+    }
+
+    func importMpzPass(data: Data) async throws -> Document {
+        let byteString = data.toByteString()
+        let byteArray = byteString.toByteArray(startIndex: 0, endIndex: Int32(data.count))
+        let dataItem = try Cbor.shared.decode(encodedCbor: byteArray)
+        let pass = try await MpzPass.companion.fromDataItem(dataItem: dataItem)
+        
+        let existingDocs = try await documentStore.listDocuments(sort: false)
+        if let existingDoc = existingDocs.first(where: { $0.mpzPassId == pass.uniqueId }) {
+            if let existingVersion = existingDoc.mpzPassVersion?.int64Value, existingVersion >= pass.version {
+                throw NSError(domain: "Multipaz", code: 2, userInfo: [NSLocalizedDescriptionKey: "The pass is already in your wallet."])
+            }
+        }
+        
+        if signedInUser != nil {
+            let _ = try await walletClient.refreshSharedData()
+            if let currentSharedData = walletClient.sharedData.value {
+                let updatedSharedData = try await currentSharedData.removeMpzPass(pass: pass).addMpzPass(pass: pass)
+                let _ = try await walletClient.setSharedData(sharedData: updatedSharedData, suppressSpinner: true)
+            }
+        }
+        
+        let document = try await documentStore.importMpzPass(
+            mpzPass: pass,
+            isoMdocDomain: Domains.shared.DOMAIN_MDOC_SOFTWARE,
+            sdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
+            keylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
+        )
+        try await document.setMpzPassData(data: byteString)
+        try await document.setPreconsentSetting(value: DocumentPreconsentSetting.NeverRequireConsent.shared)
+        
+        return document
+    }
+
+    func importAndShowMpzPass(data: Data) async throws {
+        let document = try await importMpzPass(data: data)
+        let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+        path = [
+            .walletScreen(
+                documentId: document.identifier,
+                justAddedAtMillis: nowMillis
+            )
+        ]
     }
     
     private var presentmentSource: PresentmentSource? = nil

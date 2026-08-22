@@ -73,5 +73,72 @@
 	<string>$(MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING)</string>
 	<key>CFBundleName</key>
 	<string>$(MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera permission is needed to scan QR codes for credential offers.</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Multipaz Pass</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>org.multipaz.mpzpass</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.multipaz.mpzpass</string>
+			<key>UTTypeDescription</key>
+			<string>Multipaz Pass</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+				<string>public.item</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mpzpass</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/vnd.multipaz.mpzpass</string>
+			</dict>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.multipaz.mpzpass</string>
+			<key>UTTypeDescription</key>
+			<string>Multipaz Pass</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+				<string>public.item</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mpzpass</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/vnd.multipaz.mpzpass</string>
+			</dict>
+		</dict>
+	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>

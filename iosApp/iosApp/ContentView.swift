@@ -35,6 +35,10 @@ struct ContentView: View {
                                 ProximityPresentmentScreen(documentId: documentId)
                             case .addToWallet:
                                 AddToWalletScreen()
+                            case .scanCredentialOffer:
+                                ScanCredentialOfferScreen()
+                            case .enterIssuerUrl:
+                                EnterIssuerUrlScreen()
                             case .provisioning(let issuerUrl, let credentialId, let provisionedDocumentIdentifier):
                                 ProvisioningScreen(issuerUrl: issuerUrl, credentialId: credentialId, provisionedDocumentIdentifier: provisionedDocumentIdentifier)
                             case .provisioningFromOffer(let credentialOfferUri):
@@ -70,15 +74,33 @@ struct ContentView: View {
             }
         }
         .onOpenURL { url in
-            let urlString = url.absoluteString
-            if urlString.hasPrefix("openid-credential-offer://") || urlString.hasPrefix("haip-vci://") {
-                viewModel.push(.provisioningFromOffer(credentialOfferUri: urlString))
-            } else if urlString.hasPrefix(viewModel.walletClient.appLinkBaseUrl) {
-                Task {
-                    try? await viewModel.walletClient.processAppLinkInvocation(url: urlString)
+            if url.isFileURL && url.pathExtension.lowercased() == "mpzpass" {
+                let shouldStopAccessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if shouldStopAccessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                if let data = try? Data(contentsOf: url) {
+                    Task {
+                        do {
+                            try await viewModel.importAndShowMpzPass(data: data)
+                        } catch {
+                            print("Error importing opened mpzpass: \(error)")
+                        }
+                    }
                 }
             } else {
-                print("Unhandled URL: \(urlString)")
+                let urlString = url.absoluteString
+                if urlString.hasPrefix("openid-credential-offer://") || urlString.hasPrefix("haip-vci://") {
+                    viewModel.push(.provisioningFromOffer(credentialOfferUri: urlString))
+                } else if urlString.hasPrefix(viewModel.walletClient.appLinkBaseUrl) {
+                    Task {
+                        try? await viewModel.walletClient.processAppLinkInvocation(url: urlString)
+                    }
+                } else {
+                    print("Unhandled URL: \(urlString)")
+                }
             }
         }
     }

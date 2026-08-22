@@ -319,47 +319,52 @@ struct CredentialSelectionView: View {
     let onSelected: (String) -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Select a credential type to add:")
-                .font(.headline)
-                .padding(.horizontal)
-            
-            // Collect credential ids
-            let keys = Array(metadata.credentials.keys).compactMap { $0 as? String }
-            
-            FloatingItemList {
-                ForEach(keys, id: \.self) { id in
-                    let credential = metadata.credentials[id]!
-                    
-                    FloatingItemText(
-                        text: credential.display.text,
-                        showChevron: true,
-                        secondary: toHumanReadable(credential.format),
-                        image: {
-                            if let logoData = credential.display.logo?.toNSData() {
-                                Image(uiImage: UIImage(data: logoData) ?? UIImage())
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 24, height: 24)
-                            } else {
-                                Image(systemName: "doc.plaintext")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("\(metadata.display.text) offers the following passes. Select a pass to continue.")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                
+                // Collect credential ids
+                let keys = Array(metadata.credentials.keys).compactMap { $0 as? String }
+                
+                FloatingItemList {
+                    ForEach(keys, id: \.self) { id in
+                        let credential = metadata.credentials[id]!
+                        
+                        FloatingItemText(
+                            text: credential.display.text,
+                            showChevron: true,
+                            secondary: toHumanReadable(credential.format),
+                            image: {
+                                if let logoData = credential.display.logo?.toNSData() {
+                                    Image(uiImage: UIImage(data: logoData) ?? UIImage())
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 24, height: 24)
+                                } else {
+                                    Image(systemName: "doc.plaintext")
+                                }
                             }
+                        ).onTapGesture {
+                            onSelected(id)
                         }
-                    ).onTapGesture {
-                        onSelected(id)
                     }
                 }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
+            .padding(.vertical)
         }
+        .navigationTitle("Select pass")
     }
     
     private func toHumanReadable(_ format: CredentialFormat) -> String {
         switch onEnum(of: format) {
         case .mdoc(let mdoc):
-            return "mdoc (\(mdoc.docType))"
+            return "ISO mdoc • \(mdoc.docType)"
         case .sdJwt(let sdJwt):
-            return "SD-JWT (\(sdJwt.vct))"
+            return "IETF SD-JWT VC • \(sdJwt.vct)"
         }
     }
 }

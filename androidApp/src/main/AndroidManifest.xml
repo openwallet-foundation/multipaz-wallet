@@ -108,47 +108,52 @@
             android:noHistory="true"
             android:launchMode="singleTask">
             <!-- Support for application/vnd.multipaz.mpzpass MIME type and associated .mpzpass file extension -->
+            <!-- 1. Explicit application/vnd.multipaz.mpzpass MIME type -->
             <intent-filter tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:mimeType="application/vnd.multipaz.mpzpass" />
             </intent-filter>
-            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
+            <!-- 2. Content URIs with application/octet-stream (assigned by Android for unknown file extensions) -->
+            <intent-filter tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
-                <data android:scheme="file" />
-                <data android:mimeType="*/*" />
-                <data android:pathSuffix=".mpzpass" />
-                <data android:pathPattern=".*\\.mpzpass" />
-                <data android:pathPattern=".*\\..*\\.mpzpass" />
-                <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\.mpzpass" />
-            </intent-filter>
-            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:scheme="file" />
                 <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <!-- 3. URIs ending in .mpzpass -->
+            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
                 <data android:pathSuffix=".mpzpass" />
                 <data android:pathPattern=".*\\.mpzpass" />
                 <data android:pathPattern=".*\\..*\\.mpzpass" />
                 <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.mpzpass" />
             </intent-filter>
-            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
-                <action android:name="android.intent.action.VIEW" />
+            <!-- 4. Support for receiving shared .mpzpass files via ACTION_SEND -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:scheme="file" />
-                <data android:pathSuffix=".mpzpass" />
-                <data android:pathPattern=".*\\.mpzpass" />
-                <data android:pathPattern=".*\\..*\\.mpzpass" />
-                <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
-                <data android:pathPattern=".*\\..*\\..*\\..*\\.mpzpass" />
+                <data android:mimeType="application/vnd.multipaz.mpzpass" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
 

@@ -172,6 +172,7 @@ private suspend fun DocumentStore.syncMpzPasses(
                     keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
                 )
                 withContext(NonCancellable) {
+                    document.setMpzPassData(ByteString(Cbor.encode(pass.toDataItem())))
                     if (initialPreconsentSetting != null) {
                         document.setPreconsentSetting(initialPreconsentSetting)
                     }
@@ -187,6 +188,7 @@ private suspend fun DocumentStore.syncMpzPasses(
                     keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
                 )
                 withContext(NonCancellable) {
+                    document.setMpzPassData(ByteString(Cbor.encode(pass.toDataItem())))
                     document.setPreconsentSetting(existingPreconsent)
                 }
                 Logger.i(TAG, "syncMpzPasses: Updated pass ${pass.uniqueId} from version $oldVersion to ${pass.version}")

@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import io.ktor.utils.io.CancellationException
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
@@ -293,13 +294,15 @@ private fun Tags.formatTagValue(key: String): String {
     } catch (_: IllegalArgumentException) {}
     try {
         getByteString(key)?.let { bstr ->
-            try {
-                return Cbor.decode(bstr.toByteArray()).toCdn()
-            } catch (_: Throwable) {}
-            return if (bstr.size > 64) {
+            return if (bstr.size > 512) {
                 "${bstr.size} bytes"
             } else {
-                bstr.toByteArray().toHex()
+                try {
+                    return Cbor.decode(bstr.toByteArray()).toCdn()
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    bstr.toByteArray().toHex()
+                }
             }
         }
     } catch (_: IllegalArgumentException) {}
@@ -311,7 +314,8 @@ private fun Tags.formatTagValue(key: String): String {
             return list.joinToString(", ") { bstr ->
                 try {
                     Cbor.decode(bstr.toByteArray()).toCdn()
-                } catch (_: Throwable) {
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
                     if (bstr.size > 64) "${bstr.size} bytes" else bstr.toByteArray().toHex()
                 }
             }

@@ -347,7 +347,7 @@ fun mainGraph(
                             backStack.add(
                                 RemoveDocumentConfirmationDialogDestination(
                                     documentId = documentInfo.document.identifier,
-                                    isSyncing = documentInfo.document.isSyncing
+                                    isSyncing = walletClient.signedInUser.value != null && documentInfo.document.isSyncing
                                 )
                             )
                         },

@@ -11,7 +11,7 @@ private const val PRECONSENT_SETTING_TAG_KEY = "org.multipaz.wallet.preconsentSe
  * Returns `true` if the document is synced to the backend and available on other devices.
  */
 val Document.isSyncing: Boolean
-    get() = provisionedDocumentIdentifier != null || mpzPassId != null
+    get() = provisionedDocumentIdentifier != null
 
 /**
  * The identifier of the provisioned document, if any.
@@ -84,3 +84,27 @@ suspend fun Document.setPreconsentSetting(value: DocumentPreconsentSetting) {
         tags.setByteString(PRECONSENT_SETTING_TAG_KEY, ByteString(value.toCbor()))
     }
 }
+
+private const val MPZ_PASS_DATA_TAG_KEY = "org.multipaz.wallet.mpzPassData"
+
+/**
+ * The raw `.mpzpass` CBOR data for this document, if it was imported from an [org.multipaz.mpzpass.MpzPass].
+ *
+ * @receiver a [Document].
+ * @return the raw `.mpzpass` CBOR bytes, or `null` if none is configured.
+ */
+val Document.mpzPassData: ByteString?
+    get() = tags.getByteString(MPZ_PASS_DATA_TAG_KEY)
+
+/**
+ * Sets the raw `.mpzpass` CBOR data for this document.
+ *
+ * @receiver a [Document].
+ * @param data the raw `.mpzpass` CBOR bytes to associate with this document.
+ */
+suspend fun Document.setMpzPassData(data: ByteString) {
+    edit {
+        tags.setByteString(MPZ_PASS_DATA_TAG_KEY, data)
+    }
+}
+

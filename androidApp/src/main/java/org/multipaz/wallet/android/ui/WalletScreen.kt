@@ -206,6 +206,7 @@ fun WalletScreen(
     val blePermissionState = rememberBluetoothPermissionState()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val signedIn = walletClient.signedInUser.collectAsState().value
 
     val focusedDocument = documentModel.documentInfos.collectAsState().value.find { documentInfo ->
         documentInfo.document.identifier == focusedDocumentId
@@ -376,7 +377,6 @@ fun WalletScreen(
                                 enter = fadeIn(),
                                 exit = fadeOut()
                             ) {
-                                val signedIn = walletClient.signedInUser.collectAsState().value
                                 IconButton(
                                     onClick = { onAvatarClicked() }
                                 ) {
@@ -518,6 +518,7 @@ fun WalletScreen(
                         DocumentInfoContent(
                             documentInfo = documentInfo,
                             settingsModel = settingsModel,
+                            isSyncing = signedIn != null && documentInfo.document.isSyncing,
                             justAdded = justAdded,
                             onDocumentActivityClicked = onDocumentActivityClicked,
                             onDocumentInfoClicked = onDocumentInfoClicked,
@@ -601,6 +602,7 @@ private fun JustAdded() {
 private fun DocumentInfoContent(
     documentInfo: DocumentInfo,
     settingsModel: SettingsModel,
+    isSyncing: Boolean,
     justAdded: Boolean,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -631,6 +633,7 @@ private fun DocumentInfoContent(
                 DocumentInfoContentReal(
                     documentInfo = documentInfo,
                     settingsModel = settingsModel,
+                    isSyncing = isSyncing,
                     onDocumentActivityClicked = onDocumentActivityClicked,
                     onDocumentInfoClicked = onDocumentInfoClicked,
                     onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
@@ -648,6 +651,7 @@ private fun DocumentInfoContent(
 private fun DocumentInfoContentReal(
     documentInfo: DocumentInfo,
     settingsModel: SettingsModel,
+    isSyncing: Boolean,
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoExtrasClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -699,7 +703,7 @@ private fun DocumentInfoContentReal(
         FloatingItemList {
             val typeDisplayName = documentInfo.document.typeDisplayName
                 ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
-            if (documentInfo.document.isSyncing) {
+            if (isSyncing) {
                 val devMode = settingsModel.devMode.collectAsState().value
                 val setupNeeded = documentInfo.document.provisionedDocumentSetupNeeded
                 val syncedSecondaryText = if (setupNeeded) {

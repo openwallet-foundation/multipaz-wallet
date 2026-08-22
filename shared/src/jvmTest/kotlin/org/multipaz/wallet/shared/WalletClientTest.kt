@@ -65,6 +65,7 @@ import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.client.WalletClientSharedData
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.clearOnSignOut
+import org.multipaz.wallet.client.mpzPassData
 import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.setPreconsentSetting
@@ -1274,7 +1275,7 @@ class WalletClientTest {
             mpzPassSdJwtVcDomain = "sdjwt_software",
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
-        assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
+        assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }?.mpzPassData)
 
         // Now simulate signing in from another device and check we get the same data
         val client2Storage = EphemeralStorage()
@@ -1303,7 +1304,7 @@ class WalletClientTest {
             mpzPassSdJwtVcDomain = "sdjwt_software",
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
-        assertNotNull(client2DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
+        assertNotNull(client2DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }?.mpzPassData)
 
         // Add pass2 to client2 ...
         client2.setSharedData(client2.sharedData.value!!.addMpzPass(pass2))
@@ -1323,8 +1324,8 @@ class WalletClientTest {
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
         assertEquals(2, client1DocumentStore.listDocuments().size)
-        assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId })
-        assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId })
+        assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }?.mpzPassData)
+        assertNotNull(client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId }?.mpzPassData)
 
         // Update pass1 on client1 to v2 ...
         client1.setSharedData(client1.sharedData.value!!.removeMpzPass(pass1).addMpzPass(pass1v2))
@@ -1335,7 +1336,7 @@ class WalletClientTest {
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
         assertNotNull(client1DocumentStore.listDocuments().find {
-            it.mpzPassId == pass1v2.uniqueId && it.mpzPassVersion == pass1v2.version
+            it.mpzPassId == pass1v2.uniqueId && it.mpzPassVersion == pass1v2.version && it.mpzPassData != null
         })
         // ... check it's updated on client2
         assertNotNull(client2DocumentStore.listDocuments().find {
@@ -1349,7 +1350,7 @@ class WalletClientTest {
             mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless"
         )
         assertNotNull(client2DocumentStore.listDocuments().find {
-            it.mpzPassId == pass1v2.uniqueId && it.mpzPassVersion == pass1v2.version
+            it.mpzPassId == pass1v2.uniqueId && it.mpzPassVersion == pass1v2.version && it.mpzPassData != null
         })
 
         // Delete pass2 on client2 ...

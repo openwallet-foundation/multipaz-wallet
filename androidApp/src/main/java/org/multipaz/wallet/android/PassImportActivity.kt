@@ -27,6 +27,8 @@ class PassImportActivity : Activity() {
         initializeApplication(this.applicationContext)
 
         val uri: Uri? = intent.data
+            ?: intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri
         if (uri != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {

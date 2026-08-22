@@ -45,6 +45,7 @@ import org.multipaz.storage.Storage
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.wallet.client.DocumentPreconsentSetting
+import org.multipaz.wallet.client.setMpzPassData
 import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.App
@@ -195,6 +196,7 @@ fun AppNavHost(
                         sdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                         keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                     )
+                    document.setMpzPassData(encodedPass)
                     if (!settingsModel.preconsentForNewDocuments.value) {
                         document.setPreconsentSetting(DocumentPreconsentSetting.AlwaysRequireConsent)
                     } else {
