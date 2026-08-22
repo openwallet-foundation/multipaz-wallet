@@ -409,6 +409,7 @@ fun mainGraph(
                     title = stringResource(R.string.app_navigation_remove_document_title),
                     textMarkdown = textMarkdown,
                     confirmButtonText = stringResource(R.string.app_navigation_remove_document_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         coroutineScope.launch {
@@ -772,6 +773,7 @@ fun mainGraph(
                         title = stringResource(R.string.external_nfc_reader_remove_dialog_title),
                         textMarkdown = stringResource(R.string.external_nfc_reader_remove_dialog_text),
                         confirmButtonText = stringResource(R.string.external_nfc_reader_remove_button),
+                        isDestructive = true,
                         onDismissed = { showRemoveConfirmationDialog = false },
                         onConfirmClicked = {
                             showRemoveConfirmationDialog = false
@@ -858,6 +860,7 @@ fun mainGraph(
                     title = stringResource(R.string.app_navigation_disable_activity_log_title),
                     textMarkdown = stringResource(R.string.app_navigation_disable_activity_log_text),
                     confirmButtonText = stringResource(R.string.app_navigation_disable_activity_log_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         coroutineScope.launch {
@@ -941,6 +944,7 @@ fun mainGraph(
                     title = stringResource(R.string.app_navigation_delete_all_events_title),
                     textMarkdown = stringResource(R.string.app_navigation_delete_all_events_text),
                     confirmButtonText = stringResource(R.string.app_navigation_delete_all_events_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         coroutineScope.launch {
@@ -987,6 +991,7 @@ fun mainGraph(
                     title = stringResource(R.string.app_navigation_delete_all_events_for_document_title),
                     textMarkdown = stringResource(R.string.app_navigation_delete_all_events_for_document_text),
                     confirmButtonText = stringResource(R.string.app_navigation_delete_all_events_for_document_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         coroutineScope.launch {
@@ -1040,6 +1045,7 @@ fun mainGraph(
                     title = stringResource(R.string.app_navigation_delete_event_title),
                     textMarkdown = stringResource(R.string.app_navigation_delete_event_text),
                     confirmButtonText = stringResource(R.string.app_navigation_delete_event_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         coroutineScope.launch {
@@ -1169,6 +1175,7 @@ fun mainGraph(
                     title = context.getString(R.string.dev_settings_clear_app_data_dialog_title),
                     textMarkdown = context.getString(R.string.dev_settings_clear_app_data_dialog_text),
                     confirmButtonText = context.getString(R.string.dev_settings_clear_app_data_dialog_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -1561,6 +1568,7 @@ fun mainGraph(
                     title = stringResource(R.string.request_verification_delete_pending_title),
                     textMarkdown = stringResource(R.string.request_verification_delete_pending_text),
                     confirmButtonText = stringResource(R.string.request_verification_delete_confirm),
+                    isDestructive = true,
                     onDismissed = { backStack.removeAt(backStack.size - 1) },
                     onConfirmClicked = {
                         val requestId = key.requestId

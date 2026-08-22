@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -291,11 +292,13 @@ fun DeviceSessionsScreen(
                                 error.value = e.message ?: "Failed to sign out session"
                             }
                         }
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
                     Text(
-                        text = stringResource(R.string.device_sessions_screen_sign_out_session_dialog_confirm),
-                        color = MaterialTheme.colorScheme.error
+                        text = stringResource(R.string.device_sessions_screen_sign_out_session_dialog_confirm)
                     )
                 }
             },

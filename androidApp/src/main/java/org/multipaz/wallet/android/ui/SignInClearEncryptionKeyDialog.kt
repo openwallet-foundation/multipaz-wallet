@@ -3,6 +3,8 @@ package org.multipaz.wallet.android.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,7 +24,10 @@ fun SignInClearEncryptionKeyDialog(
         onDismissRequest = onDismissed,
         confirmButton = {
             TextButton(
-                onClick = onConfirm
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
             ) {
                 Text(text = stringResource(R.string.sign_in_clear_key_dialog_confirm))
             }

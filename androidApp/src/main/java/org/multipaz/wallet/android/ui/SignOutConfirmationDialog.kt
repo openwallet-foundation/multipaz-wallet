@@ -1,7 +1,9 @@
 package org.multipaz.wallet.android.ui
 
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,7 +28,10 @@ fun SignOutConfirmationDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = onConfirmed
+                onClick = onConfirmed,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
             ) {
                 Text(text = stringResource(R.string.sign_out_dialog_confirm))
             }
