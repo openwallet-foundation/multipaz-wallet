@@ -252,6 +252,11 @@ data class RemoveDocumentConfirmationDialogDestination(
 ): Destination()
 
 @Serializable
+data class SharePassConfirmationDialogDestination(
+    val documentId: String
+): Destination()
+
+@Serializable
 data class DocumentInfoDestination(
     val documentId: String,
 ): Destination()

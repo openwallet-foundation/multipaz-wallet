@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -186,6 +187,7 @@ fun WalletScreen(
     onVerifyClicked: () -> Unit,
     onDocumentClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentQrClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentShareClicked: (documentInfo: DocumentInfo) -> Unit = {},
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoExtrasClicked: (documentInfo: DocumentInfo) -> Unit = {},
@@ -344,15 +346,28 @@ fun WalletScreen(
                                 enter = fadeIn(),
                                 exit = fadeOut()
                             ) {
-                                if (focusedDocument?.isProximityPresentable == true) {
-                                    IconButton(
-                                        onClick = { onDocumentQrClicked(focusedDocument) }
-                                    ) {
-                                        Icon(
-                                            modifier = Modifier.size(32.dp),
-                                            imageVector = Icons.Outlined.QrCode2,
-                                            contentDescription = null,
-                                        )
+                                Row {
+                                    if (focusedDocument?.document?.mpzPassId != null) {
+                                        IconButton(
+                                            onClick = { onDocumentShareClicked(focusedDocument) }
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier.size(32.dp),
+                                                imageVector = Icons.Outlined.Share,
+                                                contentDescription = stringResource(R.string.wallet_screen_share_pass_content_description),
+                                            )
+                                        }
+                                    }
+                                    if (focusedDocument?.isProximityPresentable == true) {
+                                        IconButton(
+                                            onClick = { onDocumentQrClicked(focusedDocument) }
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier.size(32.dp),
+                                                imageVector = Icons.Outlined.QrCode2,
+                                                contentDescription = null,
+                                            )
+                                        }
                                     }
                                 }
                             }

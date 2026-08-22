@@ -58,6 +58,7 @@ import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.App
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.RefreshReason
+import org.multipaz.wallet.android.shareMpzPass
 import org.multipaz.wallet.android.deleteVerification
 import org.multipaz.wallet.android.encodeCardArt
 import org.multipaz.wallet.android.generateVerificationLink
@@ -301,7 +302,7 @@ fun mainGraph(
                 }
                 NavEntry(key, metadata = metadata) {
                     val justAdded = key.justAddedAtMillis?.let {
-                        Clock.System.now() - Instant.fromEpochMilliseconds(it) < 1.seconds
+                        Clock.System.now() - Instant.fromEpochMilliseconds(it) < 5.seconds
                     } ?: false
 
                     // Disable animations for a card we just added
@@ -329,6 +330,9 @@ fun mainGraph(
                         },
                         onDocumentQrClicked = { documentInfo ->
                             backStack.add(DocumentQrPresentmentDialogDestination(documentInfo.document.identifier))
+                        },
+                        onDocumentShareClicked = { documentInfo ->
+                            backStack.add(SharePassConfirmationDialogDestination(documentInfo.document.identifier))
                         },
                         onDocumentActivityClicked = { documentInfo ->
                             backStack.add(DocumentEventListDestination(documentInfo.document.identifier))
@@ -434,6 +438,44 @@ fun mainGraph(
                         val lastKey = backStack.lastOrNull()
                         if (lastKey is WalletDestination && lastKey.documentId == key.documentId) {
                             backStack.removeAt(backStack.size - 1)
+                        }
+                    }
+                )
+            }
+            is SharePassConfirmationDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                ConfirmationDialog(
+                    title = stringResource(R.string.share_pass_confirmation_dialog_title),
+                    textMarkdown = stringResource(R.string.share_pass_confirmation_dialog_text),
+                    confirmButtonText = stringResource(R.string.share_pass_confirmation_dialog_confirm),
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                        coroutineScope.launch {
+                            try {
+                                val document = documentStore.lookupDocument(key.documentId)
+                                if (document != null) {
+                                    shareMpzPass(
+                                        context = context,
+                                        document = document,
+                                        walletClient = walletClient,
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error sharing pass", e)
+                                backStack.add(
+                                    ErrorDialogDestination(
+                                        title = context.getString(R.string.share_pass_error_dialog_title),
+                                        textMarkdown = context.getString(
+                                            R.string.share_pass_error_dialog_text,
+                                            e.toString()
+                                        )
+                                    )
+                                )
+                            }
                         }
                     }
                 )

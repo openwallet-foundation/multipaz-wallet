@@ -74,7 +74,7 @@
 
             <!-- AppLink used by provisioning backend, keep in sync with WalletClient.
                  The applinkHost parameter is defined in build.gradle.kts.
-             -->
+              -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -98,24 +98,53 @@
                 <!-- Accept all hosts for any of the defined schemes above -->
                 <data android:host="*"/>
             </intent-filter>
+        </activity>
 
+        <activity
+            android:name=".PassImportActivity"
+            android:theme="@style/Theme.Transparent"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleTask">
             <!-- Support for application/vnd.multipaz.mpzpass MIME type and associated .mpzpass file extension -->
-            <intent-filter>
+            <intent-filter tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:mimeType="application/vnd.multipaz.mpzpass" />
             </intent-filter>
-            <intent-filter>
+            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:mimeType="*/*" />
-                <data android:host="*" />
+                <data android:pathSuffix=".mpzpass" />
+                <data android:pathPattern=".*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.mpzpass" />
+            </intent-filter>
+            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:pathSuffix=".mpzpass" />
+                <data android:pathPattern=".*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.mpzpass" />
+            </intent-filter>
+            <intent-filter tools:ignore="AppLinkUrlError,UnusedAttribute">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:pathSuffix=".mpzpass" />
                 <data android:pathPattern=".*\\.mpzpass" />
                 <data android:pathPattern=".*\\..*\\.mpzpass" />
                 <data android:pathPattern=".*\\..*\\..*\\.mpzpass" />
@@ -232,6 +261,16 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${googleMapsApiKey}" />
+
+        <provider
+            android:name=".MultipazFileProvider"
+            android:authorities="${applicationId}.multipaz.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
     <!-- Needed for custom browser tabs -->

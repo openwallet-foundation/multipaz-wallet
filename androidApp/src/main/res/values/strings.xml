@@ -798,4 +798,13 @@
     <string name="setup_preconsent_title">Pre-consent settings</string>
     <string name="setup_preconsent_text">Configure default pre-consent behavior when adding new passes to your wallet.</string>
     <string name="setup_preconsent_continue">Continue</string>
+
+    <!-- Share pass -->
+    <string name="wallet_screen_share_pass_content_description">Share pass</string>
+    <string name="share_pass_confirmation_dialog_title">Share pass</string>
+    <string name="share_pass_confirmation_dialog_text">Once shared, this action cannot be undone. The recipient will receive a copy of this pass and will be able to forward it to anyone.</string>
+    <string name="share_pass_confirmation_dialog_confirm">Share</string>
+    <string name="share_pass_chooser_title">Share pass</string>
+    <string name="share_pass_error_dialog_title">Error sharing pass</string>
+    <string name="share_pass_error_dialog_text">There was an error sharing the pass: %1$s</string>
 </resources>

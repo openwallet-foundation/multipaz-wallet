@@ -27,6 +27,7 @@ import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.compose.cards.rememberVerticalCardListState
@@ -200,6 +201,13 @@ fun AppNavHost(
                         document.setPreconsentSetting(DocumentPreconsentSetting.NeverRequireConsent)
                     }
 
+                    // Wait for DocumentModel to have the document in its list so focusedDocument is found immediately
+                    documentModel.documentInfos.first { list ->
+                        list.any { it.document.identifier == document.identifier }
+                    }
+
+                    backStack.clear()
+                    backStack.add(WalletDestination())
                     backStack.add(
                         WalletDestination(
                             documentId = document.identifier,
