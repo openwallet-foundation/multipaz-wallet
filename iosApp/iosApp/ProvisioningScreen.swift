@@ -238,7 +238,8 @@ struct ProvisioningScreen: View {
                     viewModel.provisioningModel.launchOpenID4VCIProvisioning(
                         offerUri: offerUri,
                         clientPreferences: clientPreferences,
-                        backend: backend
+                        backend: backend,
+                        appData: nil // TODO
                     )
                 } else if let credId = credentialId, let url = issuerUrl {
                     let clientPreferences = try await viewModel.walletClient.getOpenID4VCIClientPreferences()
@@ -247,7 +248,8 @@ struct ProvisioningScreen: View {
                         issuerUrl: url,
                         credentialId: credId,
                         clientPreferences: clientPreferences,
-                        backend: backend
+                        backend: backend,
+                        appData: nil // TODO
                     )
                 } else if let url = issuerUrl {
                     let clientPreferences = try await viewModel.walletClient.getOpenID4VCIClientPreferences()
@@ -276,7 +278,8 @@ struct ProvisioningScreen: View {
                     issuerUrl: issuerUrl ?? "",
                     credentialId: selectedId,
                     clientPreferences: clientPreferences,
-                    backend: backend
+                    backend: backend,
+                    appData: nil // TODO
                 )
             } catch {
                 await MainActor.run {

@@ -57,7 +57,7 @@ class ViewModel {
         
         storage = IosStorage(
             storageFileUrl: FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: "group.org.multipaz.wallet.ios")!
+                forSecurityApplicationGroupIdentifier: Bundle.main.object(forInfoDictionaryKey: "AppGroupID") as! String)!
                 .appendingPathComponent("storage.db"),
             excludeFromBackup: true
         )
@@ -223,7 +223,8 @@ class ViewModel {
                     sdJwtUserAuthDomain: Domains.shared.DOMAIN_SDJWT_USER_AUTH,
                     sdJwtNoUserAuthDomain: Domains.shared.DOMAIN_SDJWT_NO_USER_AUTH,
                     sdJwtKeylessDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
-                )
+                ),
+                selectSecureArea: nil  // TODO
             ),
             httpClient: HttpClient(engineFactory: Darwin()) { config in
                 config.followRedirects = false
@@ -330,7 +331,8 @@ class ViewModel {
                 mpzPassIsoMdocDomain: Domains.shared.DOMAIN_MDOC_SOFTWARE,
                 mpzPassSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
                 mpzPassKeylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS,
-                walletClient: walletClient
+                walletClient: walletClient,
+                initialPreconsentSetting: DocumentPreconsentSetting.NeverRequireConsent.shared
             )
         } catch {
             print("Failed to syncWithSharedData: \(error)")

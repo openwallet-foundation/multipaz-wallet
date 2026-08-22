@@ -1,0 +1,13 @@
+// Local Xcode signing settings. This file is intentionally gitignored.
+
+// Set this to the ID for your Xcode Development Team, without quotes.
+DEVELOPMENT_TEAM = 
+
+// Set this to a bundle identifier registered to your Apple Developer account,
+// without the IdentityDocumentProviderExtension suffix. The extension target appends
+// .IdentityDocumentProviderExtension automatically.
+LOCAL_BUNDLE_ID =
+
+// Set this to an App Group registered to your Apple Developer account. iosApp
+// and IdentityDocumentProviderExtension use the same group for shared storage.
+APP_GROUP_ID =

@@ -8,7 +8,7 @@ import Multipaz
 func getPresentmentSource() async -> PresentmentSource {
     let storage = IosStorage(
         storageFileUrl: FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: "group.org.multipaz.wallet.ios")!
+            forSecurityApplicationGroupIdentifier: Bundle.main.object(forInfoDictionaryKey: "AppGroupID") as! String)!
             .appendingPathComponent("storage.db"),
         excludeFromBackup: true
     )

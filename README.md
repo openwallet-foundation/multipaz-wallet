@@ -98,13 +98,44 @@ To run the iOS app, first you need to build the XCFramework, like this
 ./gradlew shared:assembleXCFramework
 ```
 This framework contains all the Multipaz libraries as well as common code in `shared/` and will
-be available as a Swift package via `Package.swift`. Once this is done, you can open 
-`iosApp/iosApp.xcodeproj` in XCode and build the iOS app. You usually need to clean the build
-folder after doing this (Product -> Clean Build Folder...) before building.
+be available as a Swift package via `Package.swift`.
 
-You need to do these steps every time code in `shared/` is changed or when updating to a new
+You need to run this step every time code in `shared/` is changed or when updating to a new
 Multipaz version. Since building the framework is a time-consuming step (~10 minutes) changes
 to `shared/` are normally tested with the Android app, Web App, or unit tests first.
+
+### Developer Configuration
+
+To build the iOS app in Xcode you need local Apple signing settings in
+`iosApp/DeveloperConfig.xcconfig`. This file is intentionally gitignored because each
+developer uses their own Apple Developer Team, bundle ID, and App Group. The project
+includes a template at `iosApp/DeveloperConfig.xcconfig.template`.
+
+```shell
+cp iosApp/DeveloperConfig.xcconfig.template iosApp/DeveloperConfig.xcconfig && \
+$EDITOR iosApp/DeveloperConfig.xcconfig
+```
+
+In the opened editor, set:
+
+```xcconfig
+DEVELOPMENT_TEAM = YOUR_APPLE_TEAM_ID
+LOCAL_BUNDLE_ID = your.registered.wallet.bundle.id
+APP_GROUP_ID = group.your.registered.wallet.app.group
+```
+
+`LOCAL_BUNDLE_ID` is used as the `iosApp` bundle identifier. The
+`IdentityDocumentProviderExtension` target appends `.IdentityDocumentProviderExtension`
+to the same value, so register both bundle identifiers in your Apple Developer account.
+Both targets use `APP_GROUP_ID` for their App Groups entitlement and for the shared
+iOS storage container, so the App Group must be enabled for both App IDs.
+
+For example, if `LOCAL_BUNDLE_ID` is `org.example.wallet`, the extension bundle
+identifier is `org.example.wallet.IdentityDocumentProviderExtension`.
+
+Once configured, open `iosApp/iosApp.xcodeproj` in Xcode, select the `iosApp` scheme
+and a target device or simulator, and run the app. You usually need to clean the build
+folder after assembling the XCFramework (Product -> Clean Build Folder...) before building.
 
 ## Running Tests
 

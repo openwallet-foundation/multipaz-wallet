@@ -57,6 +57,7 @@
 		512891072F7041BB0001CB22 /* iosAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B2468A22F71933E0018E778 /* shared.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = shared.xcframework; path = ../shared/build/XCFrameworks/release/shared.xcframework; sourceTree = "<group>"; };
 		7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = IdentityDocumentProviderExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = DeveloperConfig.xcconfig; path = DeveloperConfig.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -148,6 +149,7 @@
 				5128910A2F7041BB0001CB22 /* iosAppUITests */,
 				7B2811052FF6EE7200BAAD14 /* IdentityDocumentProviderExtension */,
 				513CB7752F705CC2004CF8F7 /* Frameworks */,
+				7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */,
 				512890F12F7041B90001CB22 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -404,6 +406,7 @@
 /* Begin XCBuildConfiguration section */
 		5128910F2F7041BB0001CB22 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -437,7 +440,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -468,6 +471,7 @@
 		};
 		512891102F7041BB0001CB22 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -501,7 +505,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -525,13 +529,14 @@
 		};
 		512891122F7041BB0001CB22 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -548,7 +553,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING = "$(MULTIPAZ_WALLET_APP_NAME:default=Multipaz Wallet Dev)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -562,13 +567,14 @@
 		};
 		512891132F7041BB0001CB22 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -585,7 +591,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING = "$(MULTIPAZ_WALLET_APP_NAME:default=Multipaz Wallet Dev)";
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -599,15 +605,16 @@
 		};
 		512891152F7041BB0001CB22 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosAppTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -621,15 +628,16 @@
 		};
 		512891162F7041BB0001CB22 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosAppTests;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -643,13 +651,14 @@
 		};
 		512891182F7041BB0001CB22 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosAppUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -663,13 +672,14 @@
 		};
 		512891192F7041BB0001CB22 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosAppUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -683,11 +693,12 @@
 		};
 		7B28110D2FF6EE7200BAAD14 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IdentityDocumentProviderExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = IdentityDocumentProviderExtension;
@@ -699,7 +710,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp.IdentityDocumentProviderExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}.IdentityDocumentProviderExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -713,11 +724,12 @@
 		};
 		7B28110E2FF6EE7200BAAD14 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = IdentityDocumentProviderExtension/IdentityDocumentProviderExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VKE2G3K56V;
+				DEVELOPMENT_TEAM = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IdentityDocumentProviderExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = IdentityDocumentProviderExtension;
@@ -729,7 +741,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.multipaz.wallet.iosApp.IdentityDocumentProviderExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = "${LOCAL_BUNDLE_ID}.IdentityDocumentProviderExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
