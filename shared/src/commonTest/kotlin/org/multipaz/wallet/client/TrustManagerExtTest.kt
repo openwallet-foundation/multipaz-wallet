@@ -181,7 +181,7 @@ class TrustManagerExtTest {
         val httpClient = HttpClient(mockEngine)
 
         val result = trustManager.updateTrustEntry(entry, httpClient)
-        assertEquals(TrustEntryUpdateResult.AlreadyUpToDate, result)
+        assertEquals(TrustEntryUpdateResult.AlreadyUpToDate(listType = "VICAL"), result)
     }
 
     @Test

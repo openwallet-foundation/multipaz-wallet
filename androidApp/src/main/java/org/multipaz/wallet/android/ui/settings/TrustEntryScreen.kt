@@ -167,7 +167,10 @@ fun TrustEntryScreen(
                                                 is TrustEntryUpdateResult.AlreadyUpToDate -> {
                                                     onShowInfoDialog(
                                                         context.getString(R.string.trust_entry_update_already_latest_title),
-                                                        context.getString(R.string.trust_entry_update_already_latest_text)
+                                                        context.getString(
+                                                            R.string.trust_entry_update_already_latest_text,
+                                                            result.listType
+                                                        )
                                                     )
                                                 }
                                                 is TrustEntryUpdateResult.Updated -> {

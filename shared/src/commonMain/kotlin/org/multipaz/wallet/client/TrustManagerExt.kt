@@ -35,8 +35,14 @@ sealed interface TrustEntryUpdateResult {
         val certificateCount: Int = 0,
     ) : TrustEntryUpdateResult
 
-    /** The entry is already at the latest version. */
-    data object AlreadyUpToDate : TrustEntryUpdateResult
+    /**
+     * The entry is already at the latest version.
+     *
+     * @property listType the type of trust list (e.g. "VICAL" or "RICAL").
+     */
+    data class AlreadyUpToDate(
+        val listType: String,
+    ) : TrustEntryUpdateResult
 
     /** The entry does not have an update URL or is not a VICAL/RICAL entry. */
     data object NoUpdateUrl : TrustEntryUpdateResult
@@ -79,11 +85,11 @@ suspend fun TrustManager.updateTrustEntry(
             val downloadedIssueId = downloadedSignedVical.vical.vicalIssueID
 
             if (currentIssueId != null && downloadedIssueId != null && downloadedIssueId <= currentIssueId) {
-                TrustEntryUpdateResult.AlreadyUpToDate
+                TrustEntryUpdateResult.AlreadyUpToDate(listType = "VICAL")
             } else if (currentIssueId == null && downloadedIssueId == null &&
                 bytes.contentEquals(entry.encodedSignedVical.toByteArray())
             ) {
-                TrustEntryUpdateResult.AlreadyUpToDate
+                TrustEntryUpdateResult.AlreadyUpToDate(listType = "VICAL")
             } else {
                 updateVical(
                     entry = entry,
@@ -121,11 +127,11 @@ suspend fun TrustManager.updateTrustEntry(
             val downloadedId = downloadedSignedRical.rical.id
 
             if (currentId != null && downloadedId != null && downloadedId <= currentId) {
-                TrustEntryUpdateResult.AlreadyUpToDate
+                TrustEntryUpdateResult.AlreadyUpToDate(listType = "RICAL")
             } else if (currentId == null && downloadedId == null &&
                 bytes.contentEquals(entry.encodedSignedRical.toByteArray())
             ) {
-                TrustEntryUpdateResult.AlreadyUpToDate
+                TrustEntryUpdateResult.AlreadyUpToDate(listType = "RICAL")
             } else {
                 updateRical(
                     entry = entry,

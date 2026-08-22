@@ -4,12 +4,12 @@
     <string name="nfc_ndef_service_aid_group_description">ISO/IEC 18013-5:2021 NFC engagement</string>
     <string name="mdoc_nfcv2_service_aid_group_description">ISO/IEC 18013-5 Second Edition NFCv2 engagement</string>
     <string name="mdoc_nfc_data_transfer_service_aid_group_description">ISO/IEC 18013-5:2021 NFC data transfer</string>
-    <string name="quick_access_wallet_empty_state_text">No Cards</string>
+    <string name="quick_access_wallet_empty_state_text">No cards</string>
     <string name="quick_access_wallet_button_text">@string/app_name</string>
 
     <string name="setup_welcome_title">Welcome to %1$s</string>
     <string name="setup_welcome_text">Your secure and privacy-preserving open-source digital wallet, for passes, identity documents, and more.</string>
-    <string name="setup_welcome_continue">Get Started</string>
+    <string name="setup_welcome_continue">Get started</string>
 
     <string name="setup_device_check_title">Connecting</string>
     <string name="setup_device_check_loading">Connecting to wallet backend...</string>
@@ -28,21 +28,21 @@
     <string name="setup_eula_accept_button">Accept</string>
     <string name="setup_eula_declined_see_ya_text">The application will now exit</string>
 
-    <string name="setup_ble_title">Bluetooth Permissions</string>
+    <string name="setup_ble_title">Bluetooth permissions</string>
     <string name="setup_ble_text">%1$s uses Bluetooth Low Energy (BLE) to securely share your info to verifiers. Please grant the necessary permissions to continue.</string>
-    <string name="setup_ble_grant">Grant Permissions</string>
+    <string name="setup_ble_grant">Grant permissions</string>
     <string name="setup_ble_skip">Skip</string>
     <string name="setup_ble_continue">Continue</string>
 
-    <string name="setup_notification_title">Notification Permissions</string>
+    <string name="setup_notification_title">Notification permissions</string>
     <string name="setup_notification_text">%1$s needs notification permission to notify you when passes are shared automatically and when verification responses are received. Please grant the necessary permission to continue.</string>
-    <string name="setup_notification_grant">Grant Permission</string>
+    <string name="setup_notification_grant">Grant permission</string>
     <string name="setup_notification_skip">Skip</string>
     <string name="setup_notification_continue">Continue</string>
 
-    <string name="request_verification_notification_permission_title">Notification Permission Required</string>
+    <string name="request_verification_notification_permission_title">Notification permission required</string>
     <string name="request_verification_notification_permission_text">Notification permission is required to notify you when the recipient of the link responds. Without this permission, we cannot let you know when they have responded.</string>
-    <string name="request_verification_notification_permission_confirm">Grant Permission</string>
+    <string name="request_verification_notification_permission_confirm">Grant permission</string>
 
     <string name="setup_sign_in_title">Sign in</string>
     <string name="setup_sign_in_text">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You\'ll also be able manage passes and device sessions at [%1$s](%1$s).</string>
@@ -50,11 +50,11 @@
     <string name="setup_sign_in_skip">Use without an account</string>
     <string name="setup_sign_in_continue_button">Continue</string>
     <string name="setup_sign_in_signed_in_title">Signed in</string>
-    <string name="setup_sign_in_signed_in_text">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You can manage passes and device sessions at [%1$s](%1$s).</string>
+    <string name="setup_sign_in_signed_in_text">Your passes sync across all devices signed in to this Google Account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You can manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="setup_sign_in_signed_in_continue_button">Continue</string>
     <string name="setup_sign_in_signed_in_sign_out_button">Sign out</string>
 
-    <string name="setup_activity_logging_title">Activity Logging</string>
+    <string name="setup_activity_logging_title">Activity logging</string>
     <string name="setup_activity_logging_text">Would you like to enable activity logging? This keeps a local record of all presentations and communication between the wallet and issuers. No data ever leaves the device. You can change this later in Settings.</string>
     <string name="setup_activity_logging_enable">Enable</string>
     <string name="setup_activity_logging_disable">Disable</string>
@@ -85,18 +85,18 @@
     <string name="wallet_screen_sync_info_dialog_text_mpzpass_md">This pass is ready to use on any device signed in to your Google Account. No extra setup is required.</string>
     <string name="wallet_screen_sync_info_dialog_text_provisioned_document_md">You can set up this pass on any device signed in to your Google Account.</string>
 
-    <string name="badges_setup_required">Setup Required</string>
+    <string name="badges_setup_required">Setup required</string>
 
     <string name="about_screen_title">About</string>
 
     <string name="settings_screen_title">Settings</string>
     <string name="settings_screen_account_title">Account</string>
-    <string name="settings_screen_signing_out">Signing out of your Google account…</string>
+    <string name="settings_screen_signing_out">Signing out of your Google Account…</string>
     <string name="settings_screen_google_user_default_name">Google user</string>
-    <string name="settings_screen_use_without_google">Use without a Google account</string>
-    <string name="settings_screen_signing_in">Signing in to your Google account…</string>
-    <string name="settings_screen_sign_in">Sign in to your Google account</string>
-    <string name="settings_screen_sync_info_signed_in">Your passes sync across all devices signed in to this Google account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You can manage passes and device sessions at [%1$s](%1$s).</string>
+    <string name="settings_screen_use_without_google">Use without a Google Account</string>
+    <string name="settings_screen_signing_in">Signing in to your Google Account…</string>
+    <string name="settings_screen_sign_in">Sign in to your Google Account</string>
+    <string name="settings_screen_sync_info_signed_in">Your passes sync across all devices signed in to this Google Account. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You can manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="settings_screen_sync_info_signed_out">Sign in with Google to sync your passes across all your devices. Your data is encrypted before it reaches the application backend, and your encryption key is safely stored in your Google Drive, accessible only by this app. You\'ll also be able manage passes and device sessions at [%1$s](%1$s).</string>
     <string name="settings_screen_trusted_issuers">Trusted issuers</string>
     <string name="settings_screen_trusted_verifiers">Trusted verifiers</string>
@@ -155,9 +155,9 @@
     <string name="device_sessions_screen_sign_out_session_dialog_text">This device session will be signed out from your account and will lose access to synced wallet data.</string>
     <string name="device_sessions_screen_sign_out_session_dialog_confirm">Sign out</string>
     <string name="device_sessions_screen_sign_out_session_dialog_cancel">Cancel</string>
-    <string name="device_sessions_screen_sign_out_google_account">Sign out of Google account</string>
+    <string name="device_sessions_screen_sign_out_google_account">Sign out of Google Account</string>
 
-    <string name="dev_settings_screen_title">Developer Settings</string>
+    <string name="dev_settings_screen_title">Developer settings</string>
     <string name="dev_settings_screen_warning">This screen contain settings used for diagnostics and debugging. Use at your own risk.</string>
     <string name="dev_settings_logging_debug_title">Enable debug logging</string>
     <string name="dev_settings_logging_debug_text">Enable debug to print out structures helpful for debugging. Warning: debug messages may contain PII.</string>
@@ -194,7 +194,7 @@
     <string name="dev_settings_periodic_bookkeeping_failed">Periodic refresh completed with errors</string>
     <string name="dev_settings_documentation_title">Developer documentation</string>
     <string name="dev_settings_documentation_text">View detailed documentation for all developer mode options and features.</string>
-    <string name="dev_settings_documentation_screen_title">Developer Documentation</string>
+    <string name="dev_settings_documentation_screen_title">Developer documentation</string>
 
     <string name="event_simple_periodic_bookkeeping_title">Periodic refresh</string>
     <string name="event_simple_periodic_bookkeeping_summary_with_trigger">%1$s • %2$s</string>
@@ -267,7 +267,7 @@
     <string name="dev_settings_clear_app_data_dialog_text">Are you sure you want to delete all app data?</string>
     <string name="dev_settings_clear_app_data_dialog_confirm">Clear app data</string>
 
-    <string name="trust_manager_import_cert">Import Certificate</string>
+    <string name="trust_manager_import_cert">Import certificate</string>
     <string name="trust_manager_import_vical">Import VICAL</string>
     <string name="trust_manager_import_rical">Import RICAL</string>
 
@@ -296,7 +296,7 @@
     <string name="trust_entry_delete_cert_text">The certificate will be permanently deleted. This action cannot be undone.</string>
     <string name="trust_entry_delete_vical_text">The VICAL will be permanently deleted. This action cannot be undone.</string>
     <string name="trust_entry_delete_rical_text">The RICAL will be permanently deleted. This action cannot be undone.</string>
-    <string name="trust_entry_view_cert">View Certificate</string>
+    <string name="trust_entry_view_cert">View certificate</string>
     <string name="trust_entry_view_vical">View VICAL</string>
     <string name="trust_entry_view_rical">View RICAL</string>
     <string name="trust_entry_edit_cancel">Cancel</string>
@@ -306,11 +306,11 @@
     <string name="trust_entry_edit_title">Edit entry</string>
     <string name="trust_entry_edit_back">Back</string>
     <string name="trust_entry_check_for_update">Check for update</string>
-    <string name="trust_entry_update_already_latest_title">Already Up to Date</string>
-    <string name="trust_entry_update_already_latest_text">We already have the latest list.</string>
-    <string name="trust_entry_update_failed_title">Update Failed</string>
+    <string name="trust_entry_update_already_latest_title">Already up to date</string>
+    <string name="trust_entry_update_already_latest_text">There are no updates available for the %1$s.</string>
+    <string name="trust_entry_update_failed_title">Update failed</string>
     <string name="trust_entry_update_failed_text">An update was downloaded but something was wrong with it:\n\n%1$s</string>
-    <string name="trust_entry_update_success_title">Trust List Updated</string>
+    <string name="trust_entry_update_success_title">Trust list updated</string>
     <string name="trust_entry_update_success_text">The %1$s was successfully updated.</string>
     <string name="trust_entry_update_success_text_with_issue">The %1$s was updated to issue #%2$d.</string>
 
@@ -414,12 +414,12 @@
     <string name="vical_entry_title">VICAL entry</string>
     <string name="rical_entry_title">RICAL entry</string>
 
-    <string name="setup_default_wallet_title">Default Wallet</string>
+    <string name="setup_default_wallet_title">Default wallet</string>
     <string name="setup_default_wallet_text">To enable contactless interactions when %1$s isn\'t running, it needs to be set as the default wallet application. If you\'re already using another wallet for contactless payment, you might not want to do this.</string>
     <string name="setup_default_wallet_ready_text">%1$s is set as your default wallet and contactless interactions will work even when it\'s not running. Additionally, device shortcuts such as the wallet Quick Settings tile and double-clicking the power button can be used to launch %1$s.</string>
     <string name="setup_default_wallet_note_text">Even if a wallet app isn\'t the default wallet application, contactless interactions will still work if you bring the app to the foreground for the NFC tap.</string>
     <string name="setup_default_wallet_continue_button">Continue</string>
-    <string name="setup_default_wallet_open_settings_button">Open Settings</string>
+    <string name="setup_default_wallet_open_settings_button">Open settings</string>
     <string name="setup_default_wallet_skip_button">Skip for now</string>
 
     <string name="setup_eula_screen_retry_button">Retry</string>
@@ -432,17 +432,17 @@
     <string name="provisioning_add_to_wallet_screen_loading">Loading issuers</string>
     <string name="provisioning_add_to_wallet_screen_import_pass">Import pass from file</string>
     <string name="provisioning_add_to_wallet_screen_scan_credential_offer">Scan credential offer</string>
-    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_title">Enter Issuer URL</string>
+    <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_title">Enter issuer URL</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_text">Enter the URL of an OpenID4VCI server to inquire about the credentials it supports and start the provisioning process.</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_cancel">Cancel</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_connect">Connect</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_url_label">Issuer server URL</string>
     <string name="provisioning_add_to_wallet_screen_issuer_server_dialog_reset">Reset to default</string>
-    <string name="provisioning_add_to_wallet_screen_enter_issuer_url_item">Enter Issuer URL</string>
+    <string name="provisioning_add_to_wallet_screen_enter_issuer_url_item">Enter issuer URL</string>
 
     <string name="scan_credential_offer_screen_title">Scan credential offer</string>
     <string name="scan_credential_offer_camera_permission_required">Camera permission is required</string>
-    <string name="scan_credential_offer_grant_permission">Grant Permission</string>
+    <string name="scan_credential_offer_grant_permission">Grant permission</string>
     <string name="provisioning_auth_oauth_cancel_description">Cancel</string>
     <string name="provisioning_auth_pin_title">PIN required</string>
     <string name="provisioning_auth_passphrase_title">Passphrase required</string>
@@ -569,9 +569,9 @@
 
 
     <!-- Document Types -->
-    <string name="document_type_mobile_driving_license">Mobile Driving License</string>
+    <string name="document_type_mobile_driving_license">Mobile driving license</string>
     <string name="document_type_photo_id">Photo ID</string>
-    <string name="document_type_eu_pid">EU Personal ID</string>
+    <string name="document_type_eu_pid">EU personal ID</string>
     <string name="document_type_aadhaar">Aadhaar</string>
     <string name="document_type_google_wallet_idpass">Google Wallet ID pass</string>
 
@@ -583,13 +583,13 @@
     <string name="request_verification_store_response_content">If set, the response will be stored on this device for later processing.</string>
     <string name="request_verification_generate_link">Generate link</string>
     <string name="request_verification_share_qr_button">Show QR code for link</string>
-    <string name="request_verification_share_qr_title">Verification QR Code</string>
+    <string name="request_verification_share_qr_title">Verification QR code</string>
     <string name="request_verification_share_qr_explainer">This QR code can be scanned by the individual being verified.</string>
     <string name="request_verification_share_close">Close</string>
-    <string name="request_verification_hold_to_wallet">Hold to Wallet</string>
+    <string name="request_verification_hold_to_wallet">Hold to wallet</string>
     <string name="request_verification_nfc_only">(NFC only)</string>
     <string name="request_verification_camera_permission_required">Camera permission is required</string>
-    <string name="request_verification_grant_permission">Grant Permission</string>
+    <string name="request_verification_grant_permission">Grant permission</string>
     <string name="request_verification_scan_nfc">Scan NFC</string>
     <string name="request_verification_scan_qr_code">Scan QR</string>
     <string name="request_verification_scan_nfc_to_verify">Scan NFC to verify</string>
@@ -678,7 +678,7 @@
     <string name="trust_entry_rical_entry_extensions">Extensions</string>
 
     <string name="trust_entry_vical_entry_title">VICAL entry</string>
-    <string name="trust_entry_vical_entry_document_types">Document Types</string>
+    <string name="trust_entry_vical_entry_document_types">Document types</string>
     <string name="trust_entry_vical_entry_extensions">Extensions</string>
 
     <string name="trust_entry_viewer_just_imported_cert">This certificate was just imported. Please check its fingerprint to make sure you trust it</string>
@@ -706,7 +706,7 @@
     <string name="trust_entry_viewer_url">URL</string>
 
     <!-- Verification History -->
-    <string name="verification_history_title">Verification History</string>
+    <string name="verification_history_title">Verification history</string>
     <string name="verification_history_note">Verifications with stored responses received in the last 60 days are shown here.</string>
     <string name="verification_history_empty">No verifications logged</string>
     <string name="verification_history_in_person">Verified in-person</string>
@@ -717,7 +717,7 @@
     <!-- Verification Notifications -->
     <string name="verification_notification_channel_name">Verification responses</string>
     <string name="verification_notification_channel_description">Notifications for verification responses received via link</string>
-    <string name="verification_notification_title">Verification Response Received</string>
+    <string name="verification_notification_title">Verification response received</string>
     <string name="verification_notification_text">A pending verification was received</string>
 
     <!-- Verification Details & Extras -->
@@ -730,7 +730,7 @@
     <string name="verification_show_response_developer_extras_credential_format">Credential format</string>
     <string name="verification_show_response_developer_extras_doctype">DocType</string>
     <string name="verification_show_response_developer_extras_issuer_ds_curve">Issuer DS curve</string>
-    <string name="verification_show_response_developer_extras_issuer_trusted">Issuer Trusted</string>
+    <string name="verification_show_response_developer_extras_issuer_trusted">Issuer trusted</string>
     <string name="verification_show_response_developer_extras_yes">Yes</string>
     <string name="verification_show_response_developer_extras_no">No</string>
     <string name="verification_show_response_developer_extras_issuer_cert_chain">Issuer certificate chain</string>
@@ -742,10 +742,10 @@
     <string name="verification_show_response_developer_extras_expected_update">Expected update</string>
     <string name="verification_show_response_developer_extras_document_n_of_m">Document %1$d of %2$d</string>
     <string name="verification_show_response_developer_extras_namespace">Namespace %1$s</string>
-    <string name="verification_show_response_developer_extras_namespace_device_signed">Namespace %1$s (Device-Signed)</string>
-    <string name="verification_show_response_developer_extras_vct">Verifiable Credential Type</string>
+    <string name="verification_show_response_developer_extras_namespace_device_signed">Namespace %1$s (device-signed)</string>
+    <string name="verification_show_response_developer_extras_vct">Verifiable credential type</string>
     <string name="verification_show_response_developer_extras_claims">Claims</string>
-    <string name="verification_show_response_developer_extras_claims_device_signed">Claims (Device Signed)</string>
+    <string name="verification_show_response_developer_extras_claims_device_signed">Claims (device signed)</string>
     <string name="verification_show_response_verified_at">Verified at</string>
     <string name="verification_show_response_looking_up_address_fmt">Looking up address… (%1$s)</string>
 
@@ -767,10 +767,10 @@
     <string name="credential_info_certified">Certified</string>
     <string name="credential_info_yes">Yes</string>
     <string name="credential_info_no">No</string>
-    <string name="credential_info_valid_from">Valid From</string>
-    <string name="credential_info_valid_until">Valid Until</string>
+    <string name="credential_info_valid_from">Valid from</string>
+    <string name="credential_info_valid_until">Valid until</string>
     <string name="credential_info_click_to_check_status">Click to check status</string>
-    <string name="credential_info_http_status">HTTP Status: %1$d</string>
+    <string name="credential_info_http_status">HTTP status: %1$d</string>
     <string name="credential_info_failed_parse_status_list">Failed to parse status list</string>
     <string name="credential_info_failed_parse_identifier_list">Failed to parse identifier list</string>
     <string name="credential_info_delete_pending_title">Delete pending credential?</string>
@@ -780,7 +780,7 @@
     <string name="credential_info_delete_pending_content_description">Delete pending credential</string>
     <string name="document_info_credentials_title">Additional pass info</string>
     <string name="document_info_refresh_credentials_content_description">Refresh credentials</string>
-    <string name="document_info_developer_extras_content_description">Developer Extras</string>
+    <string name="document_info_developer_extras_content_description">Developer extras</string>
 
     <!-- Pre-consent settings -->
     <string name="settings_screen_preconsent_settings">Pre-consent settings</string>
