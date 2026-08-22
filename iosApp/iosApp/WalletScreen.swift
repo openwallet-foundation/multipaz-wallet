@@ -1,13 +1,29 @@
 import SwiftUI
+import Lottie
 import Multipaz
 
 struct WalletScreen: View {
     @Environment(ViewModel.self) private var viewModel
     
     let documentId: String?
+    let justAddedAtMillis: Int64?
 
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: DocumentInfo? = nil
+    @State private var showJustAdded: Bool
+    
+    init(documentId: String?, justAddedAtMillis: Int64? = nil) {
+        self.documentId = documentId
+        self.justAddedAtMillis = justAddedAtMillis
+        let isJustAdded: Bool
+        if let millis = justAddedAtMillis {
+            let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+            isJustAdded = (nowMillis - millis) < 5000 && nowMillis >= millis
+        } else {
+            isJustAdded = false
+        }
+        _showJustAdded = State(initialValue: isJustAdded)
+    }
 
     var body: some View {
         let focusedDocument = viewModel.documentModel.documentInfos.first {
@@ -27,72 +43,95 @@ struct WalletScreen: View {
                     let targetDocument = focusedDocument ?? docInfo
                     let typeDisplayName = targetDocument.document.typeDisplayName ?? "Pass"
                     VStack {
-                        FloatingItemList {
-                            if targetDocument.document.isSyncing {
-                                let syncedSecondaryText = targetDocument.document.provisionedDocumentSetupNeeded
-                                    ? "Complete setup…"
-                                    : "Ready to use on this device"
-                                FloatingItemText(
-                                    text: "Synced to your account",
-                                    showChevron: true,
-                                    secondary: syncedSecondaryText,
-                                    image: { Image(systemName: "arrow.triangle.2.circlepath") }
-                                ).onTapGesture {
-                                    if targetDocument.document.provisionedDocumentSetupNeeded {
-                                        if let provisionedDocuments = viewModel.walletClient.sharedData.value?.provisionedDocuments,
-                                           let provDoc = provisionedDocuments.first(where: { $0.identifier == targetDocument.document.provisionedDocumentIdentifier }) as? WalletClientProvisionedDocumentOpenID4VCI {
-                                            viewModel.push(.provisioning(issuerUrl: provDoc.url, credentialId: provDoc.credentialId, provisionedDocumentIdentifier: provDoc.identifier))
+                        if showJustAdded {
+                            VStack(spacing: 16) {
+                                LottieView(animation: .named("success_animation"))
+                                    .playing(loopMode: .playOnce)
+                                    .resizable()
+                                    .frame(width: 120, height: 120)
+                                Text("The pass was successfully added")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 24)
+                            .task {
+                                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    showJustAdded = false
+                                }
+                                viewModel.verticalCardListState.animateListTransitions = true
+                            }
+                        } else {
+                            VStack {
+                                FloatingItemList {
+                                    if targetDocument.document.isSyncing {
+                                        let syncedSecondaryText = targetDocument.document.provisionedDocumentSetupNeeded
+                                            ? "Complete setup…"
+                                            : "Ready to use on this device"
+                                        FloatingItemText(
+                                            text: "Synced to your account",
+                                            showChevron: true,
+                                            secondary: syncedSecondaryText,
+                                            image: { Image(systemName: "arrow.triangle.2.circlepath") }
+                                        ).onTapGesture {
+                                            if targetDocument.document.provisionedDocumentSetupNeeded {
+                                                if let provisionedDocuments = viewModel.walletClient.sharedData.value?.provisionedDocuments,
+                                                   let provDoc = provisionedDocuments.first(where: { $0.identifier == targetDocument.document.provisionedDocumentIdentifier }) as? WalletClientProvisionedDocumentOpenID4VCI {
+                                                    viewModel.push(.provisioning(issuerUrl: provDoc.url, credentialId: provDoc.credentialId, provisionedDocumentIdentifier: provDoc.identifier))
+                                                }
+                                            } else {
+                                                viewModel.push(.settingsScreen)
+                                            }
                                         }
-                                    } else {
-                                        viewModel.push(.settingsScreen)
+                                    }
+
+                                    if !targetDocument.document.provisionedDocumentSetupNeeded {
+                                        FloatingItemText(
+                                            text: "\(typeDisplayName) info",
+                                            showChevron: true,
+                                            secondary: "Pass details and certificate info",
+                                            image: { Image(systemName: "person.crop.rectangle") }
+                                        ).onTapGesture {
+                                            viewModel.push(.documentInfoScreen(documentId: targetDocument.document.identifier))
+                                        }
+
+                                        FloatingItemText(
+                                            text: "View and manage activity",
+                                            showChevron: true,
+                                            secondary: "Logging is enabled",
+                                            image: { Image(systemName: "timer") }
+                                        ).onTapGesture {
+                                            print("TODO: go to activity page")
+                                        }
+
+                                        FloatingItemText(
+                                            text: "In person-sharing and consent",
+                                            showChevron: true,
+                                            secondary: "Always ask before sharing",
+                                            image: { Image(systemName: "wave.3.right") }
+                                        ).onTapGesture {
+                                            print("TODO: go to pre-consent configuration")
+                                        }
                                     }
                                 }
-                            }
 
-                            if !targetDocument.document.provisionedDocumentSetupNeeded {
-                                FloatingItemText(
-                                    text: "\(typeDisplayName) info",
-                                    showChevron: true,
-                                    secondary: "Pass details and certificate info",
-                                    image: { Image(systemName: "person.crop.rectangle") }
-                                ).onTapGesture {
-                                    viewModel.push(.documentInfoScreen(documentId: targetDocument.document.identifier))
-                                }
-
-                                FloatingItemText(
-                                    text: "View and manage activity",
-                                    showChevron: true,
-                                    secondary: "Logging is enabled",
-                                    image: { Image(systemName: "timer") }
-                                ).onTapGesture {
-                                    print("TODO: go to activity page")
-                                }
-
-                                FloatingItemText(
-                                    text: "In person-sharing and consent",
-                                    showChevron: true,
-                                    secondary: "Always ask before sharing",
-                                    image: { Image(systemName: "wave.3.right") }
-                                ).onTapGesture {
-                                    print("TODO: go to pre-consent configuration")
+                                FloatingItemList {
+                                    FloatingItemText(
+                                        text: AttributedString(
+                                            "Remove",
+                                            attributes: {
+                                                var container = AttributeContainer()
+                                                container.foregroundColor = .red
+                                                return container
+                                            }()),
+                                        image: { Image(systemName: "trash").foregroundStyle(.red) },
+                                    )
+                                }.onTapGesture {
+                                    documentToDelete = targetDocument
+                                    showDeleteConfirmation = true
                                 }
                             }
-                        }
-
-                        FloatingItemList {
-                            FloatingItemText(
-                                text: AttributedString(
-                                    "Remove",
-                                    attributes: {
-                                        var container = AttributeContainer()
-                                        container.foregroundColor = .red
-                                        return container
-                                    }()),
-                                image: { Image(systemName: "trash").foregroundStyle(.red) },
-                            )
-                        }.onTapGesture {
-                            documentToDelete = targetDocument
-                            showDeleteConfirmation = true
                         }
                     }
                     .padding()
@@ -158,6 +197,19 @@ struct WalletScreen: View {
             } catch {
                 print("Error refreshing wallet: \(error)")
             }
+        }
+        .onAppear {
+            let isJustAdded: Bool
+            if let millis = justAddedAtMillis {
+                let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+                isJustAdded = (nowMillis - millis) < 5000 && nowMillis >= millis
+            } else {
+                isJustAdded = false
+            }
+            viewModel.verticalCardListState.animateListTransitions = !isJustAdded
+        }
+        .onDisappear {
+            viewModel.verticalCardListState.animateListTransitions = true
         }
         .alert("Remove Document?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {

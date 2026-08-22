@@ -11,6 +11,7 @@
 		51A18EC02F70FD9D0050476D /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 51A18EBF2F70FD9D0050476D /* GoogleSignInSwift */; };
 		7B2468A82F7193D30018E778 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 7B2468A72F7193D30018E778 /* Multipaz */; };
 		7B28110B2FF6EE7200BAAD14 /* IdentityDocumentProviderExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7B3000012F7193D30018E778 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 7B3000022F7193D30018E778 /* Lottie */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,7 +58,7 @@
 		512891072F7041BB0001CB22 /* iosAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B2468A22F71933E0018E778 /* shared.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = shared.xcframework; path = ../shared/build/XCFrameworks/release/shared.xcframework; sourceTree = "<group>"; };
 		7B2811042FF6EE7100BAAD14 /* IdentityDocumentProviderExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = IdentityDocumentProviderExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = DeveloperConfig.xcconfig; path = DeveloperConfig.xcconfig; sourceTree = "<group>"; };
+		7B2811122FF6EE7200BAAD14 /* DeveloperConfig.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = DeveloperConfig.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -114,6 +115,7 @@
 				7B2468A82F7193D30018E778 /* Multipaz in Frameworks */,
 				51A18EBE2F70FD9D0050476D /* GoogleSignIn in Frameworks */,
 				51A18EC02F70FD9D0050476D /* GoogleSignInSwift in Frameworks */,
+				7B3000012F7193D30018E778 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,6 +200,7 @@
 				51A18EBD2F70FD9D0050476D /* GoogleSignIn */,
 				51A18EBF2F70FD9D0050476D /* GoogleSignInSwift */,
 				7B2468A72F7193D30018E778 /* Multipaz */,
+				7B3000022F7193D30018E778 /* Lottie */,
 			);
 			productName = iosApp;
 			productReference = 512890F02F7041B90001CB22 /* iosApp.app */;
@@ -309,6 +312,7 @@
 			packageReferences = (
 				51A18EBC2F70FD9D0050476D /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				7B2468A62F7193D30018E778 /* XCLocalSwiftPackageReference "../../multipaz-wallet" */,
+				7B3000032F7193D30018E778 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 512890F12F7041B90001CB22 /* Products */;
@@ -819,6 +823,14 @@
 				version = 9.1.0;
 			};
 		};
+		7B3000032F7193D30018E778 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -835,6 +847,11 @@
 		7B2468A72F7193D30018E778 /* Multipaz */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Multipaz;
+		};
+		7B3000022F7193D30018E778 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B3000032F7193D30018E778 /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

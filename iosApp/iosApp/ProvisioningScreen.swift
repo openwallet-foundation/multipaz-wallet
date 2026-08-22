@@ -1,5 +1,6 @@
 import SwiftUI
 import SafariServices
+import Lottie
 import Multipaz
 
 struct ProvisioningScreen: View {
@@ -18,6 +19,7 @@ struct ProvisioningScreen: View {
     // Auth secret challenge fields
     @State private var passphrase = ""
     @State private var isShowingSafari = false
+    @State private var isRedirectReceived = false
     
     init(issuerUrl: String, credentialId: String?, provisionedDocumentIdentifier: String? = nil) {
         self.issuerUrl = issuerUrl
@@ -35,23 +37,8 @@ struct ProvisioningScreen: View {
     
     var body: some View {
         VStack {
-            if let error = errorLoading {
-                VStack(spacing: 20) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 50))
-                        .foregroundColor(.red)
-                    Text("Provisioning Failed")
-                        .font(.headline)
-                    Text(error.localizedDescription)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                    Button("Close") {
-                        dismiss()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
+            if errorLoading != nil {
+                errorView
             } else {
                 switch onEnum(of: provisioningState) {
                 case .idle:
@@ -59,17 +46,12 @@ struct ProvisioningScreen: View {
                         CredentialSelectionView(metadata: metadata) { selectedId in
                             launchProvisioning(selectedId: selectedId)
                         }
-                    } else if credentialOfferUri != nil {
-                        progressView(message: "Processing offer...")
                     } else {
-                        progressView(message: "Connecting to issuer...")
+                        progressView
                     }
                     
-                case .initial:
-                    progressView(message: "Connecting to issuer...")
-                    
-                case .connected:
-                    progressView(message: "Connected to issuer...")
+                case .initial, .connected:
+                    progressView
                     
                 case .authorizing(let authorizingState):
                     if let challenge = authorizingState.authorizationChallenges.first {
@@ -80,97 +62,88 @@ struct ProvisioningScreen: View {
                             secretTextView(challenge: secretChallenge)
                         }
                     } else {
-                        progressView(message: "Authorizing...")
+                        progressView
                     }
                     
-                case .processingAuthorization:
-                    progressView(message: "Verifying authorization...")
+                case .processingAuthorization, .authorized, .requestingCredentials, .credentialsIssued:
+                    progressView
                     
-                case .authorized:
-                    progressView(message: "Authorized!")
-                    
-                case .requestingCredentials:
-                    progressView(message: "Requesting your credentials...")
-                    
-                case .credentialsIssued:
-                    progressView(message: "Credentials issued!")
-                    
-                case .error(let errorState):
-                    VStack(spacing: 20) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.red)
-                        Text("Provisioning Error")
-                            .font(.headline)
-                        Text(errorState.err.message ?? "An error occurred during provisioning.")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                        Button("Close") {
-                            dismiss()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
+                case .error:
+                    errorView
                 }
             }
         }
-        .navigationTitle("Provisioning")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.body.bold())
+                }
+            }
+        }
         .onAppear {
             startProvisioning()
         }
     }
     
-    private func progressView(message: String) -> some View {
+    private var errorView: some View {
         VStack(spacing: 20) {
-            ProgressView()
-                .scaleEffect(1.5)
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(.gray)
+            LottieView(animation: .named("error_animation"))
+                .playing(loopMode: .playOnce)
+                .resizable()
+                .frame(width: 120, height: 120)
+            Text("Something went wrong")
+                .font(.headline)
+                .foregroundColor(.primary)
+        }
+        .task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            dismiss()
         }
     }
     
+    private var progressView: some View {
+        ProgressView()
+            .scaleEffect(1.5)
+    }
+    
     private func oauthView(challenge: AuthorizationChallenge.OAuth) -> some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .scaleEffect(1.5)
-            Text("Authorization Required")
-                .font(.headline)
-            Text("Opening secure browser to authenticate...")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button("Reopen Browser") {
+        progressView
+            .onAppear {
                 isShowingSafari = true
             }
-            .buttonStyle(.bordered)
-            .padding(.top)
-        }
-        .onAppear {
-            isShowingSafari = true
-        }
-        .fullScreenCover(isPresented: $isShowingSafari) {
-            if let url = URL(string: challenge.url) {
-                SafariView(url: url)
+            .fullScreenCover(isPresented: $isShowingSafari) {
+                if let url = URL(string: challenge.url) {
+                    SafariView(url: url) {
+                        if !isRedirectReceived {
+                            self.errorLoading = NSError(
+                                domain: "Provisioning",
+                                code: 1,
+                                userInfo: [NSLocalizedDescriptionKey: "Authentication cancelled"]
+                            )
+                        }
+                    }
                     .ignoresSafeArea()
+                }
             }
-        }
-        .task {
-            // Wait for App Link/Deep Link redirect
-            do {
-                let redirectUrl = try await viewModel.walletClient.waitForAppLinkInvocation(state: challenge.state)
-                isShowingSafari = false
-                try await viewModel.provisioningModel.provideAuthorizationResponse(
-                    response: AuthorizationResponse.OAuth(id: challenge.id, parameterizedRedirectUrl: redirectUrl)
-                )
-            } catch {
-                self.errorLoading = error
+            .task {
+                // Wait for App Link/Deep Link redirect
+                do {
+                    let redirectUrl = try await viewModel.walletClient.waitForAppLinkInvocation(state: challenge.state)
+                    isRedirectReceived = true
+                    isShowingSafari = false
+                    try await viewModel.provisioningModel.provideAuthorizationResponse(
+                        response: AuthorizationResponse.OAuth(id: challenge.id, parameterizedRedirectUrl: redirectUrl)
+                    )
+                } catch {
+                    self.errorLoading = error
+                }
             }
-        }
     }
     
     private func secretTextView(challenge: AuthorizationChallenge.SecretText) -> some View {
@@ -323,8 +296,14 @@ struct ProvisioningScreen: View {
                 }
                 
                 await MainActor.run {
-                    // Navigate back to wallet
-                    viewModel.path.removeAll()
+                    // Navigate back to wallet focused on the new document with justAddedAtMillis
+                    let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+                    viewModel.path = [
+                        .walletScreen(
+                            documentId: document.identifier,
+                            justAddedAtMillis: nowMillis
+                        )
+                    ]
                 }
             } catch {
                 await MainActor.run {
@@ -387,10 +366,29 @@ struct CredentialSelectionView: View {
 
 struct SafariView: UIViewControllerRepresentable {
     let url: URL
+    let onDismiss: () -> Void
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDismiss: onDismiss)
+    }
     
     func makeUIViewController(context: Context) -> SFSafariViewController {
-        return SFSafariViewController(url: url)
+        let controller = SFSafariViewController(url: url)
+        controller.delegate = context.coordinator
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+    
+    class Coordinator: NSObject, SFSafariViewControllerDelegate {
+        let onDismiss: () -> Void
+        
+        init(onDismiss: @escaping () -> Void) {
+            self.onDismiss = onDismiss
+        }
+        
+        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+            onDismiss()
+        }
+    }
 }

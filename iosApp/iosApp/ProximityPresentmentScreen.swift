@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
+import Lottie
 import Multipaz
 
 struct ProximityPresentmentScreen: View {
@@ -146,25 +147,27 @@ struct ProximityPresentmentScreen: View {
                         Spacer()
                         
                         if let error = error {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 64))
-                                .foregroundColor(.red)
+                            LottieView(animation: .named("error_animation"))
+                                .playing(loopMode: .playOnce)
+                                .resizable()
+                                .frame(width: 120, height: 120)
                             
-                            Text("Something went wrong")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            Text(error.localizedDescription)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 32)
+                            if isCannotSatisfyRequest(error) {
+                                Text("Cannot satisfy request")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            } else {
+                                Text("Something went wrong")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
                         } else {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 64))
-                                .foregroundColor(.green)
+                            LottieView(animation: .named("success_animation"))
+                                .playing(loopMode: .playOnce)
+                                .resizable()
+                                .frame(width: 120, height: 120)
                             
-                            Text("The data was shared")
+                            Text("The info was shared")
                                 .font(.headline)
                                 .foregroundColor(.primary)
                         }
@@ -213,5 +216,30 @@ struct ProximityPresentmentScreen: View {
             }
         }
         return UIImage()
+    }
+    
+    private func isCannotSatisfyRequest(_ error: Error) -> Bool {
+        #if DEBUG
+        let nsError = error as NSError
+        print("ProximityPresentment error: \(error), nsError: \(nsError), userInfo: \(nsError.userInfo)")
+        #endif
+        if error is PresentmentCannotSatisfyRequestException {
+            return true
+        }
+        let nsErrorObj = error as NSError
+        if let kotlinException = nsErrorObj.userInfo["KotlinException"] {
+            if kotlinException is PresentmentCannotSatisfyRequestException {
+                return true
+            }
+            let typeName = String(describing: type(of: kotlinException))
+            if typeName.contains("PresentmentCannotSatisfyRequestException") {
+                return true
+            }
+        }
+        let errorDescription = String(describing: error)
+        if errorDescription.contains("PresentmentCannotSatisfyRequestException") {
+            return true
+        }
+        return false
     }
 }

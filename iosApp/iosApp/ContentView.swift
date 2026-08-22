@@ -22,8 +22,8 @@ struct ContentView: View {
                     WalletScreen(documentId: nil)
                         .navigationDestination(for: Destination.self) { destination in
                             switch destination {
-                            case .walletScreen(let documentId):
-                                WalletScreen(documentId: documentId)
+                            case .walletScreen(let documentId, let justAddedAtMillis):
+                                WalletScreen(documentId: documentId, justAddedAtMillis: justAddedAtMillis)
                             case .settingsScreen: SettingsScreen()
                             case .documentInfoScreen(let documentId):
                                 DocumentInfoScreen(documentId: documentId)
