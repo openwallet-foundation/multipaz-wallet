@@ -36,7 +36,8 @@ struct WalletScreen: View {
     var body: some View {
         let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
         ZStack(alignment: .bottom) {
-            VStack {
+            VStack(spacing: 0) {
+                customTopBar
                 cardListView
             }
             
@@ -49,11 +50,8 @@ struct WalletScreen: View {
         }
         .id(documentId ?? "root")
         .frame(maxWidth: .infinity, alignment: .leading)
-        .navigationBarBackButtonHidden(documentId != nil)
-        .navigationTitle(
-            isFocused ? "" : BuildConfig.shared.APP_NAME
-        )
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbarVisibility(.hidden, for: .navigationBar)
+        .navigationBarHidden(true)
         .refreshable {
             await viewModel.refreshWallet()
         }
@@ -66,15 +64,9 @@ struct WalletScreen: View {
                 isJustAdded = false
             }
             viewModel.verticalCardListState.animateListTransitions = !isJustAdded
-            if documentId == nil && viewModel.verticalCardListState.internalFocusedCardIdentifier != nil {
-                viewModel.verticalCardListState.unfocus {}
-            }
         }
         .onDisappear {
             viewModel.verticalCardListState.animateListTransitions = true
-            if documentId != nil && viewModel.path.isEmpty {
-                viewModel.verticalCardListState.unfocus {}
-            }
         }
         .background {
             ScreenEdgeSwipeGesture(isEnabled: isFocused && viewModel.path.count == 1) {
@@ -106,9 +98,98 @@ struct WalletScreen: View {
         } message: {
             Text("Once shared, this action cannot be undone. The recipient will receive a copy of this pass and will be able to forward it to anyone.")
         }
-        .toolbar {
-            toolbarContent
+    }
+
+    @ViewBuilder
+    private var customTopBar: some View {
+        let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
+        ZStack {
+            Text(BuildConfig.shared.APP_NAME)
+                .font(.headline)
+                .opacity(isFocused ? 0.0 : 1.0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
+
+            HStack {
+                ZStack {
+                    Button(action: {
+                        viewModel.verticalCardListState.unfocus {
+                            viewModel.popWithoutAnimation()
+                        }
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                                )
+                                .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
+                                .frame(width: 44, height: 44)
+
+                            Image(systemName: "chevron.backward")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(.primary)
+                        }
+                        .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(isFocused ? 1.0 : 0.0)
+                    .scaleEffect(isFocused ? 1.0 : 0.8)
+                    .allowsHitTesting(isFocused)
+
+                    Image("AppLogo")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 32, height: 32)
+                        .opacity(isFocused ? 0.0 : 1.0)
+                        .scaleEffect(isFocused ? 0.8 : 1.0)
+                        .allowsHitTesting(!isFocused)
+                }
+                .frame(width: 44, height: 44)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
+
+                Spacer()
+
+                ZStack(alignment: .trailing) {
+                    if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
+                        HStack(spacing: 16) {
+                            if focusedDoc.document.mpzPassId != nil {
+                                Button(action: {
+                                    showShareConfirmation = true
+                                }) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Button(action: {
+                                if let documentId = documentId {
+                                    viewModel.push(.proximityPresentment(documentId: documentId))
+                                }
+                            }) {
+                                Image(systemName: "qrcode")
+                                    .font(.title3)
+                                    .foregroundStyle(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .opacity(isFocused ? 1.0 : 0.0)
+                        .scaleEffect(isFocused ? 1.0 : 0.8)
+                        .allowsHitTesting(isFocused)
+                    }
+                    
+                    avatarButton
+                        .opacity(isFocused ? 0.0 : 1.0)
+                        .scaleEffect(isFocused ? 0.8 : 1.0)
+                        .allowsHitTesting(!isFocused)
+                }
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
+            }
         }
+        .frame(height: 44)
+        .padding(.horizontal, 16)
     }
 
     @ViewBuilder
@@ -149,71 +230,6 @@ struct WalletScreen: View {
             }
         )
     }
-
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
-        ToolbarItem(placement: .topBarLeading) {
-            ZStack {
-                Button(action: {
-                    viewModel.verticalCardListState.unfocus {
-                        viewModel.popWithoutAnimation()
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.body.bold())
-                }
-                .opacity(isFocused ? 1.0 : 0.0)
-                .scaleEffect(isFocused ? 1.0 : 0.8)
-                .allowsHitTesting(isFocused)
-
-                Image("AppLogo")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 32, height: 32)
-                    .opacity(isFocused ? 0.0 : 1.0)
-                    .scaleEffect(isFocused ? 0.8 : 1.0)
-                    .allowsHitTesting(!isFocused)
-            }
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
-        }
-        .sharedBackgroundVisibility(
-            isFocused ? .automatic : .hidden
-        )
-        
-        ToolbarItem(placement: .topBarTrailing) {
-            ZStack(alignment: .trailing) {
-                if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
-                    HStack(spacing: 16) {
-                        if focusedDoc.document.mpzPassId != nil {
-                            Button(action: {
-                                showShareConfirmation = true
-                            }) {
-                                Image(systemName: "square.and.arrow.up")
-                            }
-                        }
-                        Button(action: {
-                            if let documentId = documentId {
-                                viewModel.push(.proximityPresentment(documentId: documentId))
-                            }
-                        }) {
-                            Image(systemName: "qrcode")
-                        }
-                    }
-                    .opacity(isFocused ? 1.0 : 0.0)
-                    .scaleEffect(isFocused ? 1.0 : 0.8)
-                    .allowsHitTesting(isFocused)
-                }
-                
-                avatarButton
-                    .opacity(isFocused ? 0.0 : 1.0)
-                    .scaleEffect(isFocused ? 0.8 : 1.0)
-                    .allowsHitTesting(!isFocused)
-            }
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
-        }
-        .sharedBackgroundVisibility(.hidden)
-    }
     
     @ViewBuilder
     private var avatarButton: some View {
@@ -224,6 +240,7 @@ struct WalletScreen: View {
             } label: {
                 viewModel.signedInUser!.profilePictureView(size: 32.0)
             }
+            .buttonStyle(.plain)
         } else {
             // Button 2: Logged-out state
             Button {
@@ -232,7 +249,9 @@ struct WalletScreen: View {
                 Image(systemName: "person.crop.circle")
                     .resizable()
                     .frame(width: 32.0, height: 32.0)
+                    .foregroundStyle(.primary)
             }
+            .buttonStyle(.plain)
         }
     }
     
