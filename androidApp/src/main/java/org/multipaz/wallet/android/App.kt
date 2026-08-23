@@ -107,6 +107,7 @@ import org.multipaz.wallet.shared.toDataItem
 import java.security.Security
 
 import org.multipaz.nfc.ExternalNfcReaderStore
+import org.multipaz.provisioning.SelectedSecureArea
 import org.multipaz.wallet.android.worker.PeriodicBookkeepingScheduler
 import org.multipaz.revocation.CachingRevocationChecker
 import org.multipaz.revocation.RevocationChecker
@@ -291,9 +292,9 @@ class App private constructor() {
                         if (createKeySettings.validFrom != null && createKeySettings.validUntil != null) {
                             builder.setValidityPeriod(createKeySettings.validFrom!!, createKeySettings.validUntil!!)
                         }
-                        Pair(targetSecureArea, builder.build())
+                        SelectedSecureArea(secureArea = targetSecureArea, createKeySettings = builder.build())
                     } else {
-                        Pair(targetSecureArea, createKeySettings)
+                        SelectedSecureArea(secureArea = targetSecureArea, createKeySettings = createKeySettings)
                     }
                 }
             ),

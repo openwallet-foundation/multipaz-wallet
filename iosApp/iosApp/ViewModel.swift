@@ -89,6 +89,13 @@ class ViewModel {
             storage: storage,
             secureAreaRepository: secureAreaRepository
         ).build()
+        // Keep in sync with iosApp/iosApp/iosApp.entitlements
+        try! await documentStore.setIosMdocDoctypes(value: [
+            "eu.europa.ec.av.1",
+            "eu.europa.ec.eudi.pid.1",
+            "org.iso.18013.5.1.mDL",
+            "org.iso.23220.photoid.1",
+        ])
         readerTrustManager = TrustManager(storage: storage, identifier: "default", partitionId: "default_default")
         
         try! await readerTrustManager.deleteAll()
@@ -208,7 +215,7 @@ class ViewModel {
             )
 
         self.provisioningModel = ProvisioningModel(
-            documentProvisioningHandler: DocumentProvisioningHandler(
+            documentProvisioningHandler: DocumentProvisioningHandler.companion.create(
                 secureArea: secureArea,
                 documentStore: documentStore,
                 metadataHandler: nil,
@@ -227,7 +234,7 @@ class ViewModel {
                     sdJwtNoUserAuthDomain: Domains.shared.DOMAIN_SDJWT_NO_USER_AUTH,
                     sdJwtKeylessDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
                 ),
-                selectSecureArea: nil  // TODO
+                selectSecureAreaFn: nil  // TODO
             ),
             httpClient: HttpClient(engineFactory: Darwin()) { config in
                 config.followRedirects = false
@@ -248,7 +255,8 @@ class ViewModel {
                 try await dcApi.register(
                     documentStore: documentStore,
                     documentTypeRepository: documentTypeRepository,
-                    selectedProtocols: dcApi.supportedProtocols
+                    selectedProtocols: dcApi.supportedProtocols,
+                    forceRegistration: false
                 )
             } catch {
                 print("Error registering with DigitalCredentials API: \(error)")
@@ -260,7 +268,8 @@ class ViewModel {
                             try await dcApi.register(
                                 documentStore: documentStore,
                                 documentTypeRepository: documentTypeRepository,
-                                selectedProtocols: dcApi.supportedProtocols
+                                selectedProtocols: dcApi.supportedProtocols,
+                                forceRegistration: false
                             )
                         } catch {
                             print("Error re-registering with DigitalCredentials API on eventFlow: \(error)")
@@ -287,7 +296,9 @@ class ViewModel {
             }
         )
         
-        await self.syncAtStartup()
+        Task {
+            await self.syncAtStartup()
+        }
         
         Task {
             var previousUser: WalletClientSignedInUser? = walletClient.signedInUser.value

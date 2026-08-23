@@ -34,22 +34,24 @@ struct WalletScreen: View {
     }
 
     var body: some View {
+        let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
         ZStack(alignment: .bottom) {
             VStack {
                 cardListView
             }
             
-            if viewModel.verticalCardListState.internalFocusedCardIdentifier == nil {
-                floatingMenuBar
-                    .padding(.bottom, 16)
-            }
+            floatingMenuBar
+                .padding(.bottom, 16)
+                .opacity(isFocused ? 0.0 : 1.0)
+                .offset(y: isFocused ? 32 : 0)
+                .allowsHitTesting(!isFocused)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
         }
         .id(documentId ?? "root")
         .frame(maxWidth: .infinity, alignment: .leading)
         .navigationBarBackButtonHidden(documentId != nil)
         .navigationTitle(
-            viewModel.verticalCardListState.internalFocusedCardIdentifier == nil
-            ? BuildConfig.shared.APP_NAME : ""
+            isFocused ? "" : BuildConfig.shared.APP_NAME
         )
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
@@ -137,8 +139,9 @@ struct WalletScreen: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
         ToolbarItem(placement: .topBarLeading) {
-            if viewModel.verticalCardListState.internalFocusedCardIdentifier != nil {
+            ZStack(alignment: .leading) {
                 Button(action: {
                     viewModel.verticalCardListState.unfocus {
                         viewModel.popWithoutAnimation()
@@ -147,41 +150,56 @@ struct WalletScreen: View {
                     Image(systemName: "chevron.left")
                         .font(.body.bold())
                 }
-                .transition(.opacity)
-            } else {
+                .opacity(isFocused ? 1.0 : 0.0)
+                .scaleEffect(isFocused ? 1.0 : 0.8)
+                .allowsHitTesting(isFocused)
+
                 Image("AppLogo")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 32, height: 32)
+                    .opacity(isFocused ? 0.0 : 1.0)
+                    .scaleEffect(isFocused ? 0.8 : 1.0)
+                    .allowsHitTesting(!isFocused)
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
         }
         .sharedBackgroundVisibility(
-            viewModel.verticalCardListState.internalFocusedCardIdentifier == nil ? .hidden : .automatic
+            isFocused ? .automatic : .hidden
         )
-        if viewModel.verticalCardListState.internalFocusedCardIdentifier == nil {
-            ToolbarItem(placement: .topBarTrailing) {
+        
+        ToolbarItem(placement: .topBarTrailing) {
+            ZStack(alignment: .trailing) {
+                if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
+                    HStack(spacing: 16) {
+                        if focusedDoc.document.mpzPassId != nil {
+                            Button(action: {
+                                showShareConfirmation = true
+                            }) {
+                                Image(systemName: "square.and.arrow.up")
+                            }
+                        }
+                        Button(action: {
+                            if let documentId = documentId {
+                                viewModel.push(.proximityPresentment(documentId: documentId))
+                            }
+                        }) {
+                            Image(systemName: "qrcode")
+                        }
+                    }
+                    .opacity(isFocused ? 1.0 : 0.0)
+                    .scaleEffect(isFocused ? 1.0 : 0.8)
+                    .allowsHitTesting(isFocused)
+                }
+                
                 avatarButton
+                    .opacity(isFocused ? 0.0 : 1.0)
+                    .scaleEffect(isFocused ? 0.8 : 1.0)
+                    .allowsHitTesting(!isFocused)
             }
-            .sharedBackgroundVisibility(.hidden)
-        } else if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if focusedDoc.document.mpzPassId != nil {
-                    Button(action: {
-                        showShareConfirmation = true
-                    }) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                }
-                Button(action: {
-                    if let documentId = documentId {
-                        viewModel.push(.proximityPresentment(documentId: documentId))
-                    }
-                }) {
-                    Image(systemName: "qrcode")
-                }
-            }
-            .sharedBackgroundVisibility(.hidden)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
         }
+        .sharedBackgroundVisibility(.hidden)
     }
     
     @ViewBuilder
@@ -323,10 +341,15 @@ struct WalletScreen: View {
             Button(action: {
                 viewModel.push(.requestVerification)
             }) {
-                Image(systemName: "checkmark.circle")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 56, height: 48)
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.shield")
+                        .font(.system(size: 20, weight: .semibold))
+                    Text("Verify")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .foregroundColor(.primary)
+                .padding(.horizontal, 16)
+                .frame(height: 48)
             }
             
             Divider()
@@ -339,10 +362,10 @@ struct WalletScreen: View {
                 Image(systemName: "plus")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 56, height: 48)
+                    .frame(width: 48, height: 48)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 4)
         .background(.ultraThinMaterial)
         .cornerRadius(24)
         .overlay(

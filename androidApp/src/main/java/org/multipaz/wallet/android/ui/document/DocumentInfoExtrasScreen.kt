@@ -43,7 +43,11 @@ import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.bytestring.ByteString
+import org.multipaz.cbor.Bstr
 import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.CborArray
+import org.multipaz.cbor.DataItem
+import org.multipaz.cbor.Tstr
 import org.multipaz.cbor.toCdn
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
@@ -278,59 +282,30 @@ private fun formatAuthorizationData(authorizationData: ByteString?): String {
     }
 }
 
-// TODO: It would be nice to just have Tags.get() returning a DataItem to avoid the shenanigans below.
 private fun Tags.formatTagValue(key: String): String {
-    try {
-        getString(key)?.let { return it }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getBoolean(key)?.let { return it.toString() }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getLong(key)?.let { return it.toString() }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getInt(key)?.let { return it.toString() }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getByteString(key)?.let { bstr ->
-            return if (bstr.size > 512) {
-                "${bstr.size} bytes"
+    val item = getRawDataItem(key) ?: return ""
+    return formatDataItem(item)
+}
+
+private fun formatDataItem(item: DataItem): String {
+    return when (item) {
+        is Tstr -> item.asTstr
+        is Bstr -> {
+            val bytes = item.asBstr
+            if (bytes.size > 512) {
+                "${bytes.size} bytes"
             } else {
                 try {
-                    return Cbor.decode(bstr.toByteArray()).toCdn()
+                    Cbor.decode(bytes).toCdn()
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
-                    bstr.toByteArray().toHex()
+                    bytes.toHex()
                 }
             }
         }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getList<String>(key)?.let { return it.joinToString(", ") }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getList<ByteString>(key)?.let { list ->
-            return list.joinToString(", ") { bstr ->
-                try {
-                    Cbor.decode(bstr.toByteArray()).toCdn()
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    if (bstr.size > 64) "${bstr.size} bytes" else bstr.toByteArray().toHex()
-                }
-            }
-        }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getList<Boolean>(key)?.let { return it.joinToString(", ") }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getList<Long>(key)?.let { return it.joinToString(", ") }
-    } catch (_: IllegalArgumentException) {}
-    try {
-        getList<Int>(key)?.let { return it.joinToString(", ") }
-    } catch (_: IllegalArgumentException) {}
-    return ""
+        is CborArray -> item.items.joinToString(", ") { formatDataItem(it) }
+        else -> item.toCdn()
+    }
 }
 
 private fun Instant.format(): String {

@@ -10,6 +10,7 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.provisioning.DocumentProvisioningHandler
 import org.multipaz.provisioning.DocumentProvisioningSettings
+import org.multipaz.provisioning.SelectedSecureArea
 import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.SecureAreaRepository
@@ -63,8 +64,8 @@ class ProvisioningSecureAreaSelectionTest {
                     if (createKeySettings.validFrom != null && createKeySettings.validUntil != null) {
                         builder.setValidityPeriod(createKeySettings.validFrom!!, createKeySettings.validUntil!!)
                     }
-                    Pair(secureArea, builder.build())
-                } ?: Pair(secureArea, createKeySettings)
+                    SelectedSecureArea(secureArea, builder.build())
+                } ?: SelectedSecureArea(secureArea, createKeySettings)
             }
         )
 
