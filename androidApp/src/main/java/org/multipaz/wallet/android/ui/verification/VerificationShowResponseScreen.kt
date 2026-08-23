@@ -1119,6 +1119,8 @@ fun ShowUserDefinedResult(
         builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
         userIssuerTrustManagerModel = userIssuerTrustManagerModel,
         imageLoader = imageLoader,
+        revocationChecker = revocationChecker,
+        revocationCheckResult = revocationCheckResult,
         onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
