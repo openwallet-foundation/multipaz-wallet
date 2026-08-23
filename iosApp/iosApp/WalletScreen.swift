@@ -66,9 +66,22 @@ struct WalletScreen: View {
                 isJustAdded = false
             }
             viewModel.verticalCardListState.animateListTransitions = !isJustAdded
+            if documentId == nil && viewModel.verticalCardListState.internalFocusedCardIdentifier != nil {
+                viewModel.verticalCardListState.unfocus {}
+            }
         }
         .onDisappear {
             viewModel.verticalCardListState.animateListTransitions = true
+            if documentId != nil && viewModel.path.isEmpty {
+                viewModel.verticalCardListState.unfocus {}
+            }
+        }
+        .background {
+            ScreenEdgeSwipeGesture(isEnabled: isFocused && viewModel.path.count == 1) {
+                viewModel.verticalCardListState.unfocus {
+                    viewModel.popWithoutAnimation()
+                }
+            }
         }
         .alert("Remove Document?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {
@@ -141,7 +154,7 @@ struct WalletScreen: View {
     private var toolbarContent: some ToolbarContent {
         let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
         ToolbarItem(placement: .topBarLeading) {
-            ZStack(alignment: .leading) {
+            ZStack {
                 Button(action: {
                     viewModel.verticalCardListState.unfocus {
                         viewModel.popWithoutAnimation()
@@ -479,4 +492,93 @@ private func presentShareSheet(url: URL, title: String) {
         popover.permittedArrowDirections = []
     }
     topController.present(activityVC, animated: true)
+}
+
+private struct ScreenEdgeSwipeGesture: UIViewRepresentable {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    func makeUIView(context: Context) -> GestureView {
+        let view = GestureView()
+        view.coordinator = context.coordinator
+        return view
+    }
+
+    func updateUIView(_ uiView: GestureView, context: Context) {
+        context.coordinator.action = action
+        context.coordinator.isEnabled = isEnabled
+        uiView.updateGesture()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isEnabled: isEnabled, action: action)
+    }
+
+    class GestureView: UIView {
+        var coordinator: Coordinator?
+        private var panGesture: UIPanGestureRecognizer?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            updateGesture()
+        }
+
+        func updateGesture() {
+            guard let window = self.window, let coordinator = coordinator else { return }
+            if panGesture == nil {
+                let gesture = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.handlePan(_:)))
+                gesture.delegate = coordinator
+                window.addGestureRecognizer(gesture)
+                panGesture = gesture
+            }
+            panGesture?.isEnabled = coordinator.isEnabled
+        }
+
+        override func willMove(toWindow newWindow: UIWindow?) {
+            super.willMove(toWindow: newWindow)
+            if newWindow == nil, let gesture = panGesture, let window = self.window {
+                window.removeGestureRecognizer(gesture)
+                panGesture = nil
+            }
+        }
+    }
+
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var isEnabled: Bool
+        var action: () -> Void
+        private var isTriggered = false
+
+        init(isEnabled: Bool, action: @escaping () -> Void) {
+            self.isEnabled = isEnabled
+            self.action = action
+        }
+
+        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard isEnabled else { return }
+            let translation = recognizer.translation(in: recognizer.view)
+            let velocity = recognizer.velocity(in: recognizer.view)
+
+            switch recognizer.state {
+            case .changed:
+                if !isTriggered && translation.x > 30 && velocity.x > 80 && abs(translation.x) > abs(translation.y) * 1.2 {
+                    isTriggered = true
+                    action()
+                }
+            case .ended, .cancelled, .failed:
+                isTriggered = false
+            default:
+                break
+            }
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            return true
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard isEnabled, let pan = gestureRecognizer as? UIPanGestureRecognizer, let view = pan.view else { return false }
+            let velocity = pan.velocity(in: view)
+            return velocity.x > 0 && abs(velocity.x) > abs(velocity.y) * 1.2
+        }
+    }
 }
