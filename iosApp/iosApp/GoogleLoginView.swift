@@ -81,7 +81,7 @@ struct GoogleLoginView: View {
             }
 
             let userData = SignInWithGoogleUserData(
-                id: user.userID ?? UUID().uuidString,
+                id: profile?.email ?? user.userID ?? UUID().uuidString,
                 givenName: profile?.givenName,
                 familyName: profile?.familyName,
                 displayName: profile?.name,
@@ -160,7 +160,7 @@ func signInWithGoogle(
         }
 
         let userData = SignInWithGoogleUserData(
-            id: user.userID ?? UUID().uuidString,
+            id: profile?.email ?? user.userID ?? UUID().uuidString,
             givenName: profile?.givenName,
             familyName: profile?.familyName,
             displayName: profile?.name,

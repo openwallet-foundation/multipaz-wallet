@@ -57,7 +57,7 @@ struct AddToWalletScreen: View {
                     FloatingItemText(
                         text: "Import pass from file",
                         showChevron: true,
-                        image: { Image(systemName: "square.and.arrow.down") }
+                        image: { Image(systemName: "square.and.arrow.down").frame(width: 24, height: 24) }
                     ).onTapGesture {
                         showFilePicker = true
                     }
@@ -65,7 +65,7 @@ struct AddToWalletScreen: View {
                     FloatingItemText(
                         text: "Scan credential offer",
                         showChevron: true,
-                        image: { Image(systemName: "qrcode.viewfinder") }
+                        image: { Image(systemName: "qrcode.viewfinder").frame(width: 24, height: 24) }
                     ).onTapGesture {
                         viewModel.push(.scanCredentialOffer)
                     }
@@ -73,7 +73,7 @@ struct AddToWalletScreen: View {
                     FloatingItemText(
                         text: "Enter issuer URL",
                         showChevron: true,
-                        image: { Image(systemName: "building.columns") }
+                        image: { Image(systemName: "building.columns").frame(width: 24, height: 24) }
                     ).onTapGesture {
                         viewModel.push(.enterIssuerUrl)
                     }

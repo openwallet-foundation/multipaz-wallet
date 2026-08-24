@@ -11,4 +11,5 @@ enum Destination: Hashable {
     case provisioning(issuerUrl: String, credentialId: String?, provisionedDocumentIdentifier: String? = nil)
     case provisioningFromOffer(credentialOfferUri: String)
     case requestVerification
+    case deviceSessions
 }

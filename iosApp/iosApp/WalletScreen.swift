@@ -16,6 +16,9 @@ struct WalletScreen: View {
     @State private var showJustAdded: Bool
     @State private var isUnfocusing: Bool = false
     @State private var titleAndFabVisible: Bool
+    @State private var devModeNumTimesPressed: Int = 0
+    @State private var toastMessage: String? = nil
+    @State private var toastTask: Task<Void, Never>? = nil
     
     init(
         documentId: String?,
@@ -87,6 +90,26 @@ struct WalletScreen: View {
                 .offset(y: isFocused ? 32 : 0)
                 .allowsHitTesting(!isFocused)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
+
+            if let toast = toastMessage {
+                Text(toast)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                    )
+                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, isFocused ? 32 : 80)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(100)
+            }
         }
         .id(documentId ?? "root")
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -136,6 +159,10 @@ struct WalletScreen: View {
         ZStack {
             Text(BuildConfig.shared.APP_NAME)
                 .font(.headline)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    handleTitleTap()
+                }
                 .opacity(isFocused ? 0.0 : 1.0)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
 
@@ -313,7 +340,7 @@ struct WalletScreen: View {
                                 text: "Synced to your account",
                                 showChevron: true,
                                 secondary: syncedSecondaryText,
-                                image: { Image(systemName: "arrow.triangle.2.circlepath") }
+                                image: { Image(systemName: "arrow.triangle.2.circlepath").frame(width: 24, height: 24) }
                             ).onTapGesture {
                                 if targetDocument.document.provisionedDocumentSetupNeeded {
                                     if let provisionedDocuments = viewModel.walletClient.sharedData.value?.provisionedDocuments,
@@ -321,7 +348,7 @@ struct WalletScreen: View {
                                         viewModel.push(.provisioning(issuerUrl: provDoc.url, credentialId: provDoc.credentialId, provisionedDocumentIdentifier: provDoc.identifier))
                                     }
                                 } else {
-                                    viewModel.push(.settingsScreen)
+                                    viewModel.push(.deviceSessions)
                                 }
                             }
                         }
@@ -331,7 +358,7 @@ struct WalletScreen: View {
                                 text: "\(typeDisplayName) info",
                                 showChevron: true,
                                 secondary: "Pass details and certificate info",
-                                image: { Image(systemName: "person.crop.rectangle") }
+                                image: { Image(systemName: "person.crop.rectangle").frame(width: 24, height: 24) }
                             ).onTapGesture {
                                 viewModel.push(.documentInfoScreen(documentId: targetDocument.document.identifier))
                             }
@@ -340,7 +367,7 @@ struct WalletScreen: View {
                                 text: "View and manage activity",
                                 showChevron: true,
                                 secondary: "Logging is enabled",
-                                image: { Image(systemName: "timer") }
+                                image: { Image(systemName: "timer").frame(width: 24, height: 24) }
                             ).onTapGesture {
                                 print("TODO: go to activity page")
                             }
@@ -349,7 +376,7 @@ struct WalletScreen: View {
                                 text: "In person-sharing and consent",
                                 showChevron: true,
                                 secondary: "Always ask before sharing",
-                                image: { Image(systemName: "wave.3.right") }
+                                image: { Image(systemName: "wave.3.right").frame(width: 24, height: 24) }
                             ).onTapGesture {
                                 print("TODO: go to pre-consent configuration")
                             }
@@ -365,7 +392,7 @@ struct WalletScreen: View {
                                     container.foregroundColor = .red
                                     return container
                                 }()),
-                            image: { Image(systemName: "trash").foregroundStyle(.red) }
+                            image: { Image(systemName: "trash").foregroundStyle(.red).frame(width: 24, height: 24) }
                         )
                     }.onTapGesture {
                         documentToDelete = targetDocument
@@ -469,6 +496,46 @@ struct WalletScreen: View {
                 }
             } catch {
                 print("Error sharing pass: \(error)")
+            }
+        }
+    }
+
+    private func showToast(_ message: String) {
+        toastTask?.cancel()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            toastMessage = message
+        }
+        toastTask = Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    toastMessage = nil
+                }
+            }
+        }
+    }
+
+    private func handleTitleTap() {
+        guard BuildConfig.shared.DEVELOPER_MODE_AVAILABLE else { return }
+        if viewModel.settings.devMode {
+            showToast("Developer mode is already enabled")
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        } else {
+            if devModeNumTimesPressed == 4 {
+                showToast("Developer mode is now enabled. See the Settings screen for details")
+                viewModel.settings.devMode = true
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                devModeNumTimesPressed = 0
+            } else {
+                let tapsRemaining = 4 - devModeNumTimesPressed
+                if tapsRemaining > 1 {
+                    showToast("Tap \(tapsRemaining) more times to enable developer mode")
+                } else {
+                    showToast("Tap 1 more time to enable developer mode")
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                devModeNumTimesPressed += 1
             }
         }
     }

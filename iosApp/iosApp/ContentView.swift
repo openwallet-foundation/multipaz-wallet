@@ -56,6 +56,8 @@ struct ContentView: View {
                                 ProvisioningScreen(credentialOfferUri: credentialOfferUri)
                             case .requestVerification:
                                 RequestVerificationScreen()
+                            case .deviceSessions:
+                                DeviceSessionsScreen()
                             }
                         }
                 }
