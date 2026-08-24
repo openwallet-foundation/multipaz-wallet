@@ -1,6 +1,7 @@
 package org.multipaz.wallet.android.ui
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
@@ -182,6 +183,8 @@ fun WalletScreen(
     settingsModel: SettingsModel,
     focusedDocumentId: String?,
     justAdded: Boolean,
+    animateListTransitions: Boolean = false,
+    isPreviousScreenCardList: Boolean = false,
     onAvatarClicked: () -> Unit,
     onAddClicked: () -> Unit,
     onVerifyClicked: () -> Unit,
@@ -222,6 +225,27 @@ fun WalletScreen(
     var titleAndFabVisible by remember { mutableStateOf(focusedDocumentId == null) }
     LaunchedEffect(focusedDocumentId) {
         titleAndFabVisible = focusedDocumentId == null
+    }
+
+    var isUnfocusing by remember { mutableStateOf(false) }
+
+    val handleBack: () -> Unit = {
+        if (!isUnfocusing) {
+            if (isPreviousScreenCardList) {
+                isUnfocusing = true
+                titleAndFabVisible = true
+                coroutineScope.launch {
+                    verticalCardListState.unfocus()
+                    onBackClicked()
+                }
+            } else {
+                onBackClicked()
+            }
+        }
+    }
+
+    BackHandler(enabled = focusedDocumentId != null) {
+        handleBack()
     }
 
     Scaffold(
@@ -314,7 +338,11 @@ fun WalletScreen(
                                 exit = fadeOut()
                             ) {
                                 IconButton(onClick = {
-                                    onBackClicked()
+                                    if (focusedDocumentId != null) {
+                                        handleBack()
+                                    } else {
+                                        onBackClicked()
+                                    }
                                 }) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -512,6 +540,7 @@ fun WalletScreen(
                     showStackWhileFocused = false,
                     cardMaxHeight = maxCardHeight,
                     paddingTop = innerPadding.calculateTopPadding(),
+                    animateListTransitions = animateListTransitions,
                     state = verticalCardListState,
                     showCardInfo = { cardInfo ->
                         val documentInfo = cardInfo as DocumentInfo
@@ -549,10 +578,12 @@ fun WalletScreen(
                         val documentInfo = cardInfo as DocumentInfo
                         onDocumentClicked(documentInfo)
                     },
-                    onCardFocusedTapped =  { cardInfo ->
-                        onBackClicked()
+                    onCardFocusedTapped = { cardInfo ->
+                        handleBack()
                     },
-                    onCardFocusedStackTapped =  { cardInfo -> }
+                    onCardFocusedStackTapped = { cardInfo ->
+                        handleBack()
+                    }
                 )
             }
         }

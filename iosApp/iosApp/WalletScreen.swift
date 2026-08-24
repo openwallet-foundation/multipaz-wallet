@@ -7,34 +7,74 @@ struct WalletScreen: View {
     @Environment(ViewModel.self) private var viewModel
     
     let documentId: String?
-    let justAddedAtMillis: Int64?
+    let justAdded: Bool
+    let animateListTransitions: Bool
 
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: DocumentInfo? = nil
     @State private var showShareConfirmation = false
     @State private var showJustAdded: Bool
+    @State private var isUnfocusing: Bool = false
+    @State private var titleAndFabVisible: Bool
     
-    init(documentId: String?, justAddedAtMillis: Int64? = nil) {
+    init(
+        documentId: String?,
+        justAdded: Bool = false,
+        animateListTransitions: Bool = false
+    ) {
         self.documentId = documentId
-        self.justAddedAtMillis = justAddedAtMillis
-        let isJustAdded: Bool
-        if let millis = justAddedAtMillis {
-            let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
-            isJustAdded = (nowMillis - millis) < 5000 && nowMillis >= millis
-        } else {
-            isJustAdded = false
+        self.justAdded = justAdded
+        self.animateListTransitions = animateListTransitions
+        _showJustAdded = State(initialValue: justAdded)
+        _titleAndFabVisible = State(initialValue: documentId == nil)
+    }
+
+    private var isPreviousScreenCardList: Bool {
+        if viewModel.path.count >= 2 {
+            if case .walletScreen = viewModel.path[viewModel.path.count - 2] {
+                return true
+            }
         }
-        _showJustAdded = State(initialValue: isJustAdded)
+        return false
+    }
+
+    private func handleBack() {
+        if isPreviousScreenCardList {
+            if !isUnfocusing {
+                isUnfocusing = true
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    titleAndFabVisible = true
+                }
+                viewModel.verticalCardListState.unfocus {
+                    isUnfocusing = false
+                    viewModel.popWithoutAnimation()
+                }
+            }
+        } else if documentId != nil {
+            if !isUnfocusing {
+                isUnfocusing = true
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    titleAndFabVisible = true
+                }
+                viewModel.verticalCardListState.unfocus {
+                    isUnfocusing = false
+                    viewModel.popToRootWithoutAnimation()
+                }
+            }
+        } else if !viewModel.path.isEmpty {
+            viewModel.path.removeLast()
+        }
     }
 
     private var focusedDocument: DocumentInfo? {
-        viewModel.documentModel.documentInfos.first {
+        let doc = viewModel.documentModel.documentInfos.first {
             $0.document.identifier == documentId
         }
+        return doc
     }
 
     var body: some View {
-        let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
+        let isFocused = !titleAndFabVisible
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 customTopBar
@@ -56,23 +96,13 @@ struct WalletScreen: View {
             await viewModel.refreshWallet()
         }
         .onAppear {
-            let isJustAdded: Bool
-            if let millis = justAddedAtMillis {
-                let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
-                isJustAdded = (nowMillis - millis) < 5000 && nowMillis >= millis
-            } else {
-                isJustAdded = false
+            if justAdded {
+                showJustAdded = true
             }
-            viewModel.verticalCardListState.animateListTransitions = !isJustAdded
-        }
-        .onDisappear {
-            viewModel.verticalCardListState.animateListTransitions = true
         }
         .background {
-            ScreenEdgeSwipeGesture(isEnabled: isFocused && viewModel.path.count == 1) {
-                viewModel.verticalCardListState.unfocus {
-                    viewModel.popWithoutAnimation()
-                }
+            ScreenEdgeSwipeGesture(isEnabled: isFocused) {
+                handleBack()
             }
         }
         .alert("Remove Document?", isPresented: $showDeleteConfirmation) {
@@ -102,7 +132,7 @@ struct WalletScreen: View {
 
     @ViewBuilder
     private var customTopBar: some View {
-        let isFocused = viewModel.verticalCardListState.internalFocusedCardIdentifier != nil
+        let isFocused = !titleAndFabVisible
         ZStack {
             Text(BuildConfig.shared.APP_NAME)
                 .font(.headline)
@@ -112,9 +142,7 @@ struct WalletScreen: View {
             HStack {
                 ZStack {
                     Button(action: {
-                        viewModel.verticalCardListState.unfocus {
-                            viewModel.popWithoutAnimation()
-                        }
+                        handleBack()
                     }) {
                         ZStack {
                             Circle()
@@ -201,6 +229,7 @@ struct WalletScreen: View {
             allowCardReordering: true,
             showStackWhileFocused: false,
             state: viewModel.verticalCardListState,
+            animateListTransitions: animateListTransitions,
             showCardInfo: { cardInfo in
                 let docInfo = cardInfo as! DocumentInfo
                 cardInfoView(targetDocument: focusedDocument ?? docInfo)
@@ -216,17 +245,13 @@ struct WalletScreen: View {
                 }
             },
             onCardFocused: { cardInfo in
-                viewModel.push(.walletScreen(documentId: cardInfo.identifier))
+                viewModel.push(.walletScreen(documentId: cardInfo.identifier, animateListTransitions: true))
             },
             onCardFocusedTapped: { _ in
-                viewModel.verticalCardListState.unfocus {
-                    viewModel.popWithoutAnimation()
-                }
+                handleBack()
             },
             onCardFocusedStackTapped: { _ in
-                viewModel.verticalCardListState.unfocus {
-                    viewModel.popWithoutAnimation()
-                }
+                handleBack()
             }
         )
     }
@@ -276,7 +301,6 @@ struct WalletScreen: View {
                     withAnimation(.easeInOut(duration: 0.5)) {
                         showJustAdded = false
                     }
-                    viewModel.verticalCardListState.animateListTransitions = true
                 }
             } else {
                 VStack {
@@ -415,9 +439,7 @@ struct WalletScreen: View {
                     walletClient: viewModel.walletClient
                 )
                 await MainActor.run {
-                    viewModel.verticalCardListState.unfocus {
-                        viewModel.popWithoutAnimation()
-                    }
+                    handleBack()
                 }
             } catch {
                 print("Error deleting document: \(error)")

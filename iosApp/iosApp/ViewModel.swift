@@ -35,9 +35,13 @@ class ViewModel {
     
     func push(_ destination: Destination) {
         if path.last != destination {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
+            if case .walletScreen = destination {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    path.append(destination)
+                }
+            } else {
                 path.append(destination)
             }
         }
@@ -49,6 +53,16 @@ class ViewModel {
             transaction.disablesAnimations = true
             withTransaction(transaction) {
                 path.removeLast()
+            }
+        }
+    }
+
+    func popToRootWithoutAnimation() {
+        if !path.isEmpty {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                path.removeAll()
             }
         }
     }
@@ -423,7 +437,8 @@ class ViewModel {
         path = [
             .walletScreen(
                 documentId: document.identifier,
-                justAddedAtMillis: nowMillis
+                justAddedAtMillis: nowMillis,
+                animateListTransitions: false
             )
         ]
     }

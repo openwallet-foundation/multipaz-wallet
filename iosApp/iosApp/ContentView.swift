@@ -22,8 +22,19 @@ struct ContentView: View {
                     WalletScreen(documentId: nil)
                         .navigationDestination(for: Destination.self) { destination in
                             switch destination {
-                            case .walletScreen(let documentId, let justAddedAtMillis):
-                                WalletScreen(documentId: documentId, justAddedAtMillis: justAddedAtMillis)
+                            case .walletScreen(let documentId, let justAddedAtMillis, let animateListTransitions):
+                                let justAdded: Bool = {
+                                    if let millis = justAddedAtMillis {
+                                        let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+                                        return abs(nowMillis - millis) < 5000
+                                    }
+                                    return false
+                                }()
+                                WalletScreen(
+                                    documentId: documentId,
+                                    justAdded: justAdded,
+                                    animateListTransitions: animateListTransitions
+                                )
                             case .settingsScreen: SettingsScreen()
                             case .documentInfoScreen(let documentId):
                                 DocumentInfoScreen(documentId: documentId)

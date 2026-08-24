@@ -301,7 +301,8 @@ struct ProvisioningScreen: View {
                     viewModel.path = [
                         .walletScreen(
                             documentId: document.identifier,
-                            justAddedAtMillis: nowMillis
+                            justAddedAtMillis: nowMillis,
+                            animateListTransitions: false
                         )
                     ]
                 }

@@ -294,7 +294,8 @@ fun mainGraph(
             }
             is WalletDestination -> {
                 val previousKey = backStack.getOrNull(backStack.size - 2)
-                val metadata = if (previousKey is WalletDestination) {
+                val isPreviousScreenCardList = previousKey is WalletDestination
+                val metadata = if (isPreviousScreenCardList) {
                     NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
                             NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None }
                 } else {
@@ -305,13 +306,6 @@ fun mainGraph(
                         Clock.System.now() - Instant.fromEpochMilliseconds(it) < 5.seconds
                     } ?: false
 
-                    // Disable animations for a card we just added
-                    if (justAdded) {
-                        verticalCardListState.animateListTransitions = false
-                    } else {
-                        verticalCardListState.animateListTransitions = true
-                    }
-
                     WalletScreen(
                         verticalCardListState = verticalCardListState,
                         walletClient = walletClient,
@@ -320,13 +314,18 @@ fun mainGraph(
                         settingsModel = settingsModel,
                         focusedDocumentId = key.documentId,
                         justAdded = justAdded,
+                        animateListTransitions = key.animateListTransitions,
+                        isPreviousScreenCardList = isPreviousScreenCardList,
                         onAvatarClicked = { backStack.add(SettingsDestination) },
                         onAddClicked = { backStack.add(AddToWalletDestination) },
                         onVerifyClicked = { backStack.add(RequestVerificationDestination) },
                         onDocumentClicked = { documentInfo ->
-                            backStack.add(WalletDestination(
-                                documentId = documentInfo.document.identifier
-                            ))
+                            backStack.add(
+                                WalletDestination(
+                                    documentId = documentInfo.document.identifier,
+                                    animateListTransitions = true
+                                )
+                            )
                         },
                         onDocumentQrClicked = { documentInfo ->
                             backStack.add(DocumentQrPresentmentDialogDestination(documentInfo.document.identifier))

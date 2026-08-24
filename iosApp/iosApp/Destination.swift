@@ -1,5 +1,5 @@
 enum Destination: Hashable {
-    case walletScreen(documentId: String?, justAddedAtMillis: Int64? = nil)
+    case walletScreen(documentId: String?, justAddedAtMillis: Int64? = nil, animateListTransitions: Bool = false)
     case settingsScreen
     case documentInfoScreen(documentId: String)
     case documentInfoExtrasScreen(documentId: String)

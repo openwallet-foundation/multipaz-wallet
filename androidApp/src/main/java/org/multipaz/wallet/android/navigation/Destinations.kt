@@ -90,7 +90,8 @@ data class ProvisioningDestination(
 @Serializable
 data class WalletDestination(
     val documentId: String? = null,
-    val justAddedAtMillis: Long? = null
+    val justAddedAtMillis: Long? = null,
+    val animateListTransitions: Boolean = false
 ): Destination()
 
 @Serializable
