@@ -5,6 +5,53 @@ import SwiftUI
 @preconcurrency import Multipaz
 import Multipaz
 
+fileprivate let TAG = "DocumentProviderExtension"
+
+private class ExtensionLogPrinter: NSObject, LoggerLogPrinter {
+    private let maxChunkLength = 800
+
+    func print(level: LoggerLogPrinterLevel, tag: String, msg: String, throwable: KotlinThrowable?) {
+        let levelStr: String
+        switch level {
+        case .debug: levelStr = "DEBUG"
+        case .info: levelStr = "INFO"
+        case .warning: levelStr = "WARNING"
+        case .error: levelStr = "ERROR"
+        default: levelStr = level.name
+        }
+        
+        var fullMsg = msg
+        if let throwable = throwable {
+            fullMsg += "\nEXCEPTION: \(throwable)"
+        }
+        
+        let lines = fullMsg.components(separatedBy: "\n")
+        for line in lines {
+            if line.count <= maxChunkLength {
+                NSLog("Multipaz: [%@] [%@] %@", levelStr, tag, line)
+            } else {
+                var remaining = line[...]
+                while !remaining.isEmpty {
+                    let chunk = remaining.prefix(maxChunkLength)
+                    NSLog("Multipaz: [%@] [%@] %@", levelStr, tag, String(chunk))
+                    remaining = remaining.dropFirst(maxChunkLength)
+                }
+            }
+        }
+    }
+}
+
+private var isLoggingSetup = false
+
+private func initializeLogging() {
+    guard !isLoggingSetup else { return }
+    isLoggingSetup = true
+    // Logger.shared.isDebugEnabled = true
+    Logger.shared.logPrinter = ExtensionLogPrinter()
+    Logger.shared.i(tag: TAG, msg: "Initialized logging")
+}
+
+
 func getPresentmentSource() async -> PresentmentSource {
     let storage = IosStorage(
         storageFileUrl: FileManager.default.containerURL(
@@ -25,8 +72,27 @@ func getPresentmentSource() async -> PresentmentSource {
         secureAreaRepository: secureAreaRepository
     ).build()
     
-    let readerTrustManager = TrustManager(storage: storage, identifier: "default", partitionId: "default_default")
+    let walletClient = try! await WalletClient.companion.create(
+        clientType: ClientType.ios,
+        url: BuildConfig.shared.BACKEND_URL,
+        secret: BuildConfig.shared.BACKEND_SECRET,
+        storage: storage,
+        secureArea: secureArea,
+        httpClientEngineFactory: Darwin(),
+        numReaderKeys: 0
+    )
     
+    let userReaderTrustManager = TrustManager(
+        storage: storage,
+        identifier: "userReaderTrustManager",
+        partitionId: "default_userReaderTrustManager"
+    )
+    
+    let readerTrustManager = CompositeTrustManager(
+        trustManagers: [walletClient.readerTrustManager, userReaderTrustManager],
+        identifier: "readerTrustManager"
+    )
+
     let zkSystemRepository = ZkSystemRepository()
     // Note: the RAM limit for IdentityDocumentProvider is 120 MB as of iOS 26 and
     //   Longfellow v0.9 uses around ~200MB. So until Apple increases the RAM limit
@@ -44,7 +110,8 @@ func getPresentmentSource() async -> PresentmentSource {
                 let certChain = requesterIdentity.certChain
                 let result = try! await readerTrustManager.verify(
                     chain: certChain.certificates,
-                    atTime: KotlinClockCompanion().getSystem().now()
+                    atTime: KotlinClockCompanion().getSystem().now(),
+                    validateCaValidity: true
                 )
                 if result.isTrusted && result.trustPoints.first != nil {
                     return TrustedRequesterIdentity(
@@ -56,7 +123,7 @@ func getPresentmentSource() async -> PresentmentSource {
             return nil
         },
         showConsentPromptFn: { requester, trustedRequesterIdentity, consentData, preselectedDocuments, onDocumentsInFocus in
-            try! await promptModelSilentConsent(
+            return try! await promptModelSilentConsent(
                 requester: requester,
                 trustedRequesterIdentity: trustedRequesterIdentity,
                 consentData: consentData,
@@ -80,6 +147,7 @@ struct DocumentProviderExtension: IdentityDocumentProvider {
             RequestAuthorizationView(
                 requestContext: context,
                 getPresentmentSource: {
+                    initializeLogging()
                     return await getPresentmentSource()
                 }
             )
@@ -87,7 +155,8 @@ struct DocumentProviderExtension: IdentityDocumentProvider {
     }
 
     func performRegistrationUpdates() async {
-        print("Handling performRegistrationUpdates")
+        initializeLogging()
+        Logger.shared.i(tag: TAG, msg: "Handling performRegistrationUpdates")
         let source = await getPresentmentSource()
         let dcApi = try! await DigitalCredentialsCompanion.shared.getDefault()
         if dcApi.registerAvailable {
@@ -99,7 +168,7 @@ struct DocumentProviderExtension: IdentityDocumentProvider {
                     forceRegistration: true
                 )
             } catch {
-                print("Error registering with DigitalCredentials API: \(error)")
+                Logger.shared.e(tag: TAG, msg: "Error registering with DigitalCredentials API: \(error)")
             }
         }
     }

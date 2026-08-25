@@ -58,6 +58,37 @@ struct ContentView: View {
                                 RequestVerificationScreen()
                             case .deviceSessions:
                                 DeviceSessionsScreen()
+                            case .trustedIssuers:
+                                TrustManagerScreen(isVical: true)
+                            case .trustedVerifiers:
+                                TrustManagerScreen(isVical: false)
+                            case .trustEntry(let trustManagerId, let trustEntryId, let justImported):
+                                TrustEntryScreen(
+                                    trustManagerId: trustManagerId,
+                                    trustEntryId: trustEntryId,
+                                    justImported: justImported
+                                )
+                            case .trustEntryEdit(let trustManagerId, let trustEntryId):
+                                TrustEntryEditScreen(
+                                    trustManagerId: trustManagerId,
+                                    trustEntryId: trustEntryId
+                                )
+                            case .trustEntryVicalEntry(let trustManagerId, let vicalTrustEntryId, let certNum):
+                                TrustEntryVicalEntryScreen(
+                                    trustManagerId: trustManagerId,
+                                    vicalTrustEntryId: vicalTrustEntryId,
+                                    certNum: certNum
+                                )
+                            case .trustEntryRicalEntry(let trustManagerId, let ricalTrustEntryId, let certNum):
+                                TrustEntryRicalEntryScreen(
+                                    trustManagerId: trustManagerId,
+                                    ricalTrustEntryId: ricalTrustEntryId,
+                                    certNum: certNum
+                                )
+                            case .certificateViewer(let certChain):
+                                CertificateViewerScreen(certChain: certChain)
+                            case .certificateViewerSingle(let certificate):
+                                CertificateViewerScreen(certificate: certificate)
                             }
                         }
                 }

@@ -55,10 +55,11 @@ import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryList
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509Cert
 import org.multipaz.mdoc.rical.SignedRical
-import org.multipaz.mdoc.vical.SignedVical
 import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
+import org.multipaz.wallet.client.addRicalWithValidation
+import org.multipaz.wallet.client.addVicalWithValidation
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
@@ -229,12 +230,7 @@ fun TrustManagerScreen(
                 coroutineScope.launch {
                     try {
                         val encodedSignedVical = files[0]
-                        // Parse it once, to check the signature is good
-                        val signedVical = SignedVical.parse(
-                            encodedSignedVical = encodedSignedVical.toByteArray(),
-                            disableSignatureVerification = false
-                        )
-                        val entry = (user.trustManager as TrustManager).addVical(
+                        val entry = (user.trustManager as TrustManager).addVicalWithValidation(
                             encodedSignedVical = encodedSignedVical,
                             metadata = TrustMetadata()
                         )
@@ -263,12 +259,7 @@ fun TrustManagerScreen(
                 coroutineScope.launch {
                     try {
                         val encodedSignedRical = files[0]
-                        // Parse it once, to check the signature is good
-                        val signedRical = SignedRical.parse(
-                            encodedSignedRical = encodedSignedRical.toByteArray(),
-                            disableSignatureVerification = false
-                        )
-                        val entry = (user.trustManager as TrustManager).addRical(
+                        val entry = (user.trustManager as TrustManager).addRicalWithValidation(
                             encodedSignedRical = encodedSignedRical,
                             metadata = TrustMetadata()
                         )

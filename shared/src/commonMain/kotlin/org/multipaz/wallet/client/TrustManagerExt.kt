@@ -12,6 +12,7 @@ import org.multipaz.trustmanagement.TrustEntry
 import org.multipaz.trustmanagement.TrustEntryRical
 import org.multipaz.trustmanagement.TrustEntryVical
 import org.multipaz.trustmanagement.TrustManager
+import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Logger
 
 private const val TAG = "TrustManagerExt"
@@ -174,3 +175,78 @@ suspend fun TrustManager.updateEntries(
     }
     return updatedCount
 }
+
+/**
+ * Adds a signed VICAL to the trust manager after validating its signature.
+ *
+ * @param encodedSignedVical The raw encoded bytes of the signed VICAL.
+ * @param metadata Associated metadata for the VICAL.
+ * @return The newly created and persisted [TrustEntryVical].
+ * @throws Exception if signature verification fails or the data is malformed.
+ */
+@Throws(Exception::class)
+suspend fun TrustManager.addVicalWithValidation(
+    encodedSignedVical: ByteString,
+    metadata: TrustMetadata = TrustMetadata(),
+): TrustEntryVical {
+    SignedVical.parse(
+        encodedSignedVical = encodedSignedVical.toByteArray(),
+        disableSignatureVerification = false
+    )
+    return addVical(
+        encodedSignedVical = encodedSignedVical,
+        metadata = metadata
+    )
+}
+
+/**
+ * Adds a signed RICAL to the trust manager after validating its signature.
+ *
+ * @param encodedSignedRical The raw encoded bytes of the signed RICAL.
+ * @param metadata Associated metadata for the RICAL.
+ * @return The newly created and persisted [TrustEntryRical].
+ * @throws Exception if signature verification fails or the data is malformed.
+ */
+@Throws(Exception::class)
+suspend fun TrustManager.addRicalWithValidation(
+    encodedSignedRical: ByteString,
+    metadata: TrustMetadata = TrustMetadata(),
+): TrustEntryRical {
+    SignedRical.parse(
+        encodedSignedRical = encodedSignedRical.toByteArray(),
+        disableSignatureVerification = false
+    )
+    return addRical(
+        encodedSignedRical = encodedSignedRical,
+        metadata = metadata
+    )
+}
+
+/**
+ * Validates the signature and structure of a signed VICAL.
+ *
+ * @param encodedSignedVical The raw encoded bytes of the signed VICAL.
+ * @throws Exception if signature verification fails or the data is malformed.
+ */
+@Throws(Exception::class)
+suspend fun validateSignedVical(encodedSignedVical: ByteArray) {
+    SignedVical.parse(
+        encodedSignedVical = encodedSignedVical,
+        disableSignatureVerification = false
+    )
+}
+
+/**
+ * Validates the signature and structure of a signed RICAL.
+ *
+ * @param encodedSignedRical The raw encoded bytes of the signed RICAL.
+ * @throws Exception if signature verification fails or the data is malformed.
+ */
+@Throws(Exception::class)
+suspend fun validateSignedRical(encodedSignedRical: ByteArray) {
+    SignedRical.parse(
+        encodedSignedRical = encodedSignedRical,
+        disableSignatureVerification = false
+    )
+}
+

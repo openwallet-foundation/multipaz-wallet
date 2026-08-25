@@ -114,12 +114,14 @@ struct SettingsScreen: View {
                         showChevron: true,
                         image: { Image(systemName: "building.columns").frame(width: 24, height: 24) }
                     ).onTapGesture {
+                        viewModel.push(.trustedIssuers)
                     }
                     FloatingItemText(
                         text: "Trusted verifiers",
                         showChevron: true,
                         image: { Image(systemName: "building.2").frame(width: 24, height: 24) }
                     ).onTapGesture {
+                        viewModel.push(.trustedVerifiers)
                     }
                     // Note: "External NFC readers" is omitted on iOS because USB CCID devices are not supported.
                     FloatingItemText(
