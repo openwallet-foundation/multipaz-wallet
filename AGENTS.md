@@ -77,6 +77,7 @@ This is a Kotlin Multiplatform (KMP) module.
 ### iOS App (`iosApp/`)
 *   **Compile:** `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimulator build`
 *   **Test:** `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimulator test`
+  * The iOS unit tests don't currently do anything so please don't bother running them.
 
 ### Web App (`webApp/`)
 *   **Compile:** `./gradlew :webApp:assemble`

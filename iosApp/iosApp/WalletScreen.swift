@@ -240,16 +240,18 @@ struct WalletScreen: View {
                                 }
                                 .buttonStyle(.plain)
                             }
-                            Button(action: {
-                                if let documentId = documentId {
-                                    viewModel.push(.proximityPresentment(documentId: documentId))
+                            if focusedDoc.isProximityPresentable {
+                                Button(action: {
+                                    if let documentId = documentId {
+                                        viewModel.push(.proximityPresentment(documentId: documentId))
+                                    }
+                                }) {
+                                    Image(systemName: "qrcode")
+                                        .font(.title3)
+                                        .foregroundStyle(.primary)
                                 }
-                            }) {
-                                Image(systemName: "qrcode")
-                                    .font(.title3)
-                                    .foregroundStyle(.primary)
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                         .opacity(isFocused ? 1.0 : 0.0)
                         .scaleEffect(isFocused ? 1.0 : 0.8)
@@ -352,6 +354,10 @@ struct WalletScreen: View {
                 }
             } else {
                 VStack {
+                    if targetDocument.isProximityPresentable {
+                        PresentQrCodePromptView()
+                    }
+
                     FloatingItemList {
                         if viewModel.signedInUser != nil && targetDocument.document.isSyncing {
                             let syncedSecondaryText = targetDocument.document.provisionedDocumentSetupNeeded
@@ -711,3 +717,36 @@ private struct ScreenEdgeSwipeGesture: UIViewRepresentable {
         }
     }
 }
+
+private struct PresentQrCodePromptView: View {
+    @State private var showPresentQrCode = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "qrcode")
+                .font(.system(size: 18, weight: .semibold))
+            Text("Present QR code to reader")
+                .font(.footnote.weight(.semibold))
+        }
+        .foregroundStyle(.primary)
+        .frame(height: 20)
+        .offset(y: -38)
+        .padding(.bottom, -30)
+        .opacity(showPresentQrCode ? 1.0 : 0.0)
+        .task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            withAnimation(.easeInOut(duration: 0.6)) {
+                showPresentQrCode = true
+            }
+        }
+    }
+}
+
+extension DocumentInfo {
+    var isProximityPresentable: Bool {
+        credentialInfos.contains {
+            $0.credential is MdocCredential || $0.credential is KeyBoundSdJwtVcCredential
+        }
+    }
+}
+
