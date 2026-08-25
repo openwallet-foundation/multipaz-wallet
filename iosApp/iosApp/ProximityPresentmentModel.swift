@@ -66,11 +66,13 @@ class ProximityPresentmentModel {
 
                 let deviceEngagement = buildDeviceEngagement(
                     eDeviceKey: eDeviceKey.publicKey,
-                    version: "1.0"
+                    version: nil
                 ) { builder in
                     advertisedTransports.forEach {
                         builder.addConnectionMethod(connectionMethod: $0.connectionMethod)
                     }
+                    builder.addCapability(capability: Capability.readerAuthAllSupport, value: true.toDataItem())
+                    builder.addCapability(capability: Capability.extendedRequestSupport, value: true.toDataItem())
                 }
 
                 let encodedDeviceEngagement = try Cbor.shared.encode(item: deviceEngagement.toDataItem())
