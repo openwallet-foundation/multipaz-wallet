@@ -53,7 +53,9 @@ suspend fun handleNfcHandover(
     scanResult: ScanMdocReaderResult,
     proximityReaderModel: ProximityReaderModel,
 ): Boolean {
-    if (proximityReaderModel.state.value != ProximityReaderModel.State.IDLE) {
+    if (proximityReaderModel.state.value != ProximityReaderModel.State.IDLE &&
+        proximityReaderModel.state.value != ProximityReaderModel.State.COMPLETED
+    ) {
         Logger.i(TAG, "Ignoring NFC handover, state is already ${proximityReaderModel.state.value}")
         return false
     }
@@ -103,7 +105,9 @@ suspend fun handleQrCodeScanned(
     proximityReaderModel: ProximityReaderModel,
 ) {
     check(mdocUrl.startsWith("mdoc:"))
-    if (proximityReaderModel.state.value != ProximityReaderModel.State.IDLE) {
+    if (proximityReaderModel.state.value != ProximityReaderModel.State.IDLE &&
+        proximityReaderModel.state.value != ProximityReaderModel.State.COMPLETED
+    ) {
         Logger.i(TAG, "Ignoring QR code scan, state is already ${proximityReaderModel.state.value}")
         return
     }

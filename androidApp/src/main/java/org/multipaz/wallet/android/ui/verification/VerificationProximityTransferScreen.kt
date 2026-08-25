@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -117,6 +118,12 @@ fun VerificationProximityTransferScreen(
     val coroutineScope = rememberCoroutineScope { promptModel }
     val scrollState = rememberScrollState()
     val isDarkTheme = isSystemInDarkTheme()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            proximityReaderModel.reset()
+        }
+    }
 
     val state = proximityReaderModel.state.collectAsState().value
 

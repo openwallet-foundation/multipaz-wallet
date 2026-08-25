@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,6 +35,7 @@ private const val TAG = "MdocUrlVerificationActivity"
 class MdocUrlVerificationActivity : FragmentActivity() {
 
     private val mdocUrl = mutableStateOf<String?>(null)
+    private val invocationCount = mutableIntStateOf(0)
     private val startFadeOut = mutableStateOf(false)
     private var isFinished = false
 
@@ -53,7 +55,10 @@ class MdocUrlVerificationActivity : FragmentActivity() {
             return
         }
         Logger.i(TAG, "Handling URL $url")
+        startFadeOut.value = false
+        isFinished = false
         mdocUrl.value = url
+        invocationCount.intValue++
 
         lifecycle.coroutineScope.launch {
             val app = App.getInstance()
@@ -61,7 +66,7 @@ class MdocUrlVerificationActivity : FragmentActivity() {
                 val currentBranding = Branding.Current.collectAsState().value
                 currentBranding.theme {
                     mdocUrl.value?.let { url ->
-                        key(url) {
+                        key(invocationCount.intValue) {
                             MdocUrlVerificationActivityWrapper(
                                 window = window,
                                 startFadeOut = startFadeOut.value,
@@ -108,7 +113,11 @@ class MdocUrlVerificationActivity : FragmentActivity() {
         setIntent(intent)
         val url = intent.dataString
         if (url != null && url.startsWith("mdoc:")) {
+            Logger.i(TAG, "Handling new intent URL $url")
+            startFadeOut.value = false
+            isFinished = false
             mdocUrl.value = url
+            invocationCount.intValue++
         }
     }
 }

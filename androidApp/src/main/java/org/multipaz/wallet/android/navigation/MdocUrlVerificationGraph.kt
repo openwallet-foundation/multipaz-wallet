@@ -81,6 +81,7 @@ fun mdocUrlVerificationGraph(
                     onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
                     onContinueClicked = {
                         coroutineScope.launch {
+                            proximityReaderModel.reset()
                             handleQrCodeScanned(
                                 mdocUrl = key.mdocUrl,
                                 proximityReaderModel = proximityReaderModel
