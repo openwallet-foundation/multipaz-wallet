@@ -8,16 +8,29 @@ struct WalletScreen: View {
     
     let documentId: String?
     let justAdded: Bool
+    
+    /// Controls whether `VerticalCardList` animates spatial transitions when focusing or
+    /// unfocusing cards.
+    ///
+    /// - When tapping a card in the unfocused list, this is `true` so the card expands smoothly
+    ///   into the focused detail view.
+    /// - When navigating directly to a newly added/provisioned document, this is `true` but
+    ///   `verticalCardListState` is pre-initialized with the new card's identifier so the card
+    ///   renders immediately in place without an entrance animation, while still allowing a
+    ///   smooth collapse animation when dismissing back to the list.
+    /// - During unfocusing gestures/back navigation, `isUnfocusing` is combined with this flag
+    ///   to guarantee the collapse animation always plays cleanly.
     let animateListTransitions: Bool
 
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: DocumentInfo? = nil
     @State private var showShareConfirmation = false
-    @State private var showJustAdded: Bool
-    @State private var isUnfocusing: Bool = false
-    @State private var titleAndFabVisible: Bool
-    @State private var devModeNumTimesPressed: Int = 0
+    @State private var isUnfocusing = false
     @State private var toastMessage: String? = nil
+    @State private var showJustAdded: Bool
+    @State private var titleAndFabVisible: Bool
+    @State private var isFirstAppear = true
+    @State private var devModeNumTimesPressed: Int = 0
     @State private var toastTask: Task<Void, Never>? = nil
     
     init(
@@ -33,9 +46,9 @@ struct WalletScreen: View {
     }
 
     private var isPreviousScreenCardList: Bool {
-        if viewModel.path.count >= 2 {
-            if case .walletScreen = viewModel.path[viewModel.path.count - 2] {
-                return true
+        if let last = viewModel.path.dropLast().last {
+            if case .walletScreen(let docId, _, _) = last {
+                return docId == nil
             }
         }
         return false
@@ -111,7 +124,6 @@ struct WalletScreen: View {
                     .zIndex(100)
             }
         }
-        .id(documentId ?? "root")
         .frame(maxWidth: .infinity, alignment: .leading)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarHidden(true)
@@ -119,7 +131,16 @@ struct WalletScreen: View {
             await viewModel.refreshWallet()
         }
         .onAppear {
+            titleAndFabVisible = (documentId == nil)
             if justAdded {
+                showJustAdded = true
+            }
+        }
+        .onChange(of: documentId) { _, newDocId in
+            titleAndFabVisible = (newDocId == nil)
+        }
+        .onChange(of: justAdded) { _, newValue in
+            if newValue {
                 showJustAdded = true
             }
         }
@@ -256,7 +277,7 @@ struct WalletScreen: View {
             allowCardReordering: true,
             showStackWhileFocused: false,
             state: viewModel.verticalCardListState,
-            animateListTransitions: animateListTransitions,
+            animateListTransitions: animateListTransitions || isUnfocusing,
             showCardInfo: { cardInfo in
                 let docInfo = cardInfo as! DocumentInfo
                 cardInfoView(targetDocument: focusedDocument ?? docInfo)

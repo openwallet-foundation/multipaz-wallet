@@ -15,6 +15,9 @@ struct ProvisioningScreen: View {
     @State private var provisioningState: ProvisioningModel.State = ProvisioningModel.Idle()
     @State private var issuerMetadata: ProvisioningMetadata? = nil
     @State private var errorLoading: Error? = nil
+    @State private var provisioningTask: Task<Void, Never>? = nil
+    @State private var hasCompleted = false
+    @State private var hasStarted = false
     
     // Auth secret challenge fields
     @State private var passphrase = ""
@@ -79,7 +82,7 @@ struct ProvisioningScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    dismiss()
+                    cancelProvisioning()
                 } label: {
                     Image(systemName: "xmark")
                         .font(.body.bold())
@@ -87,7 +90,19 @@ struct ProvisioningScreen: View {
             }
         }
         .onAppear {
-            startProvisioning()
+            if !hasStarted {
+                hasStarted = true
+                startProvisioning()
+            }
+        }
+        .onDisappear {
+            if !hasCompleted && !isShowingSafari {
+                hasCompleted = true
+                provisioningTask?.cancel()
+                Task {
+                    try? await viewModel.provisioningModel.reset()
+                }
+            }
         }
     }
     
@@ -103,13 +118,22 @@ struct ProvisioningScreen: View {
         }
         .task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            dismiss()
+            cancelProvisioning()
         }
     }
     
     private var progressView: some View {
         ProgressView()
             .scaleEffect(1.5)
+    }
+    
+    private func cancelProvisioning() {
+        hasCompleted = true
+        provisioningTask?.cancel()
+        Task {
+            try? await viewModel.provisioningModel.reset()
+        }
+        dismiss()
     }
     
     private func oauthView(challenge: AuthorizationChallenge.OAuth) -> some View {
@@ -187,19 +211,23 @@ struct ProvisioningScreen: View {
     }
     
     private func startProvisioning() {
-        Task {
+        provisioningTask = Task {
             do {
                 try await viewModel.provisioningModel.reset()
                 
                 // Collect states from flow
                 Task {
                     for await state in viewModel.provisioningModel.state {
+                        guard !Task.isCancelled else { break }
                         await MainActor.run {
                             self.provisioningState = state
                             
                             // If credentials are successfully issued, finalize saving
                             if let issuedState = state as? ProvisioningModel.CredentialsIssued {
-                                handleSuccess(issuedState: issuedState)
+                                if !hasCompleted {
+                                    hasCompleted = true
+                                    handleSuccess(issuedState: issuedState)
+                                }
                             }
                         }
                     }
@@ -266,45 +294,86 @@ struct ProvisioningScreen: View {
         Task {
             do {
                 let document = issuedState.document
-                guard let metadata = viewModel.provisioningModel.metadata.value,
-                      let firstKey = Array(metadata.credentials.keys).first as? String else {
-                    return
-                }
+                let metadata = viewModel.provisioningModel.metadata.value
+                let url = metadata?.url ?? issuerUrl ?? ""
+                let credId = (metadata?.credentials.keys.first as? String) ?? credentialId ?? ""
                 
                 let provisionedDocument = WalletClientProvisionedDocumentOpenID4VCI(
                     identifier: UUID().uuidString.lowercased(),
                     cardArt: document.cardArt,
                     displayName: document.displayName,
                     typeDisplayName: document.typeDisplayName,
-                    url: metadata.url,
-                    credentialId: firstKey
+                    url: url,
+                    credentialId: credId
                 )
                 
+                var placeholderToDelete: String? = nil
                 if let provDocId = provisionedDocumentIdentifier {
-                    try await document.setProvisionedDocumentIdentifier(identifier: provDocId)
                     let documents = try await viewModel.documentStore.listDocuments(sort: false)
-                    if let placeholder = documents.first(where: { $0.provisionedDocumentIdentifier == provDocId && $0.provisionedDocumentSetupNeeded }) {
-                        try await viewModel.documentStore.deleteDocument(identifier: placeholder.identifier)
+                    if let placeholder = documents.first(where: { $0.provisionedDocumentIdentifier == provDocId && $0.identifier != document.identifier }) {
+                        placeholderToDelete = placeholder.identifier
                     }
+                    try await document.setProvisionedDocumentIdentifier(identifier: provDocId)
                 } else if viewModel.signedInUser != nil {
                     try await document.setProvisionedDocumentIdentifier(identifier: provisionedDocument.identifier)
                     try await viewModel.walletClient.refreshSharedData()
+                    let provisionedDocumentToAdd: WalletClientProvisionedDocument
+                    if let cardArt = provisionedDocument.cardArt {
+                        let maxBytes = Int(BuildConfig.shared.MAX_CARD_ART_SIZE_IN_SHARED_DATA_KB * 1024)
+                        if let scaledCardArt = encodeCardArt(cardArt: cardArt, maxBytes: maxBytes) {
+                            provisionedDocumentToAdd = provisionedDocument.withCardArt(cardArt: scaledCardArt)
+                        } else {
+                            provisionedDocumentToAdd = provisionedDocument
+                        }
+                    } else {
+                        provisionedDocumentToAdd = provisionedDocument
+                    }
                     if let currentSharedData = viewModel.walletClient.sharedData.value {
-                        let newSharedData = try await currentSharedData.addProvisionedDocument(provisionedDocument: provisionedDocument)
+                        let newSharedData = try await currentSharedData.addProvisionedDocument(provisionedDocument: provisionedDocumentToAdd)
                         try await viewModel.walletClient.setSharedData(sharedData: newSharedData, suppressSpinner: true)
                     }
                 }
                 
+                try await document.setPreconsentSetting(value: DocumentPreconsentSetting.NeverRequireConsent.shared)
+                
+                // Wait for DocumentModel to have the document in its list so focusedDocument is found immediately
+                var waitCount = 0
+                while !viewModel.documentModel.documentInfos.contains(where: { $0.document.identifier == document.identifier }) && waitCount < 100 {
+                    try? await Task.sleep(nanoseconds: 20_000_000)
+                    waitCount += 1
+                }
+                
                 await MainActor.run {
+                    viewModel.verticalCardListState.internalFocusedCardIdentifier = document.identifier
+                    viewModel.verticalCardListState.lastFocusedCardIdentifier = document.identifier
+                    viewModel.verticalCardListState.model.lastFocusedCardIdentifier = document.identifier
+                    viewModel.verticalCardListState.scrollOffset = 0
+                    viewModel.verticalCardListState.initialContentOffset = 0
+                    viewModel.verticalCardListState.isScrollOffsetInitialized = false
+                    
+                    if let placeholderId = placeholderToDelete,
+                       let idx = viewModel.verticalCardListState.displayOrderIdentifiers.firstIndex(of: placeholderId) {
+                        viewModel.verticalCardListState.displayOrderIdentifiers[idx] = document.identifier
+                        viewModel.verticalCardListState.model.displayOrderIdentifiers = viewModel.verticalCardListState.displayOrderIdentifiers
+                    }
+                    
                     // Navigate back to wallet focused on the new document with justAddedAtMillis
                     let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
-                    viewModel.path = [
-                        .walletScreen(
-                            documentId: document.identifier,
-                            justAddedAtMillis: nowMillis,
-                            animateListTransitions: false
-                        )
-                    ]
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        viewModel.path = [
+                            .walletScreen(
+                                documentId: document.identifier,
+                                justAddedAtMillis: nowMillis,
+                                animateListTransitions: true
+                            )
+                        ]
+                    }
+                }
+                
+                if let placeholderId = placeholderToDelete {
+                    try await viewModel.documentStore.deleteDocument(identifier: placeholderId)
                 }
             } catch {
                 await MainActor.run {

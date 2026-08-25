@@ -376,14 +376,33 @@ class ViewModel {
 
     func importAndShowMpzPass(data: Data) async throws {
         let document = try await importMpzPass(data: data)
+        
+        // Wait for DocumentModel to have the document in its list so focusedDocument is found immediately
+        while !documentModel.documentInfos.contains(where: { $0.document.identifier == document.identifier }) {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        
         let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
-        path = [
-            .walletScreen(
-                documentId: document.identifier,
-                justAddedAtMillis: nowMillis,
-                animateListTransitions: false
-            )
-        ]
+        await MainActor.run {
+            verticalCardListState.internalFocusedCardIdentifier = document.identifier
+            verticalCardListState.lastFocusedCardIdentifier = document.identifier
+            verticalCardListState.model.lastFocusedCardIdentifier = document.identifier
+            verticalCardListState.scrollOffset = 0
+            verticalCardListState.initialContentOffset = 0
+            verticalCardListState.isScrollOffsetInitialized = false
+            
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                path = [
+                    .walletScreen(
+                        documentId: document.identifier,
+                        justAddedAtMillis: nowMillis,
+                        animateListTransitions: true
+                    )
+                ]
+            }
+        }
     }
     
     private var presentmentSource: PresentmentSource? = nil
