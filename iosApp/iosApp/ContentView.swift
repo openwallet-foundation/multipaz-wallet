@@ -93,8 +93,15 @@ struct ContentView: View {
                         }
                 }
             }
+            if let documentId = viewModel.proximityPresentmentDocumentId {
+                ProximityPresentmentScreen(documentId: documentId)
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
             PromptDialogs(promptModel: viewModel.promptModel)
+                .zIndex(2)
         }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.proximityPresentmentDocumentId)
         .environment(viewModel)
         .onAppear {
             Task {

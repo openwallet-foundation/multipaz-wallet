@@ -37,10 +37,27 @@ class ViewModel {
 
     let promptModel = Platform.shared.promptModel
     
-    private let presentmentModel = PresentmentModel()
+    let proximityPresentmentModel = ProximityPresentmentModel()
     let verticalCardListState = VerticalCardListState()
+    var proximityPresentmentDocumentId: String? = nil
+
+    func showProximityPresentment(documentId: String) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            proximityPresentmentDocumentId = documentId
+        }
+    }
+
+    func dismissProximityPresentment() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            proximityPresentmentDocumentId = nil
+        }
+    }
     
     func push(_ destination: Destination) {
+        if case .proximityPresentment(let docId) = destination {
+            showProximityPresentment(documentId: docId)
+            return
+        }
         if path.last != destination {
             if case .walletScreen = destination {
                 var transaction = Transaction()
@@ -55,6 +72,9 @@ class ViewModel {
     }
 
     func popWithoutAnimation() {
+        if proximityPresentmentDocumentId != nil {
+            dismissProximityPresentment()
+        }
         if !path.isEmpty {
             var transaction = Transaction()
             transaction.disablesAnimations = true
@@ -75,6 +95,8 @@ class ViewModel {
     }
 
     func load() async {
+        Logger.shared.isDebugEnabled = true  // TODO: read this from settings
+        
         PromptModel.Companion.shared.setGlobal(promptModel: promptModel)
         
         storage = IosStorage(
@@ -105,7 +127,7 @@ class ViewModel {
             .build()
         documentTypeRepository = DocumentTypeRepository()
         documentTypeRepository.addKnownTypes(locale: currentLocale)
-        // TODO: Utopia docTypes
+        documentTypeRepository.addUtopiaTypes(locale: currentLocale)
         documentStore = DocumentStore.Builder(
             storage: storage,
             secureAreaRepository: secureAreaRepository
@@ -444,7 +466,9 @@ class ViewModel {
                     trustedRequesterIdentity: trustedRequesterIdentity,
                     consentData: consentData,
                     preselectedDocuments: preselectedDocuments,
-                    onDocumentsInFocus: { documents in onDocumentsInFocus(documents) }
+                    onDocumentsInFocus: { documents in
+                        onDocumentsInFocus(documents)
+                    }
                 )
             },
             preferSignatureToKeyAgreement: true,

@@ -32,6 +32,7 @@ struct WalletScreen: View {
     @State private var isFirstAppear = true
     @State private var devModeNumTimesPressed: Int = 0
     @State private var toastTask: Task<Void, Never>? = nil
+    @State private var qrPresentmentDocumentId: String? = nil
     
     init(
         documentId: String?,
@@ -172,6 +173,28 @@ struct WalletScreen: View {
         } message: {
             Text("Once shared, this action cannot be undone. The recipient will receive a copy of this pass and will be able to forward it to anyone.")
         }
+        .overlay {
+            qrPresentmentOverlay
+                .ignoresSafeArea()
+        }
+        .animation(.easeInOut(duration: 0.2), value: qrPresentmentDocumentId)
+    }
+
+    @ViewBuilder
+    private var qrPresentmentOverlay: some View {
+        if let qrDocId = qrPresentmentDocumentId {
+            DocumentQrPresentmentDialog(
+                documentId: qrDocId,
+                onDismissed: {
+                    qrPresentmentDocumentId = nil
+                },
+                onTransactionUnderway: {
+                    qrPresentmentDocumentId = nil
+                    viewModel.showProximityPresentment(documentId: qrDocId)
+                }
+            )
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
     }
 
     @ViewBuilder
@@ -229,26 +252,52 @@ struct WalletScreen: View {
 
                 ZStack(alignment: .trailing) {
                     if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
-                        HStack(spacing: 16) {
+                        HStack(spacing: 8) {
                             if focusedDoc.document.mpzPassId != nil {
                                 Button(action: {
                                     showShareConfirmation = true
                                 }) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
+                                    ZStack {
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                                            )
+                                            .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
+                                            .frame(width: 44, height: 44)
+
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.system(size: 20, weight: .semibold))
+                                            .foregroundStyle(.primary)
+                                    }
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Circle())
                                 }
                                 .buttonStyle(.plain)
                             }
                             if focusedDoc.isProximityPresentable {
                                 Button(action: {
                                     if let documentId = documentId {
-                                        viewModel.push(.proximityPresentment(documentId: documentId))
+                                        qrPresentmentDocumentId = documentId
                                     }
                                 }) {
-                                    Image(systemName: "qrcode")
-                                        .font(.title3)
-                                        .foregroundStyle(.primary)
+                                    ZStack {
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+                                            )
+                                            .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
+                                            .frame(width: 44, height: 44)
+
+                                        Image(systemName: "qrcode")
+                                            .font(.system(size: 22, weight: .semibold))
+                                            .foregroundStyle(.primary)
+                                    }
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Circle())
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -356,6 +405,10 @@ struct WalletScreen: View {
                 VStack {
                     if targetDocument.isProximityPresentable {
                         PresentQrCodePromptView()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                qrPresentmentDocumentId = targetDocument.document.identifier
+                            }
                     }
 
                     FloatingItemList {
@@ -429,6 +482,8 @@ struct WalletScreen: View {
             }
         }
         .padding()
+        .opacity(isUnfocusing ? 0.0 : 1.0)
+        .animation(.easeInOut(duration: 0.15), value: isUnfocusing)
     }
 
     @ViewBuilder
@@ -734,8 +789,8 @@ private struct PresentQrCodePromptView: View {
         .padding(.bottom, -30)
         .opacity(showPresentQrCode ? 1.0 : 0.0)
         .task {
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            withAnimation(.easeInOut(duration: 0.6)) {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            withAnimation(.easeInOut(duration: 0.5)) {
                 showPresentQrCode = true
             }
         }

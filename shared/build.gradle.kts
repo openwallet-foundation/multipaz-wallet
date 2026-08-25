@@ -92,6 +92,7 @@ kotlin {
             export(libs.multipaz)
             export(libs.multipaz.dcapi)
             export(libs.multipaz.doctypes)
+            export(libs.multipaz.utopia)
             export(libs.multipaz.longfellow)
             export(libs.multipaz.swiftui)
             export(libs.kotlinx.io.bytestring)
@@ -136,6 +137,7 @@ kotlin {
                 // Add KMP dependencies here
                 api(libs.multipaz)
                 api(libs.multipaz.doctypes)
+                api(libs.multipaz.utopia)
             }
         }
 
@@ -173,6 +175,7 @@ kotlin {
                 // KMP dependencies declared in commonMain.
                 api(libs.multipaz.dcapi)
                 api(libs.multipaz.doctypes)
+                api(libs.multipaz.utopia)
                 api(libs.multipaz.longfellow)
                 api(libs.multipaz.swiftui)
                 api(libs.kotlinx.io.bytestring)

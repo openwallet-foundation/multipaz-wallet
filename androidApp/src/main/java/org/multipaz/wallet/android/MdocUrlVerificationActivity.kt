@@ -52,6 +52,7 @@ class MdocUrlVerificationActivity : FragmentActivity() {
             finish()
             return
         }
+        Logger.i(TAG, "Handling URL $url")
         mdocUrl.value = url
 
         lifecycle.coroutineScope.launch {

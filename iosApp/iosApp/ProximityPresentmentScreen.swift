@@ -1,245 +1,153 @@
 import SwiftUI
-import CoreImage.CIFilterBuiltins
 import Lottie
 import Multipaz
 
 struct ProximityPresentmentScreen: View {
     @Environment(ViewModel.self) private var viewModel
     let documentId: String
-    
-    @State private var originalBrightness: CGFloat = 0.5
-    @State private var cancelAction: (() -> Void)? = nil
-    @State private var isDismissing = false
-    
+
+    private var matchingDocInfos: [DocumentInfo] {
+        let selectedIds = viewModel.proximityPresentmentModel.selectedDocuments.map { $0.identifier }
+        let ids = selectedIds.isEmpty ? [documentId] : selectedIds
+        return ids.compactMap { id in
+            viewModel.documentModel.documentInfos.first(where: { $0.document.identifier == id })
+        }
+    }
+
+    private func cardDimensions(geometry: GeometryProxy) -> (width: CGFloat, height: CGFloat) {
+        guard geometry.size.width > 32, geometry.size.height > 0 else {
+            return (0, 0)
+        }
+        let availableWidth = geometry.size.width - 32
+        let maxCardHeight = geometry.size.height / 3
+        var cardWidth = availableWidth
+        var cardHeight = cardWidth / 1.586
+        if cardHeight > maxCardHeight {
+            cardHeight = maxCardHeight
+            cardWidth = cardHeight * 1.586
+        }
+        return (cardWidth, cardHeight)
+    }
+
     var body: some View {
-        VStack {
-            MdocProximityQrPresentment(
-                source: viewModel.getSource(),
-                prepareSettings: { generateQrCode in
-                    // Automatically trigger the QR generation when this view is rendered
-                    Color.clear
-                        .onAppear {
-                            guard !isDismissing else { return }
-                            let bleUuid = UUID.companion.randomUUID(random: KotlinRandom.companion)
-                            let connectionMethods = [
-                                MdocConnectionMethodBle(
-                                    supportsPeripheralServerMode: true,
-                                    supportsCentralClientMode: false,
-                                    peripheralServerModeUuid: bleUuid,
-                                    centralClientModeUuid: nil,
-                                    peripheralServerModePsm: nil,
-                                    peripheralServerModeMacAddress: nil
-                                )
-                            ]
-                            let settings = MdocProximityQrSettings(
-                                availableConnectionMethods: connectionMethods,
-                                createTransportOptions: MdocTransportOptions(
-                                    bleUseL2CAP: false,
-                                    bleUseL2CAPInEngagement: true
-                                )
-                            )
-                            generateQrCode(settings)
-                        }
-                },
-                showQrCode: { uri, cancel in
-                    VStack(spacing: 24) {
-                        Text("Show code to verifier")
-                            .font(.title2.bold())
-                            .foregroundColor(.primary)
-                            .padding(.top, 20)
-                        
-                        Text("Your personal info won't be shared until the verifier scans this QR code. You do not have to hand your phone to anyone.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        
-                        Spacer()
-                        
-                        // Beautiful QR code container with shadows
-                        VStack {
-                            Image(uiImage: generateQrCode(uri: uri))
-                                .resizable()
-                                .interpolation(.none)
-                                .aspectRatio(1, contentMode: .fit)
-                                .frame(width: 260, height: 260)
-                                .padding(16)
-                                .background(Color.white)
-                                .cornerRadius(24)
-                                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
-                        }
-                        .padding()
-                        
-                        Spacer()
-                        
-                        Button(role: .cancel) {
-                            self.isDismissing = true
-                            cancel()
-                            viewModel.popWithoutAnimation()
-                        } label: {
-                            Text("Cancel")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .foregroundColor(.white)
-                                .background(Color.red)
-                                .cornerRadius(16)
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 20)
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                cardsView(geometry: geometry)
+                    .padding(.top, 24)
+
+                statusContentView
+                    .padding(.top, 24)
+
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(uiColor: .systemBackground).ignoresSafeArea())
+        .task(id: viewModel.proximityPresentmentModel.state) {
+            if case .completed = viewModel.proximityPresentmentModel.state {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                viewModel.dismissProximityPresentment()
+            }
+        }
+        .onDisappear {
+            if case .completed = viewModel.proximityPresentmentModel.state {
+                viewModel.proximityPresentmentModel.reset()
+            } else {
+                viewModel.proximityPresentmentModel.cancel()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cardsView(geometry: GeometryProxy) -> some View {
+        let (cardWidth, cardHeight) = cardDimensions(geometry: geometry)
+        let docInfos = matchingDocInfos
+
+        if docInfos.isEmpty || cardWidth <= 0 || cardHeight <= 0 {
+            EmptyView()
+        } else if docInfos.count == 1 {
+            let docInfo = docInfos[0]
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: docInfo.cardArt)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: cardWidth, height: cardHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+
+                CardBadgesView(badges: docInfo.badges)
+            }
+            .frame(width: cardWidth, height: cardHeight)
+            .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
+        } else {
+            let scale: CGFloat = 0.85
+            let cardW = cardWidth * scale
+            let cardH = cardHeight * scale
+            let maxXOffset = cardWidth * (1.0 - scale)
+            let maxYOffset = cardHeight * (1.0 - scale)
+            let count = docInfos.count
+
+            ZStack(alignment: .topLeading) {
+                ForEach(Array(docInfos.enumerated()), id: \.element.document.identifier) { index, docInfo in
+                    let offsetX = maxXOffset * (CGFloat(index) / CGFloat(count - 1))
+                    let offsetY = maxYOffset * (CGFloat(index) / CGFloat(count - 1))
+
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: docInfo.cardArt)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: cardW, height: cardH)
+                            .clipShape(RoundedRectangle(cornerRadius: 24 * scale))
+
+                        CardBadgesView(badges: docInfo.badges)
                     }
-                    .onAppear {
-                        // Store the cancel action for lifecycle cleanup
-                        self.cancelAction = cancel
-                        // Set brightness to max
-                        self.originalBrightness = UIScreen.main.brightness
-                        UIScreen.main.brightness = 1.0
-                    }
-                    .onDisappear {
-                        // Restore brightness when no longer displaying QR code
-                        UIScreen.main.brightness = self.originalBrightness
-                    }
-                },
-                showTransacting: { cancel in
-                    VStack(spacing: 24) {
-                        Spacer()
-                        
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
-                        
-                        Text("Sharing data...")
+                    .frame(width: cardW, height: cardH)
+                    .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
+                    .offset(x: offsetX, y: offsetY)
+                    .zIndex(Double(index))
+                }
+            }
+            .frame(width: cardWidth, height: cardHeight, alignment: .topLeading)
+        }
+    }
+
+    @ViewBuilder
+    private var statusContentView: some View {
+        switch viewModel.proximityPresentmentModel.state {
+        case .idle, .generatingQrCode, .readyToShowQrCode, .connecting, .waitingForRequest, .sendingResponse:
+            ProgressView()
+                .controlSize(.large)
+
+        case .waitingForUserInput:
+            EmptyView()
+
+        case .completed(let errorMessage, let isCannotSatisfy):
+            VStack(spacing: 24) {
+                if errorMessage != nil {
+                    LottieView(animation: .named("error_animation"))
+                        .playing(loopMode: .playOnce)
+                        .resizable()
+                        .frame(width: 120, height: 120)
+
+                    if isCannotSatisfy {
+                        Text("Cannot satisfy request")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
-                        Text("Connecting to the verifier's reader device.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                        
-                        Spacer()
-                        
-                        Button(role: .cancel) {
-                            self.isDismissing = true
-                            cancel()
-                            viewModel.popWithoutAnimation()
-                        } label: {
-                            Text("Cancel")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .foregroundColor(.white)
-                                .background(Color.secondary)
-                                .cornerRadius(16)
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 20)
+                    } else {
+                        Text("Something went wrong")
+                            .font(.headline)
+                            .foregroundColor(.primary)
                     }
-                    .onAppear {
-                        self.cancelAction = cancel
-                        // Restore screen brightness to normal during data transfer
-                        UIScreen.main.brightness = self.originalBrightness
-                    }
-                },
-                showCompleted: { error, reset in
-                    VStack(spacing: 24) {
-                        Spacer()
-                        
-                        if let error = error {
-                            LottieView(animation: .named("error_animation"))
-                                .playing(loopMode: .playOnce)
-                                .resizable()
-                                .frame(width: 120, height: 120)
-                            
-                            if isCannotSatisfyRequest(error) {
-                                Text("Cannot satisfy request")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                            } else {
-                                Text("Something went wrong")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                            }
-                        } else {
-                            LottieView(animation: .named("success_animation"))
-                                .playing(loopMode: .playOnce)
-                                .resizable()
-                                .frame(width: 120, height: 120)
-                            
-                            Text("The info was shared")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                        }
-                        
-                        Spacer()
-                    }
-                    .onAppear {
-                        self.isDismissing = true
-                        // Clear cancel action as the transaction is finished
-                        self.cancelAction = nil
-                        // Pop screen back after 2 seconds
-                        Task {
-                            try? await Task.sleep(nanoseconds: 2_000_000_000)
-                            viewModel.popWithoutAnimation()
-                        }
-                    }
+                } else {
+                    LottieView(animation: .named("success_animation"))
+                        .playing(loopMode: .playOnce)
+                        .resizable()
+                        .frame(width: 120, height: 120)
+
+                    Text("The info was shared")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                 }
-            )
-        }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .onDisappear {
-            self.isDismissing = true
-            // Guarantee cancellation if navigating away early
-            if let cancel = self.cancelAction {
-                cancel()
             }
         }
-    }
-    
-    private func generateQrCode(uri: String) -> UIImage {
-        let data = Data(uri.utf8)
-        let filter = CIFilter.qrCodeGenerator()
-        filter.setValue(data, forKey: "inputMessage")
-        filter.setValue("H", forKey: "inputCorrectionLevel")
-        
-        if let outputImage = filter.outputImage {
-            // Apply scale transform for a crisp QR image
-            let scale: CGFloat = 10.0
-            let transform = CGAffineTransform(scaleX: scale, y: scale)
-            let scaledImage = outputImage.transformed(by: transform)
-            
-            let context = CIContext()
-            if let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) {
-                return UIImage(cgImage: cgImage)
-            }
-        }
-        return UIImage()
-    }
-    
-    private func isCannotSatisfyRequest(_ error: Error) -> Bool {
-        #if DEBUG
-        let nsError = error as NSError
-        print("ProximityPresentment error: \(error), nsError: \(nsError), userInfo: \(nsError.userInfo)")
-        #endif
-        if error is PresentmentCannotSatisfyRequestException {
-            return true
-        }
-        let nsErrorObj = error as NSError
-        if let kotlinException = nsErrorObj.userInfo["KotlinException"] {
-            if kotlinException is PresentmentCannotSatisfyRequestException {
-                return true
-            }
-            let typeName = String(describing: type(of: kotlinException))
-            if typeName.contains("PresentmentCannotSatisfyRequestException") {
-                return true
-            }
-        }
-        let errorDescription = String(describing: error)
-        if errorDescription.contains("PresentmentCannotSatisfyRequestException") {
-            return true
-        }
-        return false
     }
 }

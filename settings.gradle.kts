@@ -14,9 +14,9 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
-        mavenLocal()
         // Add the Sonatype Snapshots repository
         maven {
             url = uri("https://central.sonatype.com/repository/maven-snapshots/")
