@@ -61,6 +61,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import dev.chrisbanes.haze.HazeState
@@ -259,6 +260,7 @@ fun RequestVerificationScreen(
     }
 
     val hazeState = remember { HazeState() }
+    val scrollState = rememberScrollState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
         modifier = Modifier
@@ -287,6 +289,7 @@ fun RequestVerificationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .verticalScroll(scrollState)
                 .padding(
                     start = 16.dp,
                     end = 16.dp,
@@ -409,152 +412,145 @@ fun RequestVerificationScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    if (pendingList.value.isNotEmpty()) {
-                        FloatingItemList(title = stringResource(R.string.request_verification_pending_heading)) {
-                            for (item in pendingList.value) {
-                                FloatingItemHeadingAndContent(
-                                    modifier = Modifier.clickable {
-                                        coroutineScope.launch {
-                                            try {
-                                                val origin = walletClient.getVerificationLinkOrigin()
-                                                val link = "$origin/web/verify?request=${item.requestId}#${item.requestEncryptionKey.toByteArray().toBase64Url()}"
-                                                shareVerificationLink(context, link)
-                                            } catch (e: Exception) {
-                                                Logger.e(TAG, "Failed to share pending link", e)
-                                                showToast(context.getString(R.string.verification_link_share_failed, e.message ?: ""))
-                                            }
+
+                if (pendingList.value.isNotEmpty()) {
+                    FloatingItemList(title = stringResource(R.string.request_verification_pending_heading)) {
+                        for (item in pendingList.value) {
+                            FloatingItemHeadingAndContent(
+                                modifier = Modifier.clickable {
+                                    coroutineScope.launch {
+                                        try {
+                                            val origin = walletClient.getVerificationLinkOrigin()
+                                            val link = "$origin/web/verify?request=${item.requestId}#${item.requestEncryptionKey.toByteArray().toBase64Url()}"
+                                            shareVerificationLink(context, link)
+                                        } catch (e: Exception) {
+                                            Logger.e(TAG, "Failed to share pending link", e)
+                                            showToast(context.getString(R.string.verification_link_share_failed, e.message ?: ""))
                                         }
-                                    },
-                                    image = {
+                                    }
+                                },
+                                image = {
+                                    Icon(
+                                        modifier = Modifier.size(48.dp),
+                                        imageVector = Icons.Outlined.Link,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        contentDescription = stringResource(R.string.content_description_link)
+                                    )
+                                },
+                                heading = item.query.getDisplayName(),
+                                content = {
+                                    Text(
+                                        text = stringResource(
+                                            R.string.request_verification_link_expires,
+                                            durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis + VERIFICATION_LINK_EXPIRATION.inWholeMilliseconds))
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = {
+                                            onDeletePendingVerificationClicked(item.requestId)
+                                        }
+                                    ) {
                                         Icon(
-                                            modifier = Modifier.size(48.dp),
-                                            imageVector = Icons.Outlined.Link,
+                                            imageVector = Icons.Outlined.Delete,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            contentDescription = stringResource(R.string.content_description_link)
-                                        )
-                                    },
-                                    heading = item.query.getDisplayName(),
-                                    content = {
-                                        Text(
-                                            text = stringResource(
-                                                R.string.request_verification_link_expires,
-                                                durationFromNowText(Instant.fromEpochMilliseconds(item.creationTimeMillis + VERIFICATION_LINK_EXPIRATION.inWholeMilliseconds))
-                                            ),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    },
-                                    trailingContent = {
-                                        IconButton(
-                                            onClick = {
-                                                onDeletePendingVerificationClicked(item.requestId)
-                                            }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Delete,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                contentDescription = stringResource(R.string.content_description_delete)
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    if (completedUiStates.value.isNotEmpty()) {
-                        FloatingItemList(title = stringResource(R.string.request_verification_completed_heading)) {
-                            for (state in completedUiStates.value) {
-                                val item = state.item
-                                val timeText = durationFromNowText(Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis))
-                                val presentmentRecord = state.presentmentRecord
-                                val isTrusted = state.isTrusted
-
-                                FloatingItemHeadingAndContent(
-                                    modifier = Modifier.clickable {
-                                        if (presentmentRecord != null) {
-                                            completedList.value = completedList.value.filter { it.requestId != item.requestId }
-                                            CoroutineScope(Dispatchers.IO).launch {
-                                                if (item.storeResponse && !item.logged) {
-                                                    try {
-                                                        val event = EventVerification(
-                                                            appData = mapOf("query" to Cbor.decode(item.query.toCbor())),
-                                                            presentmentRecord = presentmentRecord
-                                                        )
-                                                        eventLogger.addEvent(event)
-                                                    } catch (e: Exception) {
-                                                        if (e is CancellationException) throw e
-                                                        Logger.e(TAG, "Failed to log verification event on review", e)
-                                                    }
-                                                }
-                                                try {
-                                                    deleteVerification(storage, item.requestId)
-                                                } catch (e: Exception) {
-                                                    if (e is CancellationException) throw e
-                                                    Logger.e(TAG, "Failed to delete verification on click", e)
-                                                }
-                                                try {
-                                                    walletClient.deleteVerificationRequest(item.requestId)
-                                                } catch (e: Exception) {
-                                                    if (e is CancellationException) throw e
-                                                    Logger.w(TAG, "Failed to delete verification request from server", e)
-                                                }
-                                                try {
-                                                    walletClient.deleteVerificationResponse(item.requestId)
-                                                } catch (e: Exception) {
-                                                    if (e is CancellationException) throw e
-                                                    // Already deleted when polled, ignore
-                                                }
-                                            }
-                                            onViewVerificationClicked(
-                                                item.query,
-                                                presentmentRecord,
-                                                Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis),
-                                                !isTrusted
-                                            )
-                                        }
-                                    },
-                                    showChevron = true,
-                                    image = {
-                                        val icon = if (isTrusted) Icons.Outlined.CheckCircle else Icons.Outlined.Warning
-                                        val tint = if (isTrusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                        Icon(
-                                            modifier = Modifier.size(48.dp),
-                                            imageVector = icon,
-                                            tint = tint,
-                                            contentDescription = null
-                                        )
-                                    },
-                                    heading = item.query.getDisplayName(),
-                                    content = {
-                                        val resId = if (isTrusted) R.string.request_verification_received else R.string.request_verification_received_unknown_issuer
-                                        Text(
-                                            text = stringResource(resId, timeText),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            contentDescription = stringResource(R.string.content_description_delete)
                                         )
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
+                }
 
-                    if (pendingList.value.isEmpty() && completedList.value.isEmpty()) {
-                        Spacer(modifier = Modifier.height(32.dp))
-                        Text(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            text = stringResource(R.string.request_verification_no_requests),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                if (completedUiStates.value.isNotEmpty()) {
+                    FloatingItemList(title = stringResource(R.string.request_verification_completed_heading)) {
+                        for (state in completedUiStates.value) {
+                            val item = state.item
+                            val timeText = durationFromNowText(Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis))
+                            val presentmentRecord = state.presentmentRecord
+                            val isTrusted = state.isTrusted
+
+                            FloatingItemHeadingAndContent(
+                                modifier = Modifier.clickable {
+                                    if (presentmentRecord != null) {
+                                        completedList.value = completedList.value.filter { it.requestId != item.requestId }
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            if (item.storeResponse && !item.logged) {
+                                                try {
+                                                    val event = EventVerification(
+                                                        appData = mapOf("query" to Cbor.decode(item.query.toCbor())),
+                                                        presentmentRecord = presentmentRecord
+                                                    )
+                                                    eventLogger.addEvent(event)
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    Logger.e(TAG, "Failed to log verification event on review", e)
+                                                }
+                                            }
+                                            try {
+                                                deleteVerification(storage, item.requestId)
+                                            } catch (e: Exception) {
+                                                if (e is CancellationException) throw e
+                                                Logger.e(TAG, "Failed to delete verification on click", e)
+                                            }
+                                            try {
+                                                walletClient.deleteVerificationRequest(item.requestId)
+                                            } catch (e: Exception) {
+                                                if (e is CancellationException) throw e
+                                                Logger.w(TAG, "Failed to delete verification request from server", e)
+                                            }
+                                            try {
+                                                walletClient.deleteVerificationResponse(item.requestId)
+                                            } catch (e: Exception) {
+                                                if (e is CancellationException) throw e
+                                                // Already deleted when polled, ignore
+                                            }
+                                        }
+                                        onViewVerificationClicked(
+                                            item.query,
+                                            presentmentRecord,
+                                            Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis),
+                                            !isTrusted
+                                        )
+                                    }
+                                },
+                                showChevron = true,
+                                image = {
+                                    val icon = if (isTrusted) Icons.Outlined.CheckCircle else Icons.Outlined.Warning
+                                    val tint = if (isTrusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                    Icon(
+                                        modifier = Modifier.size(48.dp),
+                                        imageVector = icon,
+                                        tint = tint,
+                                        contentDescription = null
+                                    )
+                                },
+                                heading = item.query.getDisplayName(),
+                                content = {
+                                    val resId = if (isTrusted) R.string.request_verification_received else R.string.request_verification_received_unknown_issuer
+                                    Text(
+                                        text = stringResource(resId, timeText),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
+                        }
                     }
+                }
+
+                if (pendingList.value.isEmpty() && completedList.value.isEmpty()) {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        text = stringResource(R.string.request_verification_no_requests),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
                 val activeReaderDisplayName = if (selectedReaderId != null) {
@@ -584,15 +580,19 @@ fun RequestVerificationScreen(
                 InfoNote(markdownString = stringResource(R.string.request_verification_nfc_reader_info))
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
                         onClick = onScanQrClicked
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -603,13 +603,15 @@ fun RequestVerificationScreen(
                                 modifier = Modifier.padding(vertical = 8.dp),
                                 text = stringResource(R.string.request_verification_scan_qr_code),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
                     Surface(
                         modifier = Modifier
                             .weight(1f)
+                            .fillMaxHeight()
                             .defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight)
                             .combinedClickable(
                                 onClick = { onScanNfcClicked(false) },
@@ -626,7 +628,9 @@ fun RequestVerificationScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ) {
                         Row(
-                            modifier = Modifier.padding(ButtonDefaults.ContentPadding),
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(ButtonDefaults.ContentPadding),
                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -638,7 +642,8 @@ fun RequestVerificationScreen(
                                 modifier = Modifier.padding(vertical = 8.dp),
                                 text = stringResource(R.string.request_verification_scan_nfc),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }

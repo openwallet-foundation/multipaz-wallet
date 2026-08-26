@@ -214,6 +214,8 @@ fun WalletScreen(
     val haptic = LocalHapticFeedback.current
     val signedIn = walletClient.signedInUser.collectAsState().value
 
+    CheckForAppUpdates()
+
     val focusedDocument = documentModel.documentInfos.collectAsState().value.find { documentInfo ->
         documentInfo.document.identifier == focusedDocumentId
     }
@@ -498,22 +500,38 @@ fun WalletScreen(
             val topBarContentHeight = if (hasBackendUrl) 80.dp else 64.dp
             val listPaddingTop = statusBarTop + topBarContentHeight
 
-            if (!blePermissionState.isGranted) {
-                WarningCard(
+            val isUpdateAvailable = isAppUpdateAvailable()
+            val hasBanners = !blePermissionState.isGranted || isUpdateAvailable
+
+            if (hasBanners) {
+                Column(
                     modifier = Modifier
                         .padding(top = listPaddingTop)
-                        .padding(16.dp)
-                        .clickable {
-                            coroutineScope.launch {
-                                blePermissionState.launchPermissionRequest()
-                            }
-                        }
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(stringResource(R.string.wallet_screen_ble_permission_warning))
+                    if (!blePermissionState.isGranted) {
+                        WarningCard(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .clickable {
+                                    coroutineScope.launch {
+                                        blePermissionState.launchPermissionRequest()
+                                    }
+                                }
+                        ) {
+                            Text(stringResource(R.string.wallet_screen_ble_permission_warning))
+                        }
+                    }
+
+                    if (isUpdateAvailable) {
+                        AppUpdateCard(
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
                 }
             }
-
-            AppUpdateCard()
 
             val pullToRefreshState = rememberPullToRefreshState()
             PullToRefreshBox(
@@ -540,7 +558,9 @@ fun WalletScreen(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .graphicsLayer {
-                                translationY = with(density) { listPaddingTop.toPx() }
+                                translationY = with(density) {
+                                    (if (hasBanners) 0.dp else listPaddingTop).toPx()
+                                }
                             }
                     )
                 },
@@ -557,7 +577,7 @@ fun WalletScreen(
                     allowCardReordering = true,
                     showStackWhileFocused = false,
                     cardMaxHeight = Dp.Unspecified,
-                    paddingTop = listPaddingTop,
+                    paddingTop = if (hasBanners) 8.dp else listPaddingTop,
                     animateListTransitions = animateListTransitions,
                     state = verticalCardListState,
                     showCardInfo = { cardInfo ->
@@ -920,21 +940,26 @@ private fun EmptyWalletStateContent() {
     }
 }
 
+// Uncomment below if working on this code from Android Studio.
+//
+//private const val UPDATE_URL =  "https://apps.multipaz.org/multipaz-wallet/LATEST-VERSION.txt"
+//private const val UPDATE_WEBSITE_URL =  "https://apps.multipaz.org/"
+//private const val CURRENT_VERSION = "2026.W22.1-15-git-4808d2a"
+private val UPDATE_URL = BuildConfig.UPDATE_URL
+private val UPDATE_WEBSITE_URL = BuildConfig.UPDATE_WEBSITE
+private val CURRENT_VERSION = BuildConfig.VERSION
+
 private val cachedLatestVersion = mutableStateOf<String?>(null)
 private var lastCheckedInstant: Instant? = null
 
-@Composable
-private fun AppUpdateCard() {
-    // Uncomment below if working on this code from Android Studio.
-    //
-    //val updateUrl =  "https://apps.multipaz.org/multipaz-wallet/LATEST-VERSION.txt"
-    //val updateWebsiteUrl =  "https://apps.multipaz.org/"
-    //val currentVersion = "2026.W22.1-15-git-4808d2a"
-    val updateUrl = BuildConfig.UPDATE_URL
-    val updateWebsiteUrl = BuildConfig.UPDATE_WEBSITE
-    val currentVersion = BuildConfig.VERSION
+private fun isAppUpdateAvailable(): Boolean {
+    val latest = cachedLatestVersion.value ?: return false
+    return UPDATE_URL.isNotEmpty() && CURRENT_VERSION < latest
+}
 
-    if (updateUrl.isEmpty()) {
+@Composable
+private fun CheckForAppUpdates() {
+    if (UPDATE_URL.isEmpty()) {
         return
     }
 
@@ -945,27 +970,32 @@ private fun AppUpdateCard() {
             lastCheckedInstant = now
             try {
                 val httpClient = HttpClient(Android)
-                val response = httpClient.get(updateUrl)
+                val response = httpClient.get(UPDATE_URL)
                 if (response.status == HttpStatusCode.OK) {
                     val version = response.readRawBytes().decodeToString().trim()
                     cachedLatestVersion.value = version
                     Logger.i(
-                        TAG, "Latest available version from $updateWebsiteUrl is $version " +
-                                "and our version is $currentVersion"
+                        TAG, "Latest available version from $UPDATE_WEBSITE_URL is $version " +
+                                "and our version is $CURRENT_VERSION"
                     )
                 }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                Logger.e(TAG, "Error checking latest version from $updateWebsiteUrl", e)
+                Logger.e(TAG, "Error checking latest version from $UPDATE_WEBSITE_URL", e)
             }
         }
     }
+}
 
+@Composable
+private fun AppUpdateCard(
+    modifier: Modifier = Modifier
+) {
     cachedLatestVersion.value?.let {
         // Our version numbers are so arranged that we can just compare strings.
-        if (currentVersion < it) {
+        if (CURRENT_VERSION < it) {
             InfoCard(
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = modifier
             ) {
                 val str = buildAnnotatedString {
                     append(
@@ -973,13 +1003,13 @@ private fun AppUpdateCard() {
                     )
                     withLink(
                         LinkAnnotation.Url(
-                            updateWebsiteUrl,
+                            UPDATE_WEBSITE_URL,
                             TextLinkStyles(
                                 style = SpanStyle(color = Color.Blue, textDecoration = TextDecoration.Underline),
                             )
                         )
                     ) {
-                        append(updateWebsiteUrl)
+                        append(UPDATE_WEBSITE_URL)
                     }
                     append(" to update.")
                 }
