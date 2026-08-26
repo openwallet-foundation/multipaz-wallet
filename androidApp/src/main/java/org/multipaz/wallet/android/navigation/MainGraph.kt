@@ -111,7 +111,10 @@ import org.multipaz.wallet.android.ui.settings.TrustEntryRicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryVicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
+import org.multipaz.wallet.android.ui.verification.AddIssuerIdentifierDialog
+import org.multipaz.wallet.android.ui.verification.RequestVerificationAdvancedOptionsScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUrlScreen
+import org.multipaz.wallet.android.ui.verification.RequestVerificationIssuerIdentifiersScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationScreen
 import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
 import org.multipaz.wallet.android.ui.verification.SelectExternalNfcReaderScreen
@@ -295,12 +298,12 @@ fun mainGraph(
             is WalletDestination -> {
                 val previousKey = backStack.getOrNull(backStack.size - 2)
                 val isPreviousScreenCardList = previousKey is WalletDestination
-                val metadata = if (isPreviousScreenCardList) {
-                    NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
-                            NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None }
-                } else {
-                    emptyMap()
-                }
+                // Always disable NavDisplay page transitions for WalletDestination.
+                // Card expansion, focusing, reordering, and dismiss transitions are animated internally
+                // by VerticalCardList. Allowing NavDisplay to animate page entry/exit causes visual glitches
+                // and double-animations on startup and document selection.
+                val metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith ExitTransition.None } +
+                        NavDisplay.popTransitionSpec { EnterTransition.None togetherWith ExitTransition.None }
                 NavEntry(key, metadata = metadata) {
                     val justAdded = key.justAddedAtMillis?.let {
                         Clock.System.now() - Instant.fromEpochMilliseconds(it) < 5.seconds
@@ -1496,6 +1499,7 @@ fun mainGraph(
                     eventLogger = eventLogger,
                     onSelectVerificationTypeClicked = { backStack.add(SelectVerificationTypeDestination) },
                     onSelectNfcReaderClicked = { backStack.add(SelectExternalNfcReaderDestination) },
+                    onRequestVerificationAdvancedOptionsClicked = { backStack.add(RequestVerificationAdvancedOptionsDestination) },
                     onScanQrClicked = {
                         proximityReaderModel.reset()
                         backStack.add(VerificationProximityTransferDestination(ProximityScanMode.QR))
@@ -1618,6 +1622,33 @@ fun mainGraph(
                             backStack.add(WalletDestination())
                         }
                     }
+                )
+            }
+            is RequestVerificationAdvancedOptionsDestination -> NavEntry(key) {
+                RequestVerificationAdvancedOptionsScreen(
+                    settingsModel = settingsModel,
+                    onIssuerIdentifiersClicked = { backStack.add(RequestVerificationIssuerIdentifiersDestination) },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is RequestVerificationIssuerIdentifiersDestination -> NavEntry(key) {
+                RequestVerificationIssuerIdentifiersScreen(
+                    settingsModel = settingsModel,
+                    backendIssuerTrustManagerModel = backendIssuerTrustManagerModel,
+                    userIssuerTrustManagerModel = userIssuerTrustManagerModel,
+                    issuerTrustManager = issuerTrustManager,
+                    imageLoader = imageLoader,
+                    onAddIssuerIdentifierClicked = { backStack.add(AddIssuerIdentifierDialogDestination) },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is AddIssuerIdentifierDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                AddIssuerIdentifierDialog(
+                    settingsModel = settingsModel,
+                    onDismiss = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is SelectVerificationTypeDestination -> NavEntry(key) {

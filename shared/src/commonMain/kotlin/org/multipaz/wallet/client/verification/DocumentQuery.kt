@@ -1,5 +1,6 @@
 package org.multipaz.wallet.client.verification
 
+import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import org.multipaz.cbor.annotation.CborSerializable
@@ -17,7 +18,8 @@ sealed class DocumentQuery {
     suspend fun addDocRequests(
         deviceRequest: DeviceRequest.Builder,
         intentToRetain: Boolean,
-        readerKey: AsymmetricKey.X509Compatible?
+        readerKey: AsymmetricKey.X509Compatible?,
+        issuerIdentifiers: List<ByteString> = emptyList()
     ): Int {
         val requests = getRequests()
         requests.forEach { request ->
@@ -52,8 +54,11 @@ sealed class DocumentQuery {
                         }
                     }
 
-                    val docRequestInfo = if (alternativeDataElements.isNotEmpty()) {
-                        DocRequestInfo(alternativeDataElements = alternativeDataElements)
+                    val docRequestInfo = if (alternativeDataElements.isNotEmpty() || issuerIdentifiers.isNotEmpty()) {
+                        DocRequestInfo(
+                            alternativeDataElements = alternativeDataElements,
+                            issuerIdentifiers = issuerIdentifiers
+                        )
                     } else {
                         null
                     }
@@ -104,6 +109,7 @@ sealed class DocumentQuery {
 
                     val docRequestInfo = DocRequestInfo(
                         alternativeDataElements = alternativeDataElements,
+                        issuerIdentifiers = issuerIdentifiers,
                         docFormat = "dc+sd-jwt",
                         dataElementIdentifierMapping = mapping
                     )

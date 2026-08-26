@@ -114,7 +114,8 @@ suspend fun generateVerificationLink(
         origin = origin,
         responseEncryptionKey = responseEncryptionKey.publicKey,
         readerAuthKey = readerAuthKey,
-        intentToRetain = settingsModel.verificationStoreResponse.value
+        intentToRetain = settingsModel.verificationStoreResponse.value,
+        issuerIdentifiers = settingsModel.verificationIssuerIdentifiers.value
     )
 
     val mdocApiRequest = VerificationSession.DcIso18013Request(

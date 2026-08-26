@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
+import org.multipaz.cbor.Bstr
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
 import org.multipaz.cbor.Tstr
@@ -84,7 +85,14 @@ class SettingsModel private constructor(
                     Boolean::class -> dataItem.asBoolean
                     String::class -> dataItem.asTstr
                     ByteString::class -> ByteString(dataItem.asBstr)
-                    List::class -> dataItem.asArray.map { item -> (item as Tstr).value }
+                    List::class -> {
+                        dataItem.asArray.map { item ->
+                            when (item) {
+                                is Bstr -> ByteString(item.asBstr)
+                                else -> (item as Tstr).value
+                            }
+                        }
+                    }
                     EcCurve::class -> EcCurve.entries.find { it.name == dataItem.asTstr }
                     EcPrivateKey::class -> EcPrivateKey.fromDataItem(dataItem)
                     X509CertChain::class -> X509CertChain.fromDataItem(dataItem)
@@ -109,7 +117,13 @@ class SettingsModel private constructor(
                             ByteString::class -> (newValue as ByteString).toByteArray().toDataItem()
                             List::class -> {
                                 buildCborArray {
-                                    (newValue as List<*>).forEach { add(Tstr(it as String)) }
+                                    (newValue as List<*>).forEach { item ->
+                                        when (item) {
+                                            is String -> add(Tstr(item))
+                                            is ByteString -> add(item.toByteArray().toDataItem())
+                                            else -> throw IllegalStateException("List element type not supported")
+                                        }
+                                    }
                                 }
                             }
                             EcCurve::class -> (newValue as EcCurve).name.toDataItem()
@@ -153,6 +167,7 @@ class SettingsModel private constructor(
         bind(disableNoUserAuth, "disableNoUserAuth", true)
         bind(preconsentForNewDocuments, "preconsentForNewDocuments", true)
         bind(useNfcV2, "useNfcV2", true)
+        bind(verificationIssuerIdentifiers, "verificationIssuerIdentifiers", emptyList<ByteString>())
 
         Logger.isDebugEnabled = loggingDebugEnabled.value
         CoroutineScope(Dispatchers.Default).launch {
@@ -184,4 +199,5 @@ class SettingsModel private constructor(
     val disableNoUserAuth = MutableStateFlow<Boolean>(true)
     val preconsentForNewDocuments = MutableStateFlow<Boolean>(true)
     val useNfcV2 = MutableStateFlow<Boolean>(true)
+    val verificationIssuerIdentifiers = MutableStateFlow<List<ByteString>>(emptyList())
 }

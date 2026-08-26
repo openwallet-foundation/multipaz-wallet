@@ -155,7 +155,8 @@ fun VerificationProximityTransferScreen(
                                 keyInfo = keyInfoAndCertification.first,
                             )
                         },
-                        intentToRetain = settingsModel.verificationStoreResponse.value
+                        intentToRetain = settingsModel.verificationStoreResponse.value,
+                        issuerIdentifiers = settingsModel.verificationIssuerIdentifiers.value
                     )
                     if (keyInfoAndCertification != null) {
                         CoroutineScope(Dispatchers.IO).launch {

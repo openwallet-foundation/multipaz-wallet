@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -478,12 +481,27 @@ fun WalletScreen(
                     // Omitting the bottom padding since we want to draw under the navigation bar
                 )
                 .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Compute deterministic top padding for the card list so it extends up under the transparent top bar.
+            //
+            // We intentionally do NOT use Scaffold's dynamically measured `innerPadding.calculateTopPadding()`:
+            // 1. Scaffold recalculates innerPadding across initial layout frames as the top bar contents (title,
+            //    developer mode backend URL subtitle, icons, insets) are measured and remeasured.
+            // 2. Each change to `paddingTop` updates `targetY` inside `VerticalCardList`, which triggers
+            //    `VerticalCardListItem`'s internal `animateFloatAsState` and causes the cards to visibly slide down.
+            //
+            // By computing `listPaddingTop` directly from the status bar height and the known static top bar height,
+            // the initial target Y position is constant and stable from the very first frame.
+            val statusBarTop = rememberStatusBarHeight()
+            val hasBackendUrl = BuildConfig.DEVELOPER_MODE_AVAILABLE && settingsModel.walletBackendUrl.collectAsState().value != null
+            val topBarContentHeight = if (hasBackendUrl) 80.dp else 64.dp
+            val listPaddingTop = statusBarTop + topBarContentHeight
+
             if (!blePermissionState.isGranted) {
                 WarningCard(
                     modifier = Modifier
-                        .padding(top = innerPadding.calculateTopPadding())
+                        .padding(top = listPaddingTop)
                         .padding(16.dp)
                         .clickable {
                             coroutineScope.launch {
@@ -522,7 +540,7 @@ fun WalletScreen(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .graphicsLayer {
-                                translationY = with(density) { innerPadding.calculateTopPadding().toPx() }
+                                translationY = with(density) { listPaddingTop.toPx() }
                             }
                     )
                 },
@@ -538,8 +556,8 @@ fun WalletScreen(
                     focusedCard = focusedDocument,
                     allowCardReordering = true,
                     showStackWhileFocused = false,
-                    cardMaxHeight = maxCardHeight,
-                    paddingTop = innerPadding.calculateTopPadding(),
+                    cardMaxHeight = Dp.Unspecified,
+                    paddingTop = listPaddingTop,
                     animateListTransitions = animateListTransitions,
                     state = verticalCardListState,
                     showCardInfo = { cardInfo ->
@@ -967,6 +985,36 @@ private fun AppUpdateCard() {
                 }
                 Text(text = str)
             }
+        }
+    }
+}
+
+/**
+ * Returns the status bar height in Dp.
+ *
+ * On cold app startup, Compose's [WindowInsets.Companion.statusBars] evaluates to `0.dp` during the
+ * very first layout pass (Frame 0) because Android window manager insets are delivered asynchronously.
+ * If UI elements (like [VerticalCardList]) compose using `0.dp` on Frame 0 and then recompose with the
+ * actual status bar height (e.g. `48.dp`) on Frame 1, any internal position animations (e.g. `animateFloatAsState`)
+ * will trigger and cause visible shifts/sliding.
+ *
+ * To prevent this, we fall back to reading the platform dimension `@android:dimen/status_bar_height`
+ * synchronously from system resources when [WindowInsets] has not yet dispatched.
+ */
+@Composable
+private fun rememberStatusBarHeight(): Dp {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val insetsTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    if (insetsTop > 0.dp) {
+        return insetsTop
+    }
+    return remember(density) {
+        val resourceId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            with(density) { context.resources.getDimensionPixelSize(resourceId).toDp() }
+        } else {
+            24.dp
         }
     }
 }

@@ -302,6 +302,12 @@ data object EnterIssuerUrlDestination: Destination()
 data object RequestVerificationDestination: Destination()
 
 @Serializable
+data object RequestVerificationAdvancedOptionsDestination: Destination()
+
+@Serializable
+data object RequestVerificationIssuerIdentifiersDestination: Destination()
+
+@Serializable
 data object VerificationEventListDestination: Destination()
 
 @Serializable
@@ -393,4 +399,8 @@ data class RequestVerificationFromMdocUrlDestination(
 data class DeletePendingVerificationConfirmationDialogDestination(
     val requestId: String
 ): Destination()
+
+@Serializable
+data object AddIssuerIdentifierDialogDestination : Destination()
+
 

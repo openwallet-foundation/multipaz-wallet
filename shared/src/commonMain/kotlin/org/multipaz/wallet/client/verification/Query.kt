@@ -49,7 +49,8 @@ sealed class Query(
         origin: String,
         responseEncryptionKey: EcPublicKey,
         readerAuthKey: AsymmetricKey.X509Compatible?,
-        intentToRetain: Boolean
+        intentToRetain: Boolean,
+        issuerIdentifiers: List<ByteString> = emptyList()
     ): Pair<DataItem, DataItem> {
         val encryptionInfo = buildCborArray {
             add("dcapi")
@@ -76,7 +77,8 @@ sealed class Query(
             deviceEngagement = null,
             sessionTranscript = sessionTranscript,
             readerAuthKey = readerAuthKey,
-            intentToRetain = intentToRetain
+            intentToRetain = intentToRetain,
+            issuerIdentifiers = issuerIdentifiers
         )
 
         return Pair(deviceRequest.toDataItem(), encryptionInfo)
@@ -86,7 +88,8 @@ sealed class Query(
         deviceEngagement: DataItem?,
         sessionTranscript: DataItem,
         readerAuthKey: AsymmetricKey.X509Compatible?,
-        intentToRetain: Boolean
+        intentToRetain: Boolean,
+        issuerIdentifiers: List<ByteString> = emptyList()
     ): DeviceRequest = buildDeviceRequest(
         sessionTranscript = sessionTranscript
     ) {
@@ -112,7 +115,8 @@ sealed class Query(
                     null
                 } else {
                     readerAuthKey
-                }
+                },
+                issuerIdentifiers = issuerIdentifiers
             )
             docRequestIds.addAll(numDocRequests until numDocRequestsAdded)
             allDocRequestIds.add(docRequestIds)

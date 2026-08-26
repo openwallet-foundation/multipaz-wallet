@@ -140,6 +140,7 @@ fun RequestVerificationScreen(
     eventLogger: SimpleEventLogger,
     onSelectVerificationTypeClicked: () -> Unit,
     onSelectNfcReaderClicked: () -> Unit,
+    onRequestVerificationAdvancedOptionsClicked: () -> Unit,
     onScanQrClicked: () -> Unit,
     onScanNfcClicked: (nfcOnly: Boolean) -> Unit,
     onGenerateVerificationLinkClicked: () -> Unit,
@@ -153,6 +154,7 @@ fun RequestVerificationScreen(
     val coroutineScope = rememberCoroutineScope { promptModel }
     val context = LocalContext.current
     val isInPerson = settingsModel.verificationIsInPerson.collectAsState().value
+    val devMode = settingsModel.devMode.collectAsState().value
     val notificationPermissionState = rememberNotificationPermissionState()
     var showPermissionDialog by remember { mutableStateOf(false) }
 
@@ -350,6 +352,29 @@ fun RequestVerificationScreen(
                         )
                     }
                 )
+                if (devMode) {
+                    val issuerIdentifiers by settingsModel.verificationIssuerIdentifiers.collectAsState()
+                    val advancedContent = when (issuerIdentifiers.size) {
+                        0 -> stringResource(R.string.request_verification_advanced_content)
+                        1 -> stringResource(R.string.request_verification_advanced_content_one)
+                        else -> stringResource(
+                            R.string.request_verification_advanced_content_many,
+                            issuerIdentifiers.size
+                        )
+                    }
+                    FloatingItemHeadingAndContent(
+                        modifier = Modifier.clickable { onRequestVerificationAdvancedOptionsClicked() },
+                        showChevron = true,
+                        heading = stringResource(R.string.request_verification_advanced_heading),
+                        content = {
+                            Text(
+                                text = advancedContent,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
             }
 
             if (!isInPerson) {
@@ -582,7 +607,6 @@ fun RequestVerificationScreen(
                             )
                         }
                     }
-                    val devMode = settingsModel.devMode.collectAsState().value
                     Surface(
                         modifier = Modifier
                             .weight(1f)
