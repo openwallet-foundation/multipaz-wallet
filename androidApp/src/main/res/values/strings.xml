@@ -828,4 +828,23 @@
     <string name="share_pass_chooser_title">Share pass</string>
     <string name="share_pass_error_dialog_title">Error sharing pass</string>
     <string name="share_pass_error_dialog_text">There was an error sharing the pass: %1$s</string>
+
+    <!-- Document Info: Restrict to Readers -->
+    <string name="document_info_restrict_to_readers_title">Restrict to readers</string>
+    <string name="document_info_reader_identifiers_heading">Reader identifiers</string>
+    <string name="document_info_no_reader_identifiers_set">No reader identifiers set</string>
+    <string name="document_info_reader_identifiers_set_one">1 reader identifier set</string>
+    <string name="document_info_reader_identifiers_set_many">%1$d reader identifiers set</string>
+    <string name="document_info_reader_identifiers_screen_title">Reader identifiers</string>
+    <string name="document_info_reader_identifiers_note">Reader identifiers restrict presentation of this pass to readers that authenticate with one of the specified identifiers.</string>
+    <string name="document_info_available_trusted_verifiers">Available trusted verifiers</string>
+    <string name="document_info_no_available_trusted_verifiers">No available trusted verifiers</string>
+    <string name="document_info_reader_identifiers_remove">Remove reader identifier</string>
+    <string name="document_info_reader_identifiers_add">Add reader identifier</string>
+    <string name="document_info_reader_identifiers_add_manual">Add reader identifier</string>
+    <string name="document_info_reader_identifiers_no_trusted_verifier">No trusted verifier found for SKI</string>
+    <string name="add_reader_identifier_dialog_title">Add reader identifier</string>
+    <string name="add_reader_identifier_dialog_description">Enter the Subject Key Identifier identifying the reader.</string>
+    <string name="add_reader_identifier_dialog_label">Subject Key Identifier (hex)</string>
+    <string name="add_reader_identifier_dialog_add_button">Add</string>
 </resources>

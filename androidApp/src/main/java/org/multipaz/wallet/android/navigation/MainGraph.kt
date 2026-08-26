@@ -77,9 +77,11 @@ import org.multipaz.wallet.android.ui.InfoDialog
 import org.multipaz.wallet.android.ui.SignInClearEncryptionKeyDialog
 import org.multipaz.wallet.android.ui.SignOutConfirmationDialog
 import org.multipaz.wallet.android.ui.WalletScreen
+import org.multipaz.wallet.android.ui.document.AddReaderIdentifierDialog
 import org.multipaz.wallet.android.ui.document.CredentialInfoScreen
 import org.multipaz.wallet.android.ui.document.DocumentEventListScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoExtrasScreen
+import org.multipaz.wallet.android.ui.document.DocumentInfoReaderIdentifiersScreen
 import org.multipaz.wallet.android.ui.document.DocumentInfoScreen
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersAddReaderDialog
 import org.multipaz.wallet.android.ui.document.ManageTrustedReadersScreen
@@ -526,7 +528,34 @@ fun mainGraph(
                     },
                     onCredentialClicked = { credentialId ->
                         backStack.add(CredentialInfoDestination(key.documentId, credentialId))
+                    },
+                    onReaderIdentifiersClicked = {
+                        backStack.add(DocumentInfoReaderIdentifiersDestination(key.documentId))
                     }
+                )
+            }
+            is DocumentInfoReaderIdentifiersDestination -> NavEntry(key) {
+                DocumentInfoReaderIdentifiersScreen(
+                    documentId = key.documentId,
+                    documentModel = documentModel,
+                    backendReaderTrustManagerModel = backendReaderTrustManagerModel,
+                    userReaderTrustManagerModel = userReaderTrustManagerModel,
+                    readerTrustManager = readerTrustManager,
+                    imageLoader = imageLoader,
+                    onAddReaderIdentifierClicked = {
+                        backStack.add(AddReaderIdentifierDialogDestination(key.documentId))
+                    },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is AddReaderIdentifierDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                AddReaderIdentifierDialog(
+                    documentId = key.documentId,
+                    documentModel = documentModel,
+                    onDismiss = { backStack.removeAt(backStack.size - 1) }
                 )
             }
             is DocumentPreconsentSettingsDestination -> NavEntry(key) {

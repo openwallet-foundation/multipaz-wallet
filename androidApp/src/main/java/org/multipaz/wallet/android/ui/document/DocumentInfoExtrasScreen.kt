@@ -70,7 +70,8 @@ fun DocumentInfoExtrasScreen(
     documentId: String,
     onRefreshCredentialsClicked: () -> Unit,
     onBackClicked: () -> Unit,
-    onCredentialClicked: (String) -> Unit
+    onCredentialClicked: (String) -> Unit,
+    onReaderIdentifiersClicked: () -> Unit
 ) {
     val hazeState = remember { HazeState() }
     @Suppress("DEPRECATION")
@@ -265,6 +266,27 @@ fun DocumentInfoExtrasScreen(
                             secondary = secondary
                         )
                     }
+                }
+            }
+
+            documentInfo?.document?.let { doc ->
+                FloatingItemList(title = stringResource(R.string.document_info_restrict_to_readers_title)) {
+                    val readerIdentifiers = doc.readerIdentifiers
+                    val text = if (readerIdentifiers.isEmpty()) {
+                        stringResource(R.string.document_info_no_reader_identifiers_set)
+                    } else if (readerIdentifiers.size == 1) {
+                        stringResource(R.string.document_info_reader_identifiers_set_one)
+                    } else {
+                        stringResource(R.string.document_info_reader_identifiers_set_many, readerIdentifiers.size)
+                    }
+                    FloatingItemHeadingAndText(
+                        heading = stringResource(R.string.document_info_reader_identifiers_heading),
+                        text = text,
+                        showChevron = true,
+                        modifier = Modifier.clickable {
+                            onReaderIdentifiersClicked()
+                        }
+                    )
                 }
             }
 

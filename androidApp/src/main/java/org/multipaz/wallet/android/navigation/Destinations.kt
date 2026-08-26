@@ -268,6 +268,16 @@ data class DocumentInfoExtrasDestination(
 ): Destination()
 
 @Serializable
+data class DocumentInfoReaderIdentifiersDestination(
+    val documentId: String,
+): Destination()
+
+@Serializable
+data class AddReaderIdentifierDialogDestination(
+    val documentId: String,
+): Destination()
+
+@Serializable
 data class CredentialInfoDestination(
     val documentId: String,
     val credentialId: String,
