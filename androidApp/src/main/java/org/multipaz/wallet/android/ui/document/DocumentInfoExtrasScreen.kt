@@ -61,6 +61,7 @@ import org.multipaz.datetime.formatLocalized
 import org.multipaz.tags.Tags
 import org.multipaz.util.toHex
 import org.multipaz.wallet.android.ui.Note
+import org.multipaz.wallet.client.isMpzPassShareable
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -215,6 +216,10 @@ fun DocumentInfoExtrasScreen(
                     FloatingItemHeadingAndText(
                         heading = "MpzPass version",
                         text = doc.mpzPassVersion?.toString() ?: "N/A"
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "MpzPass shareable",
+                        text = if (doc.mpzPassId != null) (if (doc.isMpzPassShareable) "Yes" else "No") else "N/A"
                     )
                     FloatingItemHeadingAndText(
                         heading = "Metadata",

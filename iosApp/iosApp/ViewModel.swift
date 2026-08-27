@@ -367,7 +367,7 @@ class ViewModel {
         let byteString = data.toByteString()
         let byteArray = byteString.toByteArray(startIndex: 0, endIndex: Int32(data.count))
         let dataItem = try Cbor.shared.decode(encodedCbor: byteArray)
-        let pass = try await MpzPass.companion.fromDataItem(dataItem: dataItem)
+        let pass = try await MpzPass.companion.fromDataItem(dataItem: dataItem, disableSignatureVerification: false)
         
         let existingDocs = try await documentStore.listDocuments(sort: false)
         if let existingDoc = existingDocs.first(where: { $0.mpzPassId == pass.uniqueId }) {

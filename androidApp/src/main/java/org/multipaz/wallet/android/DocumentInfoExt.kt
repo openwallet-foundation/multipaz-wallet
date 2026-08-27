@@ -8,6 +8,13 @@ import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.sdjwt.credential.KeyBoundSdJwtVcCredential
+import org.multipaz.wallet.client.isMpzPassShareable
+
+/**
+ * Returns whether a document is a shareable [org.multipaz.mpzpass.MpzPass].
+ */
+val DocumentInfo.isMpzPassShareable: Boolean
+    get() = document.isMpzPassShareable
 
 /**
  * Returns whether a document can be presented via proximity.

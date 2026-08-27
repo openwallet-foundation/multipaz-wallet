@@ -155,6 +155,7 @@ import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getPendingIntentForLaunchingQuickAccessWallet
 import org.multipaz.wallet.android.hasPortrait
+import org.multipaz.wallet.android.isMpzPassShareable
 import org.multipaz.wallet.android.isProximityPresentable
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.DocumentPreconsentSetting
@@ -381,7 +382,7 @@ fun WalletScreen(
                                 exit = fadeOut()
                             ) {
                                 Row {
-                                    if (focusedDocument?.document?.mpzPassId != null) {
+                                    if (focusedDocument?.isMpzPassShareable == true) {
                                         IconButton(
                                             onClick = { onDocumentShareClicked(focusedDocument) }
                                         ) {

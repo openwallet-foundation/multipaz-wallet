@@ -13,6 +13,7 @@ import org.multipaz.mpzpass.MpzPass
 import org.multipaz.util.Logger
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.deleteDocumentFromWalletBackend
+import org.multipaz.wallet.client.setMpzPassData
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
 import react.FC
@@ -166,6 +167,7 @@ val App = FC<AppProps> { props ->
                                         sdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                                         keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
                                     )
+                                    document.setMpzPassData(encodedMpzPass)
                                     window.location.hash = ""
                                 } catch (e: Exception) {
                                     if (e is CancellationException) throw e

@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import org.multipaz.document.Document
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.isMpzPassShareable
 import org.multipaz.wallet.client.mpzPassData
 import java.io.File
 
@@ -13,6 +14,9 @@ suspend fun shareMpzPass(
     document: Document,
     walletClient: WalletClient? = null
 ) {
+    if (!document.isMpzPassShareable) {
+        throw IllegalStateException("Document is not a shareable MpzPass")
+    }
     val passData = document.mpzPassData
         ?: throw IllegalStateException("Document does not have MpzPass data")
 

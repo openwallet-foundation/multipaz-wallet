@@ -253,7 +253,7 @@ struct WalletScreen: View {
                 ZStack(alignment: .trailing) {
                     if let focusedDoc = focusedDocument, !focusedDoc.document.provisionedDocumentSetupNeeded {
                         HStack(spacing: 8) {
-                            if focusedDoc.document.mpzPassId != nil {
+                            if focusedDoc.isMpzPassShareable {
                                 Button(action: {
                                     showShareConfirmation = true
                                 }) {
@@ -557,8 +557,8 @@ struct WalletScreen: View {
     }
     
     private func sharePass(documentInfo: DocumentInfo) {
-        guard let passData = documentInfo.document.mpzPassData else {
-            print("sharePass: document has no mpzPassData")
+        guard documentInfo.isMpzPassShareable, let passData = documentInfo.document.mpzPassData else {
+            print("sharePass: document is not a shareable mpzpass")
             return
         }
         Task {
@@ -802,6 +802,10 @@ extension DocumentInfo {
         credentialInfos.contains {
             $0.credential is MdocCredential || $0.credential is KeyBoundSdJwtVcCredential
         }
+    }
+
+    var isMpzPassShareable: Bool {
+        document.isMpzPassShareable
     }
 }
 

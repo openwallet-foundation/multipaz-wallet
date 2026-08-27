@@ -65,6 +65,8 @@ import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.client.WalletClientSharedData
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.clearOnSignOut
+import org.multipaz.wallet.client.getMpzPass
+import org.multipaz.wallet.client.isMpzPassShareable
 import org.multipaz.wallet.client.mpzPassData
 import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
@@ -247,7 +249,11 @@ class WalletClientTest {
     private var clientCounter = 0
     private val backendStorage = EphemeralStorage()
 
-    private suspend fun createPass(uniqueId: String, version: Long): MpzPass {
+    private suspend fun createPass(
+        uniqueId: String,
+        version: Long,
+        shareable: Boolean = false
+    ): MpzPass {
         val issuerKey = Crypto.createEcPrivateKey(EcCurve.P256)
         val kbKey = Crypto.createEcPrivateKey(EcCurve.P256)
         val sdJwt = SdJwt.create(
@@ -289,6 +295,9 @@ class WalletClientTest {
             uniqueId = uniqueId,
             version = version,
             updateUrl = null,
+            userAuthenticationRequired = false,
+            readerIdentifiers = emptyList(),
+            shareable = shareable,
             name = null,
             typeName = null,
             cardArt = null,
@@ -1850,6 +1859,54 @@ class WalletClientTest {
         val doc = documentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }
         assertNotNull(doc)
         assertEquals(DocumentPreconsentSetting.NeverRequireConsent, doc.preconsentSetting)
+    }
+
+    @Test
+    fun testIsMpzPassShareable() = runTest {
+        val storage = EphemeralStorage()
+        val secureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder().add(secureArea).build()
+        val client = createWalletClientBase(storage, secureArea)
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val shareablePass = createPass("shareable_pass", 1, shareable = true)
+        val nonShareablePass = createPass("non_shareable_pass", 1, shareable = false)
+        val sharedData = WalletClientSharedData()
+            .addMpzPass(shareablePass)
+            .addMpzPass(nonShareablePass)
+
+        documentStore.syncWithSharedData(
+            sharedData = sharedData,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            walletClient = client
+        )
+
+        val shareableDoc = documentStore.listDocuments().find { it.mpzPassId == shareablePass.uniqueId }
+        assertNotNull(shareableDoc)
+        assertTrue(shareableDoc.isMpzPassShareable)
+        val decodedShareablePass = shareableDoc.getMpzPass()
+        assertNotNull(decodedShareablePass)
+        assertTrue(decodedShareablePass.shareable)
+
+        val nonShareableDoc = documentStore.listDocuments().find { it.mpzPassId == nonShareablePass.uniqueId }
+        assertNotNull(nonShareableDoc)
+        assertFalse(nonShareableDoc.isMpzPassShareable)
+        val decodedNonShareablePass = nonShareableDoc.getMpzPass()
+        assertNotNull(decodedNonShareablePass)
+        assertFalse(decodedNonShareablePass.shareable)
+
+        // Non-MpzPass document
+        val regularDoc = documentStore.createDocument(
+            displayName = "Regular Document",
+            typeDisplayName = "Doc"
+        )
+        assertFalse(regularDoc.isMpzPassShareable)
+        assertNull(regularDoc.getMpzPass())
     }
 }
 
