@@ -28,8 +28,11 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -273,11 +276,28 @@ fun RequestVerificationScreen(
                     AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
+                    val hasAdvancedSettings = settingsModel.hasAdvancedVerificationSettings()
                     IconButton(onClick = onVerificationHistoryClicked) {
                         Icon(
                             imageVector = Icons.Outlined.History,
                             contentDescription = stringResource(R.string.verification_history_title)
                         )
+                    }
+                    IconButton(onClick = onRequestVerificationAdvancedOptionsClicked) {
+                        BadgedBox(
+                            badge = {
+                                if (hasAdvancedSettings) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = stringResource(R.string.request_verification_advanced_options_title)
+                            )
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -355,29 +375,6 @@ fun RequestVerificationScreen(
                         )
                     }
                 )
-                if (devMode) {
-                    val issuerIdentifiers by settingsModel.verificationIssuerIdentifiers.collectAsState()
-                    val advancedContent = when (issuerIdentifiers.size) {
-                        0 -> stringResource(R.string.request_verification_advanced_content)
-                        1 -> stringResource(R.string.request_verification_advanced_content_one)
-                        else -> stringResource(
-                            R.string.request_verification_advanced_content_many,
-                            issuerIdentifiers.size
-                        )
-                    }
-                    FloatingItemHeadingAndContent(
-                        modifier = Modifier.clickable { onRequestVerificationAdvancedOptionsClicked() },
-                        showChevron = true,
-                        heading = stringResource(R.string.request_verification_advanced_heading),
-                        content = {
-                            Text(
-                                text = advancedContent,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    )
-                }
             }
 
             if (!isInPerson) {

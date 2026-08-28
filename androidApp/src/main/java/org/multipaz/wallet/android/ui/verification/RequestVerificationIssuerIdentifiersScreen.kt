@@ -206,12 +206,12 @@ fun RequestVerificationIssuerIdentifiersScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.request_verification_issuer_identifiers_note))
 
             FloatingItemList(title = stringResource(R.string.request_verification_issuer_identifiers_screen_title)) {
                 if (issuerIdentifiers.isEmpty()) {
-                    FloatingItemCenteredText(text = stringResource(R.string.request_verification_advanced_no_issuer_identifiers))
+                    FloatingItemCenteredText(text = stringResource(R.string.request_verification_issuer_identifiers_no_identifiers))
                 } else {
                     issuerIdentifiers.forEach { identifier ->
                         val trustPoint = allTrustPoints.find { point ->

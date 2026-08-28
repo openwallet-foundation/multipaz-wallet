@@ -10,6 +10,7 @@ import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
 import org.multipaz.mdoc.request.DeviceRequest
 import org.multipaz.openid.OpenID4VP
+import org.multipaz.securearea.KeyInfo
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTableSpec
@@ -81,13 +82,22 @@ data class LinkVerification(
     companion object
 }
 
-suspend fun generateVerificationLink(
-    walletClient: WalletClient,
+suspend fun getReaderAuthenticationKey(
     settingsModel: SettingsModel,
-    storage: Storage,
-    secureArea: SecureArea,
-): String {
-
+    walletClient: WalletClient,
+    secureArea: SecureArea
+): Pair<AsymmetricKey.X509Certified?, KeyInfo?> {
+    val customKey = settingsModel.customVerificationReaderKey.value
+    val customCertChain = settingsModel.customVerificationReaderCertChain.value
+    if (customKey != null && customCertChain != null) {
+        return Pair(
+            AsymmetricKey.X509CertifiedExplicit(
+                certChain = customCertChain,
+                privateKey = customKey
+            ),
+            null
+        )
+    }
     val keyInfoAndCertification = try {
         walletClient.getReaderKey()
     } catch (e: Exception) {
@@ -102,6 +112,21 @@ suspend fun generateVerificationLink(
             keyInfo = keyInfo,
         )
     }
+    return Pair(readerAuthKey, keyInfoAndCertification?.first)
+}
+
+suspend fun generateVerificationLink(
+    walletClient: WalletClient,
+    settingsModel: SettingsModel,
+    storage: Storage,
+    secureArea: SecureArea,
+): String {
+
+    val (readerAuthKey, keyInfoToMarkUsed) = getReaderAuthenticationKey(
+        settingsModel = settingsModel,
+        walletClient = walletClient,
+        secureArea = secureArea
+    )
     val query = settingsModel.readerQuery.value
 
     val origin = walletClient.getVerificationLinkOrigin()
@@ -155,11 +180,11 @@ suspend fun generateVerificationLink(
         ).toString()
     )
 
-    if (keyInfoAndCertification != null) {
+    if (keyInfoToMarkUsed != null) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 walletClient.markReaderKeyAsUsed(
-                    keyInfo = keyInfoAndCertification.first
+                    keyInfo = keyInfoToMarkUsed
                 )
             } catch (e: Exception) {
                 if (e is CancellationException) throw e

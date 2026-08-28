@@ -15,6 +15,7 @@ You should also be familiar with the project's [README.md](README.md), [CODING-S
 ### Multipaz SDK (http://github.com/openwallet-foundation/multipaz)
 * The core SDK for Multipaz Wallet is the Multipaz SDK
 * Multipaz is consumed via released packages on Maven Central.
+* If you need to look at the source code, you may assume the latest source code for the Multipaz SDK is in ../multipaz.
 
 ### Backend (`backend/`)
 * All server-side logic, API endpoints, and database interactions reside here.
@@ -33,7 +34,7 @@ You should also be familiar with the project's [README.md](README.md), [CODING-S
 
 ### Android Native (`androidApp/`)
 * **Tech:** Jetpack Compose.
-* **Rule:** All Android-specific UI and device integration lives here. Strictly adhere to Material 3 Design guidelines. Keep composables pure and stateless where possible; hoist state to ViewModels.
+* **Rule:** All Android-specific UI and device integration lives here. Strictly adhere to Material 3 Design guidelines. Keep composables pure and stateless where possible; hoist state to ViewModels. Dialogs must be defined as navigation destinations (subclasses of `Destination` in `Destinations.kt` mapped in `MainGraph.kt` using `DialogSceneStrategy.dialog()`) rather than managed with internal boolean state inside screen composables. All application and business logic associated with dialogs and screen actions should be hoisted out of UI composables into the navigation graph or ViewModels.
 
 ### iOS Native (`iosApp/`)
 * **Tech:** Swift & SwiftUI.

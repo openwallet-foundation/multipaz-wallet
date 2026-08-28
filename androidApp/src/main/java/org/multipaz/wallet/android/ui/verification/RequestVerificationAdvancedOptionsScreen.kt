@@ -32,18 +32,22 @@ import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
+import org.multipaz.wallet.android.ui.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RequestVerificationAdvancedOptionsScreen(
     settingsModel: SettingsModel,
     onIssuerIdentifiersClicked: () -> Unit,
+    onCustomReaderAuthenticationClicked: () -> Unit,
     onBackClicked: () -> Unit,
 ) {
     val hazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val issuerIdentifiers by settingsModel.verificationIssuerIdentifiers.collectAsState()
+    val readerKey by settingsModel.customVerificationReaderKey.collectAsState()
+    val readerCertChain by settingsModel.customVerificationReaderCertChain.collectAsState()
 
     Scaffold(
         modifier = Modifier
@@ -71,9 +75,10 @@ fun RequestVerificationAdvancedOptionsScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
+            Note(stringResource(R.string.request_verification_advanced_options_note))
             FloatingItemList {
                 val contentText = if (issuerIdentifiers.isEmpty()) {
                     stringResource(R.string.request_verification_advanced_no_issuer_identifiers)
@@ -92,6 +97,27 @@ fun RequestVerificationAdvancedOptionsScreen(
                     content = {
                         Text(
                             text = contentText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+
+                val readerAuthContentText = if (readerKey == null || readerCertChain == null) {
+                    stringResource(R.string.request_verification_advanced_custom_reader_auth_not_configured)
+                } else {
+                    val leafCert = readerCertChain!!.certificates[0]
+                    val cn = leafCert.subject.components["2.5.4.3"]?.value
+                    val name = cn ?: leafCert.subject.name
+                    stringResource(R.string.request_verification_advanced_custom_reader_auth_configured, name)
+                }
+                FloatingItemHeadingAndContent(
+                    modifier = Modifier.clickable { onCustomReaderAuthenticationClicked() },
+                    showChevron = true,
+                    heading = stringResource(R.string.request_verification_advanced_custom_reader_auth_heading),
+                    content = {
+                        Text(
+                            text = readerAuthContentText,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

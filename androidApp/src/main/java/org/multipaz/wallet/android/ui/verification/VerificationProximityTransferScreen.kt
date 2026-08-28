@@ -91,6 +91,7 @@ import org.multipaz.util.fromHex
 import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.getReaderAuthenticationKey
 import org.multipaz.wallet.android.navigation.ProximityScanMode
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
@@ -131,13 +132,11 @@ fun VerificationProximityTransferScreen(
         when (state) {
             ProximityReaderModel.State.WAITING_FOR_DEVICE_REQUEST -> {
                 try {
-                    val keyInfoAndCertification = try {
-                        walletClient.getReaderKey()
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        Logger.w(TAG, "Error getting reader key", e)
-                        null
-                    }
+                    val (readerAuthKey, keyInfoToMarkUsed) = getReaderAuthenticationKey(
+                        settingsModel = settingsModel,
+                        walletClient = walletClient,
+                        secureArea = secureArea
+                    )
                     val query = settingsModel.readerQuery.value
                     val sessionTranscript = try {
                         proximityReaderModel.sessionTranscript
@@ -148,21 +147,15 @@ fun VerificationProximityTransferScreen(
                     val deviceRequest = query.generateDeviceRequest(
                         deviceEngagement = sessionTranscript.asArray[0].asTaggedEncodedCbor,
                         sessionTranscript = sessionTranscript,
-                        readerAuthKey = keyInfoAndCertification?.let {
-                            AsymmetricKey.X509CertifiedSecureAreaBased(
-                                certChain = keyInfoAndCertification.second,
-                                secureArea = secureArea,
-                                keyInfo = keyInfoAndCertification.first,
-                            )
-                        },
+                        readerAuthKey = readerAuthKey,
                         intentToRetain = settingsModel.verificationStoreResponse.value,
                         issuerIdentifiers = settingsModel.verificationIssuerIdentifiers.value
                     )
-                    if (keyInfoAndCertification != null) {
+                    if (keyInfoToMarkUsed != null) {
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
                                 walletClient.markReaderKeyAsUsed(
-                                    keyInfo = keyInfoAndCertification.first
+                                    keyInfo = keyInfoToMarkUsed
                                 )
                             } catch (e: Exception) {
                                 if (e is CancellationException) throw e

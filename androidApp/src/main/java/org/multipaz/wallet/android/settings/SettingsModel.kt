@@ -168,6 +168,8 @@ class SettingsModel private constructor(
         bind(preconsentForNewDocuments, "preconsentForNewDocuments", true)
         bind(useNfcV2, "useNfcV2", true)
         bind(verificationIssuerIdentifiers, "verificationIssuerIdentifiers", emptyList<ByteString>())
+        bind(customVerificationReaderKey, "customVerificationReaderKey", null)
+        bind(customVerificationReaderCertChain, "customVerificationReaderCertChain", null)
 
         Logger.isDebugEnabled = loggingDebugEnabled.value
         CoroutineScope(Dispatchers.Default).launch {
@@ -200,4 +202,21 @@ class SettingsModel private constructor(
     val preconsentForNewDocuments = MutableStateFlow<Boolean>(true)
     val useNfcV2 = MutableStateFlow<Boolean>(true)
     val verificationIssuerIdentifiers = MutableStateFlow<List<ByteString>>(emptyList())
+    val customVerificationReaderKey = MutableStateFlow<EcPrivateKey?>(null)
+    val customVerificationReaderCertChain = MutableStateFlow<X509CertChain?>(null)
+
+    /**
+     * Checks whether any non-default advanced verification settings are currently configured.
+     *
+     * @return `true` if any advanced verification options are configured, `false` otherwise.
+     */
+    fun hasAdvancedVerificationSettings(): Boolean {
+        if (verificationIssuerIdentifiers.value.isNotEmpty()) {
+            return true
+        }
+        if (customVerificationReaderKey.value != null && customVerificationReaderCertChain.value != null) {
+            return true
+        }
+        return false
+    }
 }

@@ -114,11 +114,15 @@ import org.multipaz.wallet.android.ui.settings.TrustEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustEntryVicalEntryScreen
 import org.multipaz.wallet.android.ui.settings.TrustManagerScreen
 import org.multipaz.wallet.android.ui.verification.AddIssuerIdentifierDialog
+import org.multipaz.wallet.android.ui.verification.Pkcs12PassphraseDialog
 import org.multipaz.wallet.android.ui.verification.RequestVerificationAdvancedOptionsScreen
+import org.multipaz.wallet.android.ui.verification.RequestVerificationCustomReaderAuthenticationScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUrlScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationIssuerIdentifiersScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationScreen
 import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
+import org.multipaz.wallet.shared.WrongPassphraseException
+import org.multipaz.wallet.shared.parsePkcs12
 import org.multipaz.wallet.android.ui.verification.SelectExternalNfcReaderScreen
 import org.multipaz.wallet.android.ui.verification.SelectVerificationTypeScreen
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferErrorScreen
@@ -1657,7 +1661,101 @@ fun mainGraph(
                 RequestVerificationAdvancedOptionsScreen(
                     settingsModel = settingsModel,
                     onIssuerIdentifiersClicked = { backStack.add(RequestVerificationIssuerIdentifiersDestination) },
+                    onCustomReaderAuthenticationClicked = { backStack.add(RequestVerificationCustomReaderAuthenticationDestination) },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is RequestVerificationCustomReaderAuthenticationDestination -> NavEntry(key) {
+                val context = LocalContext.current
+                RequestVerificationCustomReaderAuthenticationScreen(
+                    settingsModel = settingsModel,
+                    onImportPkcs12 = { bytes ->
+                        try {
+                            val (keyPair, certChain) = parsePkcs12(bytes, "")
+                            settingsModel.customVerificationReaderKey.value = keyPair
+                            settingsModel.customVerificationReaderCertChain.value = certChain
+                        } catch (_: WrongPassphraseException) {
+                            backStack.add(Pkcs12PassphraseDialogDestination(pkcs12Data = bytes))
+                        } catch (_: IllegalArgumentException) {
+                            backStack.add(
+                                ErrorDialogDestination(
+                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                    textMarkdown = context.getString(R.string.request_verification_custom_reader_auth_error_invalid_file)
+                                )
+                            )
+                        } catch (e: Throwable) {
+                            backStack.add(
+                                ErrorDialogDestination(
+                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                    textMarkdown = e.message ?: e.toString()
+                                )
+                            )
+                        }
+                    },
+                    onDeleteClicked = {
+                        backStack.add(DeleteCustomReaderKeyConfirmationDialogDestination)
+                    },
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) }
+                )
+            }
+            is Pkcs12PassphraseDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                val context = LocalContext.current
+                Pkcs12PassphraseDialog(
+                    errorMessage = key.errorMessage,
+                    onDismiss = { backStack.removeAt(backStack.size - 1) },
+                    onConfirm = { passphrase ->
+                        val pkcs12Bytes = key.pkcs12Data
+                        try {
+                            val (keyPair, certChain) = parsePkcs12(pkcs12Bytes, passphrase)
+                            settingsModel.customVerificationReaderKey.value = keyPair
+                            settingsModel.customVerificationReaderCertChain.value = certChain
+                            backStack.removeAt(backStack.size - 1)
+                        } catch (_: WrongPassphraseException) {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(
+                                Pkcs12PassphraseDialogDestination(
+                                    pkcs12Data = pkcs12Bytes,
+                                    errorMessage = context.getString(R.string.request_verification_custom_reader_auth_error_wrong_passphrase)
+                                )
+                            )
+                        } catch (_: IllegalArgumentException) {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(
+                                ErrorDialogDestination(
+                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                    textMarkdown = context.getString(R.string.request_verification_custom_reader_auth_error_invalid_file)
+                                )
+                            )
+                        } catch (e: Throwable) {
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(
+                                ErrorDialogDestination(
+                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                    textMarkdown = e.message ?: e.toString()
+                                )
+                            )
+                        }
+                    }
+                )
+            }
+            is DeleteCustomReaderKeyConfirmationDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                ConfirmationDialog(
+                    title = stringResource(R.string.request_verification_custom_reader_auth_delete_dialog_title),
+                    textMarkdown = stringResource(R.string.request_verification_custom_reader_auth_delete_dialog_desc),
+                    confirmButtonText = stringResource(R.string.request_verification_custom_reader_auth_delete_dialog_confirm),
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmClicked = {
+                        settingsModel.customVerificationReaderKey.value = null
+                        settingsModel.customVerificationReaderCertChain.value = null
+                        backStack.removeAt(backStack.size - 1)
+                    },
+                    isDestructive = true
                 )
             }
             is RequestVerificationIssuerIdentifiersDestination -> NavEntry(key) {

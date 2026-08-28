@@ -1,6 +1,7 @@
 package org.multipaz.wallet.android.navigation
 
 import androidx.navigation3.runtime.NavKey
+import kotlinx.io.bytestring.ByteString
 import kotlinx.serialization.Serializable
 import org.multipaz.cbor.Cbor
 import org.multipaz.crypto.X509Cert
@@ -318,6 +319,9 @@ data object RequestVerificationAdvancedOptionsDestination: Destination()
 data object RequestVerificationIssuerIdentifiersDestination: Destination()
 
 @Serializable
+data object RequestVerificationCustomReaderAuthenticationDestination: Destination()
+
+@Serializable
 data object VerificationEventListDestination: Destination()
 
 @Serializable
@@ -412,5 +416,25 @@ data class DeletePendingVerificationConfirmationDialogDestination(
 
 @Serializable
 data object AddIssuerIdentifierDialogDestination : Destination()
+
+@Serializable
+data class Pkcs12PassphraseDialogDestination(
+    val pkcs12DataEncoded: String,
+    val errorMessage: String? = null
+): Destination() {
+    constructor(
+        pkcs12Data: ByteString,
+        errorMessage: String? = null
+    ): this(
+        pkcs12DataEncoded = pkcs12Data.toByteArray().toBase64Url(),
+        errorMessage = errorMessage
+    )
+
+    val pkcs12Data: ByteString
+        get() = ByteString(pkcs12DataEncoded.fromBase64Url())
+}
+
+@Serializable
+data object DeleteCustomReaderKeyConfirmationDialogDestination: Destination()
 
 
