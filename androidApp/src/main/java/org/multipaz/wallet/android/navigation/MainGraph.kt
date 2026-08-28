@@ -121,8 +121,8 @@ import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUr
 import org.multipaz.wallet.android.ui.verification.RequestVerificationIssuerIdentifiersScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationScreen
 import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
-import org.multipaz.wallet.shared.WrongPassphraseException
-import org.multipaz.wallet.shared.parsePkcs12
+import org.multipaz.crypto.Pkcs12
+import org.multipaz.crypto.Pkcs12WrongPassphraseException
 import org.multipaz.wallet.android.ui.verification.SelectExternalNfcReaderScreen
 import org.multipaz.wallet.android.ui.verification.SelectVerificationTypeScreen
 import org.multipaz.wallet.android.ui.verification.VerificationProximityTransferErrorScreen
@@ -1670,26 +1670,28 @@ fun mainGraph(
                 RequestVerificationCustomReaderAuthenticationScreen(
                     settingsModel = settingsModel,
                     onImportPkcs12 = { bytes ->
-                        try {
-                            val (keyPair, certChain) = parsePkcs12(bytes, "")
-                            settingsModel.customVerificationReaderKey.value = keyPair
-                            settingsModel.customVerificationReaderCertChain.value = certChain
-                        } catch (_: WrongPassphraseException) {
-                            backStack.add(Pkcs12PassphraseDialogDestination(pkcs12Data = bytes))
-                        } catch (_: IllegalArgumentException) {
-                            backStack.add(
-                                ErrorDialogDestination(
-                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
-                                    textMarkdown = context.getString(R.string.request_verification_custom_reader_auth_error_invalid_file)
+                        coroutineScope.launch {
+                            try {
+                                val (keyPair, certChain) = Pkcs12.fromDer(bytes)
+                                settingsModel.customVerificationReaderKey.value = keyPair
+                                settingsModel.customVerificationReaderCertChain.value = certChain
+                            } catch (_: Pkcs12WrongPassphraseException) {
+                                backStack.add(Pkcs12PassphraseDialogDestination(pkcs12Data = bytes))
+                            } catch (_: IllegalArgumentException) {
+                                backStack.add(
+                                    ErrorDialogDestination(
+                                        title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                        textMarkdown = context.getString(R.string.request_verification_custom_reader_auth_error_invalid_file)
+                                    )
                                 )
-                            )
-                        } catch (e: Throwable) {
-                            backStack.add(
-                                ErrorDialogDestination(
-                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
-                                    textMarkdown = e.message ?: e.toString()
+                            } catch (e: Throwable) {
+                                backStack.add(
+                                    ErrorDialogDestination(
+                                        title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                        textMarkdown = e.message ?: e.toString()
+                                    )
                                 )
-                            )
+                            }
                         }
                     },
                     onDeleteClicked = {
@@ -1708,35 +1710,37 @@ fun mainGraph(
                     onDismiss = { backStack.removeAt(backStack.size - 1) },
                     onConfirm = { passphrase ->
                         val pkcs12Bytes = key.pkcs12Data
-                        try {
-                            val (keyPair, certChain) = parsePkcs12(pkcs12Bytes, passphrase)
-                            settingsModel.customVerificationReaderKey.value = keyPair
-                            settingsModel.customVerificationReaderCertChain.value = certChain
-                            backStack.removeAt(backStack.size - 1)
-                        } catch (_: WrongPassphraseException) {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(
-                                Pkcs12PassphraseDialogDestination(
-                                    pkcs12Data = pkcs12Bytes,
-                                    errorMessage = context.getString(R.string.request_verification_custom_reader_auth_error_wrong_passphrase)
+                        coroutineScope.launch {
+                            try {
+                                val (keyPair, certChain) = Pkcs12.fromDer(pkcs12Bytes, passphrase)
+                                settingsModel.customVerificationReaderKey.value = keyPair
+                                settingsModel.customVerificationReaderCertChain.value = certChain
+                                backStack.removeAt(backStack.size - 1)
+                            } catch (_: Pkcs12WrongPassphraseException) {
+                                backStack.removeAt(backStack.size - 1)
+                                backStack.add(
+                                    Pkcs12PassphraseDialogDestination(
+                                        pkcs12Data = pkcs12Bytes,
+                                        errorMessage = context.getString(R.string.request_verification_custom_reader_auth_error_wrong_passphrase)
+                                    )
                                 )
-                            )
-                        } catch (_: IllegalArgumentException) {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(
-                                ErrorDialogDestination(
-                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
-                                    textMarkdown = context.getString(R.string.request_verification_custom_reader_auth_error_invalid_file)
+                            } catch (_: IllegalArgumentException) {
+                                backStack.removeAt(backStack.size - 1)
+                                backStack.add(
+                                    ErrorDialogDestination(
+                                        title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                        textMarkdown = context.getString(R.string.request_verification_custom_reader_auth_error_invalid_file)
+                                    )
                                 )
-                            )
-                        } catch (e: Throwable) {
-                            backStack.removeAt(backStack.size - 1)
-                            backStack.add(
-                                ErrorDialogDestination(
-                                    title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
-                                    textMarkdown = e.message ?: e.toString()
+                            } catch (e: Throwable) {
+                                backStack.removeAt(backStack.size - 1)
+                                backStack.add(
+                                    ErrorDialogDestination(
+                                        title = context.getString(R.string.request_verification_custom_reader_auth_error_title),
+                                        textMarkdown = e.message ?: e.toString()
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 )
