@@ -104,6 +104,13 @@ class SettingsModelTest {
 
         settingsModel.customVerificationReaderKey.value = null
         assertFalse(settingsModel.hasAdvancedVerificationSettings())
+
+        // Test useNfcV2
+        settingsModel.useNfcV2.value = false
+        assertTrue(settingsModel.hasAdvancedVerificationSettings())
+
+        settingsModel.useNfcV2.value = true
+        assertFalse(settingsModel.hasAdvancedVerificationSettings())
     }
 
     @Test

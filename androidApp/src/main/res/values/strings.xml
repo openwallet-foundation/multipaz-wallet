@@ -163,8 +163,6 @@
     <string name="dev_settings_logging_debug_text">Enable debug to print out structures helpful for debugging. Warning: debug messages may contain PII.</string>
     <string name="dev_settings_disable_no_user_auth_title">Always require auth for presentment</string>
     <string name="dev_settings_disable_no_user_auth_text">If enabled, the wallet will not request `no_user_auth` credentials and if available, won\'t be used at presentment time</string>
-    <string name="dev_settings_use_nfc_v2_title">Use NFCv2 for presentment</string>
-    <string name="dev_settings_use_nfc_v2_text">If enabled, NFCv2 will be used during presentment scanning.</string>
     <string name="dev_settings_corrupt_key_title">Corrupt encryption key in Google Drive</string>
     <string name="dev_settings_corrupt_key_text">This can be used to test the recovery flow for when the encryption key is corrupted.</string>
     <string name="dev_settings_not_signed_in">User is not signed in</string>
@@ -590,6 +588,9 @@
     <string name="request_verification_advanced_custom_reader_auth_heading">Custom reader authentication</string>
     <string name="request_verification_advanced_custom_reader_auth_not_configured">Not configured</string>
     <string name="request_verification_advanced_custom_reader_auth_configured">Configured (%1$s)</string>
+    <string name="request_verification_advanced_use_nfc_v2_heading">Use NFC CCE</string>
+    <string name="request_verification_advanced_use_nfc_v2_enabled">Uses ISO/IEC 18013-5:2026 NFC CCE.</string>
+    <string name="request_verification_advanced_use_nfc_v2_disabled">Does not use ISO/IEC 18013-5:2026 NFC CCE.</string>
     <string name="request_verification_custom_reader_auth_screen_title">Custom reader authentication</string>
     <string name="request_verification_custom_reader_auth_note_configured">A custom reader authentication key and certificate is currently in use for verification requests.</string>
     <string name="request_verification_custom_reader_auth_note_not_configured">Custom reader authentication enables the verifier to prove its identity to the wallet holder using an imported X.509 certificate and private key.</string>

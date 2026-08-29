@@ -17,7 +17,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.Contactless
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DoorBack
@@ -163,28 +162,6 @@ fun DeveloperSettingsScreen(
                             checked = settingsModel.disableNoUserAuth.collectAsState().value,
                             onCheckedChange = { value ->
                                 settingsModel.disableNoUserAuth.value = value
-                            }
-                        )
-                    }
-                )
-
-                FloatingItemHeadingAndText(
-                    modifier = Modifier.clickable {
-                        settingsModel.useNfcV2.value = !settingsModel.useNfcV2.value
-                    },
-                    image = {
-                        Icon(
-                            imageVector = Icons.Outlined.Contactless,
-                            contentDescription = null
-                        )
-                    },
-                    heading = stringResource(R.string.dev_settings_use_nfc_v2_title),
-                    text = stringResource(R.string.dev_settings_use_nfc_v2_text),
-                    trailingContent = {
-                        Switch(
-                            checked = settingsModel.useNfcV2.collectAsState().value,
-                            onCheckedChange = { value ->
-                                settingsModel.useNfcV2.value = value
                             }
                         )
                     }

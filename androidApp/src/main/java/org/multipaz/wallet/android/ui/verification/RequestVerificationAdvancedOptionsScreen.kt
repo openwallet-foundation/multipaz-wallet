@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -48,6 +49,7 @@ fun RequestVerificationAdvancedOptionsScreen(
     val issuerIdentifiers by settingsModel.verificationIssuerIdentifiers.collectAsState()
     val readerKey by settingsModel.customVerificationReaderKey.collectAsState()
     val readerCertChain by settingsModel.customVerificationReaderCertChain.collectAsState()
+    val useNfcV2 by settingsModel.useNfcV2.collectAsState()
 
     Scaffold(
         modifier = Modifier
@@ -120,6 +122,33 @@ fun RequestVerificationAdvancedOptionsScreen(
                             text = readerAuthContentText,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+
+                val useNfcV2ContentText = if (useNfcV2) {
+                    stringResource(R.string.request_verification_advanced_use_nfc_v2_enabled)
+                } else {
+                    stringResource(R.string.request_verification_advanced_use_nfc_v2_disabled)
+                }
+                FloatingItemHeadingAndContent(
+                    modifier = Modifier.clickable {
+                        settingsModel.useNfcV2.value = !settingsModel.useNfcV2.value
+                    },
+                    heading = stringResource(R.string.request_verification_advanced_use_nfc_v2_heading),
+                    content = {
+                        Text(
+                            text = useNfcV2ContentText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = useNfcV2,
+                            onCheckedChange = { value ->
+                                settingsModel.useNfcV2.value = value
+                            }
                         )
                     }
                 )

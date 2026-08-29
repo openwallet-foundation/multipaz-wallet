@@ -217,6 +217,9 @@ class SettingsModel private constructor(
         if (customVerificationReaderKey.value != null && customVerificationReaderCertChain.value != null) {
             return true
         }
+        if (!useNfcV2.value) {
+            return true
+        }
         return false
     }
 }
