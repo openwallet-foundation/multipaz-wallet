@@ -343,13 +343,18 @@ struct ProvisioningScreen: View {
                     waitCount += 1
                 }
                 
+                if let placeholderId = placeholderToDelete {
+                    if let newDocInfo = viewModel.documentModel.documentInfos.first(where: { $0.document.identifier == document.identifier }),
+                       let oldIdx = viewModel.documentModel.documentInfos.firstIndex(where: { $0.document.identifier == placeholderId }) {
+                        try? await viewModel.documentModel.setDocumentPosition(documentInfo: newDocInfo, position: oldIdx)
+                    }
+                    try? await viewModel.documentStore.deleteDocument(identifier: placeholderId)
+                }
+                
                 await MainActor.run {
                     viewModel.verticalCardListState.internalFocusedCardIdentifier = document.identifier
                     viewModel.verticalCardListState.lastFocusedCardIdentifier = document.identifier
                     viewModel.verticalCardListState.model.lastFocusedCardIdentifier = document.identifier
-                    viewModel.verticalCardListState.scrollOffset = 0
-                    viewModel.verticalCardListState.initialContentOffset = 0
-                    viewModel.verticalCardListState.isScrollOffsetInitialized = false
                     
                     if let placeholderId = placeholderToDelete,
                        let idx = viewModel.verticalCardListState.displayOrderIdentifiers.firstIndex(of: placeholderId) {
@@ -359,21 +364,13 @@ struct ProvisioningScreen: View {
                     
                     // Navigate back to wallet focused on the new document with justAddedAtMillis
                     let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+                    viewModel.selectedDocumentId = document.identifier
+                    viewModel.justAddedAtMillis = nowMillis
                     var transaction = Transaction()
                     transaction.disablesAnimations = true
                     withTransaction(transaction) {
-                        viewModel.path = [
-                            .walletScreen(
-                                documentId: document.identifier,
-                                justAddedAtMillis: nowMillis,
-                                animateListTransitions: true
-                            )
-                        ]
+                        viewModel.path.removeAll()
                     }
-                }
-                
-                if let placeholderId = placeholderToDelete {
-                    try await viewModel.documentStore.deleteDocument(identifier: placeholderId)
                 }
             } catch {
                 await MainActor.run {

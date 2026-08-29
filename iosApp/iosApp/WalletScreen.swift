@@ -5,125 +5,90 @@ import LinkPresentation
 
 struct WalletScreen: View {
     @Environment(ViewModel.self) private var viewModel
-    
-    let documentId: String?
-    let justAdded: Bool
-    
-    /// Controls whether `VerticalCardList` animates spatial transitions when focusing or
-    /// unfocusing cards.
-    ///
-    /// - When tapping a card in the unfocused list, this is `true` so the card expands smoothly
-    ///   into the focused detail view.
-    /// - When navigating directly to a newly added/provisioned document, this is `true` but
-    ///   `verticalCardListState` is pre-initialized with the new card's identifier so the card
-    ///   renders immediately in place without an entrance animation, while still allowing a
-    ///   smooth collapse animation when dismissing back to the list.
-    /// - During unfocusing gestures/back navigation, `isUnfocusing` is combined with this flag
-    ///   to guarantee the collapse animation always plays cleanly.
-    let animateListTransitions: Bool
 
     @State private var showDeleteConfirmation = false
     @State private var documentToDelete: DocumentInfo? = nil
     @State private var showShareConfirmation = false
-    @State private var isUnfocusing = false
     @State private var toastMessage: String? = nil
-    @State private var showJustAdded: Bool
-    @State private var titleAndFabVisible: Bool
+    @State private var showJustAdded = false
     @State private var isFirstAppear = true
     @State private var devModeNumTimesPressed: Int = 0
     @State private var toastTask: Task<Void, Never>? = nil
+    @State private var justAddedTask: Task<Void, Never>? = nil
     @State private var qrPresentmentDocumentId: String? = nil
-    
-    init(
-        documentId: String?,
-        justAdded: Bool = false,
-        animateListTransitions: Bool = false
-    ) {
-        self.documentId = documentId
-        self.justAdded = justAdded
-        self.animateListTransitions = animateListTransitions
-        _showJustAdded = State(initialValue: justAdded)
-        _titleAndFabVisible = State(initialValue: documentId == nil)
+
+    private var documentId: String? {
+        viewModel.selectedDocumentId
     }
 
-    private var isPreviousScreenCardList: Bool {
-        if let last = viewModel.path.dropLast().last {
-            if case .walletScreen(let docId, _, _) = last {
-                return docId == nil
-            }
+    private var isFocused: Bool {
+        viewModel.selectedDocumentId != nil
+    }
+
+    private var focusedDocument: DocumentInfo? {
+        guard let id = viewModel.selectedDocumentId else { return nil }
+        return viewModel.documentModel.documentInfos.first { $0.document.identifier == id }
+    }
+
+    private var justAdded: Bool {
+        if let millis = viewModel.justAddedAtMillis {
+            let nowMillis = Int64(Date().timeIntervalSince1970 * 1000)
+            return abs(nowMillis - millis) < 5000
         }
         return false
     }
 
-    private func handleBack() {
-        if isPreviousScreenCardList {
-            if !isUnfocusing {
-                isUnfocusing = true
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    titleAndFabVisible = true
+    private func triggerJustAdded() {
+        showJustAdded = true
+        justAddedTask?.cancel()
+        justAddedTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    showJustAdded = false
                 }
-                viewModel.verticalCardListState.unfocus {
-                    isUnfocusing = false
-                    viewModel.popWithoutAnimation()
-                }
+            } catch {
+                // Cancelled - do not hide prematurely
             }
-        } else if documentId != nil {
-            if !isUnfocusing {
-                isUnfocusing = true
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    titleAndFabVisible = true
-                }
-                viewModel.verticalCardListState.unfocus {
-                    isUnfocusing = false
-                    viewModel.popToRootWithoutAnimation()
-                }
+        }
+    }
+
+    private func handleBack() {
+        justAddedTask?.cancel()
+        if viewModel.selectedDocumentId != nil {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                viewModel.selectedDocumentId = nil
+                viewModel.justAddedAtMillis = nil
+                showJustAdded = false
             }
         } else if !viewModel.path.isEmpty {
             viewModel.path.removeLast()
         }
     }
 
-    private var focusedDocument: DocumentInfo? {
-        let doc = viewModel.documentModel.documentInfos.first {
-            $0.document.identifier == documentId
-        }
-        return doc
+    var body: some View {
+        mainView
+            .overlay {
+                qrPresentmentOverlay
+                    .ignoresSafeArea()
+            }
+            .animation(.easeInOut(duration: 0.2), value: qrPresentmentDocumentId)
+            .alert("Remove Document?", isPresented: $showDeleteConfirmation) {
+                deleteConfirmationButtons
+            } message: {
+                Text("Are you sure you want to remove this document? This cannot be undone.")
+            }
+            .alert("Share pass", isPresented: $showShareConfirmation) {
+                shareConfirmationButtons
+            } message: {
+                Text("Once shared, this action cannot be undone. The recipient will receive a copy of this pass and will be able to forward it to anyone.")
+            }
     }
 
-    var body: some View {
-        let isFocused = !titleAndFabVisible
-        ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
-                customTopBar
-                cardListView
-            }
-            
-            floatingMenuBar
-                .padding(.bottom, 16)
-                .opacity(isFocused ? 0.0 : 1.0)
-                .offset(y: isFocused ? 32 : 0)
-                .allowsHitTesting(!isFocused)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
-
-            if let toast = toastMessage {
-                Text(toast)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
-                    )
-                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, isFocused ? 32 : 80)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(100)
-            }
+    @ViewBuilder
+    private var mainView: some View {
+        GeometryReader { geometry in
+            contentStack(geometry: geometry, isFocused: isFocused)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .toolbarVisibility(.hidden, for: .navigationBar)
@@ -132,17 +97,13 @@ struct WalletScreen: View {
             await viewModel.refreshWallet()
         }
         .onAppear {
-            titleAndFabVisible = (documentId == nil)
             if justAdded {
-                showJustAdded = true
+                triggerJustAdded()
             }
         }
-        .onChange(of: documentId) { _, newDocId in
-            titleAndFabVisible = (newDocId == nil)
-        }
-        .onChange(of: justAdded) { _, newValue in
-            if newValue {
-                showJustAdded = true
+        .onChange(of: viewModel.justAddedAtMillis) { _, _ in
+            if justAdded {
+                triggerJustAdded()
             }
         }
         .background {
@@ -150,34 +111,82 @@ struct WalletScreen: View {
                 handleBack()
             }
         }
-        .alert("Remove Document?", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {
+    }
+
+    @ViewBuilder
+    private var deleteConfirmationButtons: some View {
+        Button("Cancel", role: .cancel) {
+            documentToDelete = nil
+        }
+        Button("Remove", role: .destructive) {
+            if let doc = documentToDelete {
+                deleteConfirmedDocument(doc)
                 documentToDelete = nil
             }
-            Button("Remove", role: .destructive) {
-                if let doc = documentToDelete {
-                    deleteConfirmedDocument(doc)
-                    documentToDelete = nil
+        }
+    }
+
+    @ViewBuilder
+    private var shareConfirmationButtons: some View {
+        Button("Cancel", role: .cancel) {}
+        Button("Share") {
+            if let focusedDoc = focusedDocument {
+                sharePass(documentInfo: focusedDoc)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func contentStack(geometry: GeometryProxy, isFocused: Bool) -> some View {
+        let safeAreaTop = geometry.safeAreaInsets.top
+        let safeAreaBottom = geometry.safeAreaInsets.bottom
+
+        ZStack(alignment: .top) {
+            cardListView(safeAreaTop: safeAreaTop, safeAreaBottom: safeAreaBottom)
+                .ignoresSafeArea(edges: .all)
+
+            customTopBar
+
+            VStack {
+                Spacer()
+                ZStack(alignment: .bottom) {
+                    bottomGradientFilter(safeAreaBottom: safeAreaBottom, isFocused: isFocused)
+
+                    floatingMenuBar
+                        .padding(.bottom, safeAreaBottom + 16)
+                        .opacity(isFocused ? 0.0 : 1.0)
+                        .offset(y: isFocused ? 32 : 0)
+                        .allowsHitTesting(!isFocused)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
                 }
             }
-        } message: {
-            Text("Are you sure you want to remove this document? This cannot be undone.")
-        }
-        .alert("Share pass", isPresented: $showShareConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Share") {
-                if let focusedDoc = focusedDocument {
-                    sharePass(documentInfo: focusedDoc)
-                }
+            .ignoresSafeArea(edges: .bottom)
+
+            if let toast = toastMessage {
+                toastView(toast: toast, safeAreaBottom: safeAreaBottom, isFocused: isFocused)
             }
-        } message: {
-            Text("Once shared, this action cannot be undone. The recipient will receive a copy of this pass and will be able to forward it to anyone.")
         }
-        .overlay {
-            qrPresentmentOverlay
-                .ignoresSafeArea()
-        }
-        .animation(.easeInOut(duration: 0.2), value: qrPresentmentDocumentId)
+    }
+
+    @ViewBuilder
+    private func toastView(toast: String, safeAreaBottom: CGFloat, isFocused: Bool) -> some View {
+        Text(toast)
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 0.5)
+            )
+            .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+            .padding(.horizontal, 24)
+            .padding(.bottom, isFocused ? safeAreaBottom + 24 : safeAreaBottom + 84)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .zIndex(100)
     }
 
     @ViewBuilder
@@ -199,7 +208,6 @@ struct WalletScreen: View {
 
     @ViewBuilder
     private var customTopBar: some View {
-        let isFocused = !titleAndFabVisible
         ZStack {
             Text(BuildConfig.shared.APP_NAME)
                 .font(.headline)
@@ -226,10 +234,11 @@ struct WalletScreen: View {
                                 .frame(width: 44, height: 44)
 
                             Image(systemName: "chevron.backward")
-                                .font(.system(size: 22, weight: .semibold))
+                                .font(.system(size: 20, weight: .semibold))
                                 .foregroundStyle(.primary)
                         }
                         .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .opacity(isFocused ? 1.0 : 0.0)
@@ -317,18 +326,38 @@ struct WalletScreen: View {
         }
         .frame(height: 44)
         .padding(.horizontal, 16)
+        .padding(.top, -8)
+        .padding(.bottom, 8)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0.0),
+                            .init(color: .black, location: 0.7),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                .ignoresSafeArea(edges: .top)
+        }
     }
 
     @ViewBuilder
-    private var cardListView: some View {
+    private func cardListView(safeAreaTop: CGFloat, safeAreaBottom: CGFloat) -> some View {
         VerticalCardList(
             cardInfos: viewModel.documentModel.documentInfos,
             focusedCard: focusedDocument,
             unfocusedVisiblePercent: 25,
             allowCardReordering: true,
             showStackWhileFocused: false,
+            paddingTop: safeAreaTop + 44,
+            paddingBottom: safeAreaBottom + 100,
             state: viewModel.verticalCardListState,
-            animateListTransitions: animateListTransitions || isUnfocusing,
+            animateListTransitions: true,
             showCardInfo: { cardInfo in
                 let docInfo = cardInfo as! DocumentInfo
                 cardInfoView(targetDocument: focusedDocument ?? docInfo)
@@ -344,7 +373,11 @@ struct WalletScreen: View {
                 }
             },
             onCardFocused: { cardInfo in
-                viewModel.push(.walletScreen(documentId: cardInfo.identifier, animateListTransitions: true))
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    viewModel.selectedDocumentId = cardInfo.identifier
+                    viewModel.justAddedAtMillis = nil
+                    showJustAdded = false
+                }
             },
             onCardFocusedTapped: { _ in
                 handleBack()
@@ -353,6 +386,24 @@ struct WalletScreen: View {
                 handleBack()
             }
         )
+    }
+
+    @ViewBuilder
+    private func bottomGradientFilter(safeAreaBottom: CGFloat, isFocused: Bool) -> some View {
+        LinearGradient(
+            stops: [
+                .init(color: Color(uiColor: .systemBackground).opacity(0.00), location: 0.0),
+                .init(color: Color(uiColor: .systemBackground).opacity(0.50), location: 0.8),
+                .init(color: Color(uiColor: .systemBackground).opacity(0.75), location: 0.9),
+                .init(color: Color(uiColor: .systemBackground).opacity(1.00), location: 1.0)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: safeAreaBottom + 100)
+        .allowsHitTesting(false)
+        .opacity(isFocused ? 0.0 : 1.0)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
     }
     
     @ViewBuilder
@@ -395,12 +446,6 @@ struct WalletScreen: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
-                .task {
-                    try? await Task.sleep(nanoseconds: 3_000_000_000)
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        showJustAdded = false
-                    }
-                }
             } else {
                 VStack {
                     if targetDocument.isProximityPresentable {
@@ -482,8 +527,6 @@ struct WalletScreen: View {
             }
         }
         .padding()
-        .opacity(isUnfocusing ? 0.0 : 1.0)
-        .animation(.easeInOut(duration: 0.15), value: isUnfocusing)
     }
 
     @ViewBuilder
@@ -506,38 +549,38 @@ struct WalletScreen: View {
             Button(action: {
                 viewModel.push(.requestVerification)
             }) {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image(systemName: "checkmark.shield")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 22, weight: .semibold))
                     Text("Verify")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.body.weight(.semibold))
                 }
                 .foregroundColor(.primary)
-                .padding(.horizontal, 16)
-                .frame(height: 48)
+                .padding(.horizontal, 20)
+                .frame(height: 56)
             }
             
             Divider()
-                .frame(height: 24)
-                .background(Color.primary.opacity(0.15))
+                .frame(height: 28)
+                .background(Color.primary.opacity(0.18))
             
             Button(action: {
                 viewModel.push(.addToWallet)
             }) {
                 Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 24, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 48, height: 48)
+                    .frame(width: 56, height: 56)
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 6)
         .background(.ultraThinMaterial)
-        .cornerRadius(24)
+        .cornerRadius(28)
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 28)
                 .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
         )
-        .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+        .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
     }
     
     private func deleteConfirmedDocument(_ doc: DocumentInfo) {

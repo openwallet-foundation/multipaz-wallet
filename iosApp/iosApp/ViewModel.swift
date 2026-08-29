@@ -40,6 +40,8 @@ class ViewModel {
     let proximityPresentmentModel = ProximityPresentmentModel()
     let verticalCardListState = VerticalCardListState()
     var proximityPresentmentDocumentId: String? = nil
+    var selectedDocumentId: String? = nil
+    var justAddedAtMillis: Int64? = nil
 
     func showProximityPresentment(documentId: String) {
         withAnimation(.easeInOut(duration: 0.3)) {
@@ -409,20 +411,13 @@ class ViewModel {
             verticalCardListState.internalFocusedCardIdentifier = document.identifier
             verticalCardListState.lastFocusedCardIdentifier = document.identifier
             verticalCardListState.model.lastFocusedCardIdentifier = document.identifier
-            verticalCardListState.scrollOffset = 0
-            verticalCardListState.initialContentOffset = 0
-            verticalCardListState.isScrollOffsetInitialized = false
+            selectedDocumentId = document.identifier
+            justAddedAtMillis = nowMillis
             
             var transaction = Transaction()
             transaction.disablesAnimations = true
             withTransaction(transaction) {
-                path = [
-                    .walletScreen(
-                        documentId: document.identifier,
-                        justAddedAtMillis: nowMillis,
-                        animateListTransitions: true
-                    )
-                ]
+                path.removeAll()
             }
         }
     }

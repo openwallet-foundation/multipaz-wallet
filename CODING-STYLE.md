@@ -59,7 +59,9 @@ with the following changes
 
 * **Document exceptions in KDoc:** Every function or method must explicitly document the
   exceptions it throws using the `@throws` (or `@exception`) tag in its KDoc. This ensures that
-  readers of the code know exactly what edge cases they are expected to handle.
+  readers of the code know exactly what edge cases they are expected to handle. Also use the
+  `@Throws` annotation on the function or method since this is required for error handling when 
+  consuming the API on e.g. iOS.
 
 * **Log exceptions:** When catching an exception, always log it using `Logger.e()` or `Logger.w()`
   depending on what is appropriate.

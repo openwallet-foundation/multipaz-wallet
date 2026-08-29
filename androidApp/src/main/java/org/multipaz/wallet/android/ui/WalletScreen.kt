@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,6 +50,8 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.foundation.border
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FabPosition
@@ -65,12 +69,21 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -174,6 +187,7 @@ private const val TAG = "WalletScreen"
 
 @SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(
+    ExperimentalHazeMaterialsApi::class,
     ExperimentalMaterial3Api::class,
     ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalPermissionsApi::class
@@ -439,29 +453,59 @@ fun WalletScreen(
                 // Add padding to provide space for the shadow to draw during animation
                 Box(modifier = Modifier.padding(bottom = 12.dp)) {
                     HorizontalFloatingToolbar(
-                        modifier = Modifier.height(IntrinsicSize.Min),
+                        modifier = Modifier
+                            .height(IntrinsicSize.Min)
+                            .outerDropShadow(
+                                color = Color.Black.copy(alpha = 0.20f),
+                                blurRadius = 10.dp,
+                                offsetY = 4.dp
+                            )
+                            .clip(FloatingToolbarDefaults.ContainerShape)
+                            .hazeEffect(
+                                state = hazeState,
+                                style = HazeMaterials.ultraThin(
+                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+                                )
+                            )
+                            .border(
+                                width = 0.5.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                shape = FloatingToolbarDefaults.ContainerShape
+                            ),
                         expanded = true,
-                        colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
-                        expandedShadowElevation = 6.dp
+                        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+                            toolbarContainerColor = Color.Transparent,
+                            toolbarContentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        expandedShadowElevation = 0.dp
                     ) {
                         TextButton(
                             onClick = onVerifyClicked,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.CheckCircle,
                                 contentDescription = null,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = stringResource(R.string.wallet_screen_verify))
+                            Text(
+                                text = stringResource(R.string.wallet_screen_verify),
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                         VerticalDivider(
                             modifier = Modifier
                                 .padding(vertical = 12.dp)
                                 .width(1.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                         TextButton(
                             onClick = onAddClicked,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Add,
@@ -475,7 +519,7 @@ fun WalletScreen(
         floatingActionButtonPosition = FabPosition.Center,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(
                     start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
@@ -483,146 +527,176 @@ fun WalletScreen(
                     // Omitting top padding so the card list extends up under the CenterAlignedTopAppBar
                     // Omitting the bottom padding since we want to draw under the navigation bar
                 )
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
         ) {
-            // Compute deterministic top padding for the card list so it extends up under the transparent top bar.
-            //
-            // We intentionally do NOT use Scaffold's dynamically measured `innerPadding.calculateTopPadding()`:
-            // 1. Scaffold recalculates innerPadding across initial layout frames as the top bar contents (title,
-            //    developer mode backend URL subtitle, icons, insets) are measured and remeasured.
-            // 2. Each change to `paddingTop` updates `targetY` inside `VerticalCardList`, which triggers
-            //    `VerticalCardListItem`'s internal `animateFloatAsState` and causes the cards to visibly slide down.
-            //
-            // By computing `listPaddingTop` directly from the status bar height and the known static top bar height,
-            // the initial target Y position is constant and stable from the very first frame.
-            val statusBarTop = rememberStatusBarHeight()
-            val hasBackendUrl = BuildConfig.DEVELOPER_MODE_AVAILABLE && settingsModel.walletBackendUrl.collectAsState().value != null
-            val topBarContentHeight = if (hasBackendUrl) 80.dp else 64.dp
-            val listPaddingTop = statusBarTop + topBarContentHeight
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Compute deterministic top padding for the card list so it extends up under the transparent top bar.
+                //
+                // We intentionally do NOT use Scaffold's dynamically measured `innerPadding.calculateTopPadding()`:
+                // 1. Scaffold recalculates innerPadding across initial layout frames as the top bar contents (title,
+                //    developer mode backend URL subtitle, icons, insets) are measured and remeasured.
+                // 2. Each change to `paddingTop` updates `targetY` inside `VerticalCardList`, which triggers
+                //    `VerticalCardListItem`'s internal `animateFloatAsState` and causes the cards to visibly slide down.
+                //
+                // By computing `listPaddingTop` directly from the status bar height and the known static top bar height,
+                // the initial target Y position is constant and stable from the very first frame.
+                val statusBarTop = rememberStatusBarHeight()
+                val hasBackendUrl = BuildConfig.DEVELOPER_MODE_AVAILABLE && settingsModel.walletBackendUrl.collectAsState().value != null
+                val topBarContentHeight = if (hasBackendUrl) 80.dp else 64.dp
+                val listPaddingTop = statusBarTop + topBarContentHeight
 
-            val isUpdateAvailable = isAppUpdateAvailable()
-            val hasBanners = !blePermissionState.isGranted || isUpdateAvailable
+                val isUpdateAvailable = isAppUpdateAvailable()
+                val hasBanners = !blePermissionState.isGranted || isUpdateAvailable
 
-            if (hasBanners) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = listPaddingTop)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (!blePermissionState.isGranted) {
-                        WarningCard(
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .clickable {
-                                    coroutineScope.launch {
-                                        blePermissionState.launchPermissionRequest()
+                if (hasBanners) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = listPaddingTop)
+                            .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (!blePermissionState.isGranted) {
+                            WarningCard(
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            blePermissionState.launchPermissionRequest()
+                                        }
                                     }
-                                }
-                        ) {
-                            Text(stringResource(R.string.wallet_screen_ble_permission_warning))
+                            ) {
+                                Text(stringResource(R.string.wallet_screen_ble_permission_warning))
+                            }
+                        }
+
+                        if (isUpdateAvailable) {
+                            AppUpdateCard(
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
                         }
                     }
+                }
 
-                    if (isUpdateAvailable) {
-                        AppUpdateCard(
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                val pullToRefreshState = rememberPullToRefreshState()
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        coroutineScope.launch {
+                            try {
+                                onRefresh()
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error refreshing data", e)
+                                showToast(e.toString())
+                            } finally {
+                                isRefreshing = false
+                            }
+                        }
+                    },
+                    state = pullToRefreshState,
+                    indicator = {
+                        PullToRefreshDefaults.Indicator(
+                            state = pullToRefreshState,
+                            isRefreshing = isRefreshing,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .graphicsLayer {
+                                    translationY = with(density) {
+                                        (if (hasBanners) 0.dp else listPaddingTop).toPx()
+                                    }
+                                }
                         )
-                    }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .hazeSource(hazeState)
+                ) {
+                    val cardInfos by documentModel.documentInfos.collectAsState()
+                    VerticalCardList(
+                        modifier = Modifier.fillMaxSize(),
+                        cardInfos = cardInfos,
+                        focusedCard = focusedDocument,
+                        allowCardReordering = true,
+                        showStackWhileFocused = false,
+                        cardMaxHeight = Dp.Unspecified,
+                        paddingTop = if (hasBanners) 8.dp else listPaddingTop,
+                        paddingBottom = 136.dp,
+                        animateListTransitions = animateListTransitions,
+                        state = verticalCardListState,
+                        showCardInfo = { cardInfo ->
+                            val documentInfo = cardInfo as DocumentInfo
+                            DocumentInfoContent(
+                                documentInfo = documentInfo,
+                                settingsModel = settingsModel,
+                                isSyncing = signedIn != null && documentInfo.document.isSyncing,
+                                justAdded = justAdded,
+                                onDocumentActivityClicked = onDocumentActivityClicked,
+                                onDocumentInfoClicked = onDocumentInfoClicked,
+                                onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
+                                onDocumentRemoveClicked = onDocumentRemoveClicked,
+                                onDocumentSetupClicked = onDocumentSetupClicked,
+                                onDocumentSyncClicked = onDocumentSyncClicked,
+                                onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
+                            )
+                        },
+                        emptyContent = {
+                            EmptyWalletStateContent()
+                        },
+                        onCardReordered = { cardInfo, newIndex ->
+                            val documentInfo = cardInfo as DocumentInfo
+                            coroutineScope.launch {
+                                try {
+                                    documentModel.setDocumentPosition(
+                                        documentInfo = documentInfo,
+                                        position = newIndex
+                                    )
+                                } catch (e: IllegalArgumentException) {
+                                    Logger.e(TAG, "Error setting document position", e)
+                                }
+                            }
+                        },
+                        onCardFocused = { cardInfo ->
+                            val documentInfo = cardInfo as DocumentInfo
+                            onDocumentClicked(documentInfo)
+                        },
+                        onCardFocusedTapped = { cardInfo ->
+                            handleBack()
+                        },
+                        onCardFocusedStackTapped = { cardInfo ->
+                            handleBack()
+                        }
+                    )
                 }
             }
 
-            val pullToRefreshState = rememberPullToRefreshState()
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    coroutineScope.launch {
-                        try {
-                            onRefresh()
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-                            Logger.e(TAG, "Error refreshing data", e)
-                            showToast(e.toString())
-                        } finally {
-                            isRefreshing = false
-                        }
-                    }
-                },
-                state = pullToRefreshState,
-                indicator = {
-                    PullToRefreshDefaults.Indicator(
-                        state = pullToRefreshState,
-                        isRefreshing = isRefreshing,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .graphicsLayer {
-                                translationY = with(density) {
-                                    (if (hasBanners) 0.dp else listPaddingTop).toPx()
-                                }
-                            }
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .hazeSource(hazeState)
+            AnimatedVisibility(
+                visible = titleAndFabVisible,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                val cardInfos by documentModel.documentInfos.collectAsState()
-                VerticalCardList(
-                    modifier = Modifier.fillMaxSize(),
-                    cardInfos = cardInfos,
-                    focusedCard = focusedDocument,
-                    allowCardReordering = true,
-                    showStackWhileFocused = false,
-                    cardMaxHeight = Dp.Unspecified,
-                    paddingTop = if (hasBanners) 8.dp else listPaddingTop,
-                    animateListTransitions = animateListTransitions,
-                    state = verticalCardListState,
-                    showCardInfo = { cardInfo ->
-                        val documentInfo = cardInfo as DocumentInfo
-                        DocumentInfoContent(
-                            documentInfo = documentInfo,
-                            settingsModel = settingsModel,
-                            isSyncing = signedIn != null && documentInfo.document.isSyncing,
-                            justAdded = justAdded,
-                            onDocumentActivityClicked = onDocumentActivityClicked,
-                            onDocumentInfoClicked = onDocumentInfoClicked,
-                            onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
-                            onDocumentRemoveClicked = onDocumentRemoveClicked,
-                            onDocumentSetupClicked = onDocumentSetupClicked,
-                            onDocumentSyncClicked = onDocumentSyncClicked,
-                            onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
-                        )
-                    },
-                    emptyContent = {
-                        EmptyWalletStateContent()
-                    },
-                    onCardReordered = { cardInfo, newIndex ->
-                        val documentInfo = cardInfo as DocumentInfo
-                        coroutineScope.launch {
-                            try {
-                                documentModel.setDocumentPosition(
-                                    documentInfo = documentInfo,
-                                    position = newIndex
+                val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                val backgroundColor = MaterialTheme.colorScheme.background
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(navBarBottom + 136.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0.0f to backgroundColor.copy(alpha = 0.00f),
+                                    0.8f to backgroundColor.copy(alpha = 0.50f),
+                                    0.9f to backgroundColor.copy(alpha = 0.75f),
+                                    1.0f to backgroundColor.copy(alpha = 1.00f)
                                 )
-                            } catch (e: IllegalArgumentException) {
-                                Logger.e(TAG, "Error setting document position", e)
-                            }
-                        }
-                    },
-                    onCardFocused = { cardInfo ->
-                        val documentInfo = cardInfo as DocumentInfo
-                        onDocumentClicked(documentInfo)
-                    },
-                    onCardFocusedTapped = { cardInfo ->
-                        handleBack()
-                    },
-                    onCardFocusedStackTapped = { cardInfo ->
-                        handleBack()
-                    }
+                            )
+                        )
                 )
             }
         }
@@ -1047,5 +1121,48 @@ private fun rememberStatusBarHeight(): Dp {
         } else {
             24.dp
         }
+    }
+}
+
+/**
+ * Draws a drop shadow outside the capsule shape without filling or darkening the interior.
+ */
+private fun Modifier.outerDropShadow(
+    color: Color = Color.Black.copy(alpha = 0.20f),
+    blurRadius: Dp = 10.dp,
+    offsetY: Dp = 4.dp
+): Modifier = this.drawBehind {
+    val cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+    val path = Path().apply {
+        addRoundRect(RoundRect(Rect(Offset.Zero, size), cornerRadius))
+    }
+    drawIntoCanvas { canvas ->
+        canvas.save()
+        canvas.clipPath(path, ClipOp.Difference)
+        val frameworkPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            this.color = android.graphics.Color.BLACK
+            setShadowLayer(
+                blurRadius.toPx(),
+                0f,
+                offsetY.toPx(),
+                android.graphics.Color.argb(
+                    (color.alpha * 255).toInt(),
+                    (color.red * 255).toInt(),
+                    (color.green * 255).toInt(),
+                    (color.blue * 255).toInt()
+                )
+            )
+        }
+        canvas.nativeCanvas.drawRoundRect(
+            0f,
+            0f,
+            size.width,
+            size.height,
+            cornerRadius.x,
+            cornerRadius.y,
+            frameworkPaint
+        )
+        canvas.restore()
     }
 }

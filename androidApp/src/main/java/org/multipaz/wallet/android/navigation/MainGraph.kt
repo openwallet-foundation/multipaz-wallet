@@ -230,9 +230,28 @@ fun mainGraph(
                                         // the placeholder and set our newly provisioned document as holding
                                         // the provisioned document
                                         Logger.i(TAG, "Provisioned a document from provisioned document in shared data")
-                                        documentStore.listDocuments().find {
+                                        val placeholderDocument = documentStore.listDocuments().find {
                                             it.provisionedDocumentIdentifier == key.provisionedDocumentIdentifier
-                                        }?.let { placeholderDocument ->
+                                        }
+                                        if (placeholderDocument != null) {
+                                            val oldIndex = documentModel.documentInfos.value.indexOfFirst {
+                                                it.document.identifier == placeholderDocument.identifier
+                                            }
+                                            if (oldIndex != -1) {
+                                                val newDocInfo = documentModel.documentInfos.first { list ->
+                                                    list.any { it.document.identifier == document.identifier }
+                                                }.find { it.document.identifier == document.identifier }
+                                                if (newDocInfo != null) {
+                                                    documentModel.setDocumentPosition(newDocInfo, oldIndex)
+                                                }
+                                            }
+                                            val order = verticalCardListState.model.displayOrderIdentifiers.toMutableList()
+                                            val idx = order.indexOf(placeholderDocument.identifier)
+                                            if (idx != -1) {
+                                                order[idx] = document.identifier
+                                                verticalCardListState.model.displayOrderIdentifiers = order
+                                            }
+                                            verticalCardListState.model.lastFocusedCardIdentifier = document.identifier
                                             documentStore.deleteDocument(placeholderDocument.identifier)
                                         }
                                         document.setProvisionedDocumentIdentifier(key.provisionedDocumentIdentifier)
