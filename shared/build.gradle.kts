@@ -142,7 +142,6 @@ kotlin {
         }
 
         commonTest {
-            kotlin.srcDir("build/generated/ksp/metadata/commonTest/kotlin")
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
@@ -196,13 +195,9 @@ dependencies {
     add("kspJvmTest", libs.multipaz.cbor.rpc)
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
 }
 
-tasks["compileKotlinIosX64"].dependsOn("kspCommonMainKotlinMetadata")
-tasks["compileKotlinIosArm64"].dependsOn("kspCommonMainKotlinMetadata")
-tasks["compileKotlinIosSimulatorArm64"].dependsOn("kspCommonMainKotlinMetadata")
-tasks["compileKotlinJs"].dependsOn("kspCommonMainKotlinMetadata")

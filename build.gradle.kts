@@ -18,7 +18,7 @@ plugins {
 //
 subprojects {
     configurations.all {
-        resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+        resolutionStrategy.cacheChangingModulesFor(10, "minutes")
     }
 }
 
