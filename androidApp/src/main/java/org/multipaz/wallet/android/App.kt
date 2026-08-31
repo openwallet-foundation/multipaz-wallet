@@ -763,6 +763,11 @@ class App private constructor() {
             eventLogger = eventLogger,
             initialPreconsentSetting = preconsentSetting,
             trigger = trigger,
+            onDocumentOrderChanged = { order ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    documentModel.setDocumentOrder(order)
+                }
+            }
         )
 
         try {
@@ -809,6 +814,11 @@ class App private constructor() {
                         mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
                         walletClient = walletClient,
                         initialPreconsentSetting = preconsentSetting,
+                        onDocumentOrderChanged = { order ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                documentModel.setDocumentOrder(order)
+                            }
+                        }
                     )
                 }
             } catch (e: WalletBackendNotSignedInException) {

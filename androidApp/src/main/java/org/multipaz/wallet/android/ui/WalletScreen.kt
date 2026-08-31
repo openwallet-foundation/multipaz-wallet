@@ -174,6 +174,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.DocumentPreconsentSetting
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.isSyncing
+import org.multipaz.wallet.client.mapLocalDocumentOrderToShared
 import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.shared.BuildConfig
@@ -656,8 +657,21 @@ fun WalletScreen(
                                         documentInfo = documentInfo,
                                         position = newIndex
                                     )
+                                    if (walletClient.signedInUser.value != null && walletClient.sharedData.value != null) {
+                                        val sharedOrder = documentStore.mapLocalDocumentOrderToShared(documentModel.documentOrder)
+                                        walletClient.refreshSharedData()
+                                        walletClient.sharedData.value?.let { currentSharedData ->
+                                            walletClient.setSharedData(
+                                                sharedData = currentSharedData.copy(documentOrder = sharedOrder),
+                                                suppressSpinner = true
+                                            )
+                                        }
+                                    }
                                 } catch (e: IllegalArgumentException) {
                                     Logger.e(TAG, "Error setting document position", e)
+                                } catch (e: Exception) {
+                                    if (e is CancellationException) throw e
+                                    Logger.w(TAG, "Failed updating shared data with new document order", e)
                                 }
                             }
                         },

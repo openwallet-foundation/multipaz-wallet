@@ -32,6 +32,7 @@ private const val TAG = "PeriodicBookkeeping"
  * @param eventLogger optional [EventLogger] to record the bookkeeping event.
  * @param initialPreconsentSetting optional [DocumentPreconsentSetting] to apply when syncing new documents.
  * @param trigger optional string identifying the source/trigger of the refresh.
+ * @param onDocumentOrderChanged optional callback invoked with the new document order mapped to local document IDs.
  * @return `true` if all tasks completed without error, or `false` if one or more tasks failed/were unreachable.
  */
 suspend fun WalletClient.runPeriodicBookkeeping(
@@ -42,6 +43,7 @@ suspend fun WalletClient.runPeriodicBookkeeping(
     eventLogger: EventLogger? = null,
     initialPreconsentSetting: DocumentPreconsentSetting? = null,
     trigger: String = "periodic_worker",
+    onDocumentOrderChanged: ((documentOrder: List<String>) -> Unit)? = null,
 ): Boolean {
     Logger.i(TAG, "Starting periodic bookkeeping (trigger=$trigger)...")
     val startTime = Clock.System.now()
@@ -98,6 +100,7 @@ suspend fun WalletClient.runPeriodicBookkeeping(
                     mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
                     walletClient = this,
                     initialPreconsentSetting = initialPreconsentSetting,
+                    onDocumentOrderChanged = onDocumentOrderChanged,
                 )
             }
         } catch (e: WalletBackendNotSignedInException) {

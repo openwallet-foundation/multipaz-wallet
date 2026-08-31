@@ -65,12 +65,17 @@ import org.multipaz.wallet.client.WalletClientProvisionedDocumentOpenID4VCI
 import org.multipaz.wallet.client.WalletClientSharedData
 import org.multipaz.wallet.client.WalletClientSignedInUser
 import org.multipaz.wallet.client.clearOnSignOut
+import org.multipaz.wallet.client.deleteDocumentFromWalletBackend
+import org.multipaz.wallet.client.fromCbor
 import org.multipaz.wallet.client.getMpzPass
 import org.multipaz.wallet.client.isMpzPassShareable
+import org.multipaz.wallet.client.mapLocalDocumentOrderToShared
+import org.multipaz.wallet.client.mapSharedDocumentOrderToLocal
 import org.multipaz.wallet.client.mpzPassData
 import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.setPreconsentSetting
+import org.multipaz.wallet.client.setProvisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.toCbor
 import kotlin.random.Random
@@ -1907,6 +1912,304 @@ class WalletClientTest {
         )
         assertFalse(regularDoc.isMpzPassShareable)
         assertNull(regularDoc.getMpzPass())
+    }
+
+    @Test
+    fun testDocumentOrderMapping() = runTest {
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val pass1 = getPass1()
+        val passDoc = documentStore.importMpzPass(
+            mpzPass = pass1,
+            isoMdocDomain = "mdoc_software",
+            sdJwtVcDomain = "sdjwt_software",
+            keylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+
+        val provDoc1 = getProvisionedDocument1()
+        val provDoc = documentStore.createDocument(
+            displayName = provDoc1.displayName,
+            typeDisplayName = provDoc1.typeDisplayName
+        )
+        provDoc.setProvisionedDocumentIdentifier(provDoc1.identifier)
+
+        val regularDoc = documentStore.createDocument(
+            displayName = "Regular Document",
+            typeDisplayName = "Regular"
+        )
+
+        // Test mapSharedDocumentOrderToLocal
+        val sharedOrder = listOf(provDoc1.identifier, pass1.uniqueId, regularDoc.identifier, "unknown_doc")
+        val mappedToLocal = documentStore.mapSharedDocumentOrderToLocal(sharedOrder)
+        assertEquals(
+            listOf(provDoc.identifier, passDoc.identifier, regularDoc.identifier, "unknown_doc"),
+            mappedToLocal
+        )
+
+        // Test mapLocalDocumentOrderToShared
+        val localOrder = listOf(regularDoc.identifier, provDoc.identifier, passDoc.identifier, "unmatched_id")
+        val mappedToShared = documentStore.mapLocalDocumentOrderToShared(localOrder)
+        assertEquals(
+            listOf(regularDoc.identifier, provDoc1.identifier, pass1.uniqueId, "unmatched_id"),
+            mappedToShared
+        )
+    }
+
+    @Test
+    fun testWalletClientSharedDataDocumentOrderHelpers() = runTest {
+        val pass1 = getPass1()
+        val pass2 = getPass2()
+        val provDoc1 = getProvisionedDocument1()
+
+        var sharedData = WalletClientSharedData()
+        assertNull(sharedData.documentOrder)
+
+        // Adding pass when documentOrder is null leaves documentOrder null
+        sharedData = sharedData.addMpzPass(pass1)
+        assertNull(sharedData.documentOrder)
+
+        // Explicitly set documentOrder
+        sharedData = sharedData.copy(documentOrder = listOf(pass1.uniqueId))
+        assertEquals(listOf(pass1.uniqueId), sharedData.documentOrder)
+
+        // Adding another pass appends to documentOrder
+        sharedData = sharedData.addMpzPass(pass2)
+        assertEquals(listOf(pass1.uniqueId, pass2.uniqueId), sharedData.documentOrder)
+
+        // Adding duplicate pass does not duplicate in documentOrder
+        sharedData = sharedData.addMpzPass(pass2)
+        assertEquals(listOf(pass1.uniqueId, pass2.uniqueId), sharedData.documentOrder)
+
+        // Adding provisioned document appends to documentOrder
+        sharedData = sharedData.addProvisionedDocument(provDoc1)
+        assertEquals(listOf(pass1.uniqueId, pass2.uniqueId, provDoc1.identifier), sharedData.documentOrder)
+
+        // Removing pass1 removes it from documentOrder
+        sharedData = sharedData.removeMpzPass(pass1)
+        assertEquals(listOf(pass2.uniqueId, provDoc1.identifier), sharedData.documentOrder)
+
+        // Removing provDoc1 removes it from documentOrder
+        sharedData = sharedData.removeProvisionedDocument(provDoc1)
+        assertEquals(listOf(pass2.uniqueId), sharedData.documentOrder)
+
+        // Removing pass2 removes the last item and resets documentOrder to null
+        sharedData = sharedData.removeMpzPass(pass2)
+        assertNull(sharedData.documentOrder)
+
+        // CBOR serialization / deserialization test
+        val dataWithOrder = WalletClientSharedData(
+            documentOrder = listOf("doc_b", "doc_a", "doc_c")
+        )
+        val encodedBytes = dataWithOrder.toCbor()
+        val decoded = WalletClientSharedData.fromCbor(encodedBytes)
+        assertEquals(listOf("doc_b", "doc_a", "doc_c"), decoded.documentOrder)
+    }
+
+    @Test
+    fun testDocumentStoreSyncDocumentOrder() = runTest {
+        val pass1 = getPass1()
+        val pass2 = getPass2()
+        val provDoc1 = getProvisionedDocument1()
+
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        // Device 1
+        val client1Storage = EphemeralStorage()
+        val client1SecureArea = SoftwareSecureArea.create(client1Storage)
+        val client1 = createWalletClientBase(client1Storage, client1SecureArea)
+        val client1Nonce = client1.getNonce()
+        client1.signInWithGoogle(
+            nonce = client1Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client1Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val client1DocumentStore = buildDocumentStore(
+            storage = client1Storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        // Populate shared data on client1 with 3 documents and a specific order: [provDoc1, pass2, pass1]
+        val initialOrder = listOf(provDoc1.identifier, pass2.uniqueId, pass1.uniqueId)
+        client1.setSharedData(
+            client1.sharedData.value!!
+                .addMpzPass(pass1)
+                .addMpzPass(pass2)
+                .addProvisionedDocument(provDoc1)
+                .copy(documentOrder = initialOrder)
+        )
+
+        var client1OrderReceived: List<String>? = null
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            onDocumentOrderChanged = { client1OrderReceived = it }
+        )
+
+        val client1ProvDoc = client1DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == provDoc1.identifier }!!
+        val client1Pass1Doc = client1DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }!!
+        val client1Pass2Doc = client1DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId }!!
+
+        assertEquals(
+            listOf(client1ProvDoc.identifier, client1Pass2Doc.identifier, client1Pass1Doc.identifier),
+            client1OrderReceived
+        )
+
+        // Device 2 signs in
+        val client2Storage = EphemeralStorage()
+        val client2SecureArea = SoftwareSecureArea.create(client2Storage)
+        val client2 = createWalletClientBase(client2Storage, client2SecureArea)
+        val client2Nonce = client2.getNonce()
+        client2.signInWithGoogle(
+            nonce = client2Nonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = client2Nonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val client2DocumentStore = buildDocumentStore(
+            storage = client2Storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        var client2OrderReceived: List<String>? = null
+        client2DocumentStore.syncWithSharedData(
+            sharedData = client2.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            onDocumentOrderChanged = { client2OrderReceived = it }
+        )
+
+        val client2ProvDoc = client2DocumentStore.listDocuments().find { it.provisionedDocumentIdentifier == provDoc1.identifier }!!
+        val client2Pass1Doc = client2DocumentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }!!
+        val client2Pass2Doc = client2DocumentStore.listDocuments().find { it.mpzPassId == pass2.uniqueId }!!
+
+        // Verify client2 received its own local document IDs in the expected shared order
+        assertEquals(
+            listOf(client2ProvDoc.identifier, client2Pass2Doc.identifier, client2Pass1Doc.identifier),
+            client2OrderReceived
+        )
+
+        // Client 2 changes document order to: [pass1, provDoc1, pass2]
+        val newLocalOrderClient2 = listOf(client2Pass1Doc.identifier, client2ProvDoc.identifier, client2Pass2Doc.identifier)
+        val newSharedOrder = client2DocumentStore.mapLocalDocumentOrderToShared(newLocalOrderClient2)
+        assertEquals(listOf(pass1.uniqueId, provDoc1.identifier, pass2.uniqueId), newSharedOrder)
+
+        client2.setSharedData(client2.sharedData.value!!.copy(documentOrder = newSharedOrder))
+
+        // Client 1 refreshes and syncs
+        assertTrue(client1.refreshSharedData())
+        var client1NewOrderReceived: List<String>? = null
+        client1DocumentStore.syncWithSharedData(
+            sharedData = client1.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+            onDocumentOrderChanged = { client1NewOrderReceived = it }
+        )
+
+        // Verify client1 received the updated order mapped to client1's local IDs
+        assertEquals(
+            listOf(client1Pass1Doc.identifier, client1ProvDoc.identifier, client1Pass2Doc.identifier),
+            client1NewOrderReceived
+        )
+    }
+
+    @Test
+    fun testDeleteDocumentRemovesFromDocumentOrder() = runTest {
+        val pass1 = getPass1()
+        val provDoc1 = getProvisionedDocument1()
+
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
+        val clientNonce = client.getNonce()
+        client.signInWithGoogle(
+            nonce = clientNonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = clientNonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val documentStore = buildDocumentStore(
+            storage = clientStorage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        // Add pass1 and provDoc1 with documentOrder = [pass1, provDoc1]
+        client.setSharedData(
+            client.sharedData.value!!
+                .addMpzPass(pass1)
+                .addProvisionedDocument(provDoc1)
+                .copy(documentOrder = listOf(pass1.uniqueId, provDoc1.identifier))
+        )
+
+        documentStore.syncWithSharedData(
+            sharedData = client.sharedData.value!!,
+            mpzPassIsoMdocDomain = "mdoc_software",
+            mpzPassSdJwtVcDomain = "sdjwt_software",
+            mpzPassKeylessSdJwtVcDomain = "sdjwt_keyless",
+        )
+
+        val pass1Doc = documentStore.listDocuments().find { it.mpzPassId == pass1.uniqueId }!!
+        val provDoc = documentStore.listDocuments().find { it.provisionedDocumentIdentifier == provDoc1.identifier }!!
+
+        // Delete pass1 via deleteDocumentFromWalletBackend
+        documentStore.deleteDocumentFromWalletBackend(pass1Doc, client)
+
+        // Verify shared data documentOrder on backend only contains provDoc1
+        assertEquals(listOf(provDoc1.identifier), client.sharedData.value!!.documentOrder)
+
+        // Delete provDoc via deleteDocumentFromWalletBackend
+        documentStore.deleteDocumentFromWalletBackend(provDoc, client)
+
+        // Verify shared data documentOrder is now null (empty list becomes null)
+        assertNull(client.sharedData.value!!.documentOrder)
     }
 }
 

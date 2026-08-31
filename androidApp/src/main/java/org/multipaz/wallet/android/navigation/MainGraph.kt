@@ -738,6 +738,11 @@ fun mainGraph(
                                         mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
                                         walletClient = walletClient,
                                         initialPreconsentSetting = preconsentSetting,
+                                        onDocumentOrderChanged = { order ->
+                                            coroutineScope.launch {
+                                                documentModel.setDocumentOrder(order)
+                                            }
+                                        }
                                     )
                                 }
                             } catch (e: Exception) {

@@ -370,6 +370,27 @@ struct WalletScreen: View {
                 print("User moved \(document.document.displayName ?? "card") to index \(newIndex)")
                 Task {
                     try? await viewModel.documentModel.setDocumentPosition(documentInfo: document, position: newIndex)
+                    if viewModel.signedInUser != nil, let _ = viewModel.walletClient.sharedData.value {
+                        do {
+                            let sharedOrder = try await viewModel.documentStore.mapLocalDocumentOrderToShared(
+                                localDocumentOrder: viewModel.documentModel.documentOrder
+                            )
+                            let _ = try await viewModel.walletClient.refreshSharedData()
+                            if let refreshedSharedData = viewModel.walletClient.sharedData.value {
+                                let updatedSharedData = refreshedSharedData.doCopy(
+                                    encodedMpzPasses: refreshedSharedData.encodedMpzPasses,
+                                    provisionedDocuments: refreshedSharedData.provisionedDocuments,
+                                    documentOrder: sharedOrder
+                                )
+                                let _ = try await viewModel.walletClient.setSharedData(
+                                    sharedData: updatedSharedData,
+                                    suppressSpinner: true
+                                )
+                            }
+                        } catch {
+                            print("Failed to update document order in shared data: \(error)")
+                        }
+                    }
                 }
             },
             onCardFocused: { cardInfo in

@@ -26,14 +26,16 @@ private const val TAG = "WalletClientSharedData"
  * Because newer versions may be processed by older clients, any additions to this
  * data structure MUST be backwards compatible.
  */
-@CborSerializable(schemaHash = "6EiYZfFZfzIVgXna7Cc7sX1VG86sXP5krZha8A27k_c")
+@CborSerializable(schemaHash = "baOfBCilzugVA7pWjYFlsTqC3mti3dfwpvQiuXSh0fI")
 data class WalletClientSharedData(
     /**
      * A list of imported passes.
      */
     val encodedMpzPasses: List<ByteString>? = null,
 
-    val provisionedDocuments: List<WalletClientProvisionedDocument>? = null
+    val provisionedDocuments: List<WalletClientProvisionedDocument>? = null,
+
+    val documentOrder: List<String>? = null
 ) {
     /**
      * Gets all imported passes.
@@ -61,10 +63,14 @@ data class WalletClientSharedData(
      * @return a new [org.multipaz.wallet.client.WalletClientSharedData] with the added pass.
      */
     suspend fun addMpzPass(pass: MpzPass): WalletClientSharedData {
+        val newOrder = documentOrder?.let { order ->
+            if (order.contains(pass.uniqueId)) order else order + pass.uniqueId
+        }
         return copy(
             encodedMpzPasses = encodedMpzPasses.orEmpty() + ByteString(
                 Cbor.encode(pass.toDataItem())
-            )
+            ),
+            documentOrder = newOrder
         )
     }
 
@@ -77,6 +83,7 @@ data class WalletClientSharedData(
      * @return a new [org.multipaz.wallet.client.WalletClientSharedData] with the removed pass.
      */
     suspend fun removeMpzPass(pass: MpzPass): WalletClientSharedData {
+        val newOrder = documentOrder?.filter { it != pass.uniqueId }?.ifEmpty { null }
         return copy(
             encodedMpzPasses = encodedMpzPasses?.filter {
                 try {
@@ -85,25 +92,62 @@ data class WalletClientSharedData(
                 } catch (e: Exception) {
                     false
                 }
-            }?.ifEmpty { null }
+            }?.ifEmpty { null },
+            documentOrder = newOrder
         )
     }
 
     suspend fun addProvisionedDocument(provisionedDocument: WalletClientProvisionedDocument): WalletClientSharedData {
+        val newOrder = documentOrder?.let { order ->
+            if (order.contains(provisionedDocument.identifier)) order else order + provisionedDocument.identifier
+        }
         return copy(
-            provisionedDocuments = provisionedDocuments.orEmpty() + provisionedDocument
+            provisionedDocuments = provisionedDocuments.orEmpty() + provisionedDocument,
+            documentOrder = newOrder
         )
     }
 
     suspend fun removeProvisionedDocument(provisionedDocument: WalletClientProvisionedDocument): WalletClientSharedData {
+        val newOrder = documentOrder?.filter { it != provisionedDocument.identifier }?.ifEmpty { null }
         return copy(
             provisionedDocuments = provisionedDocuments?.filter {
                 it != provisionedDocument
-            }?.ifEmpty { null }
+            }?.ifEmpty { null },
+            documentOrder = newOrder
         )
     }
 
     companion object
+}
+
+/**
+ * Maps a list of shared document identifiers (such as [MpzPass.uniqueId] or
+ * [WalletClientProvisionedDocument.identifier]) to local [Document.identifier]s.
+ */
+suspend fun DocumentStore.mapSharedDocumentOrderToLocal(
+    sharedDocumentOrder: List<String>
+): List<String> {
+    val allDocs = listDocuments()
+    return sharedDocumentOrder.map { syncId ->
+        val doc = allDocs.find {
+            it.mpzPassId == syncId || it.provisionedDocumentIdentifier == syncId || it.identifier == syncId
+        }
+        doc?.identifier ?: syncId
+    }
+}
+
+/**
+ * Maps a list of local [Document.identifier]s to shared document identifiers
+ * (such as [MpzPass.uniqueId] or [WalletClientProvisionedDocument.identifier]).
+ */
+suspend fun DocumentStore.mapLocalDocumentOrderToShared(
+    localDocumentOrder: List<String>
+): List<String> {
+    val allDocs = listDocuments()
+    return localDocumentOrder.map { localId ->
+        val doc = allDocs.find { it.identifier == localId }
+        doc?.mpzPassId ?: doc?.provisionedDocumentIdentifier ?: localId
+    }
 }
 
 /**
@@ -120,6 +164,8 @@ data class WalletClientSharedData(
  * @param mpzPassSdJwtVcDomain The domain string to use when creating SD-JWT VC credentials.
  * @param mpzPassKeylessSdJwtVcDomain the domain string to use when creating keyless SD-JWT VC credentials.
  * @param walletClient optional [WalletClient] to auto-remove un-importable corrupt passes from cloud shared data.
+ * @param initialPreconsentSetting optional initial preconsent setting for imported documents.
+ * @param onDocumentOrderChanged optional callback invoked with the new document order mapped to local document IDs.
  */
 @Throws(Exception::class)
 suspend fun DocumentStore.syncWithSharedData(
@@ -129,6 +175,7 @@ suspend fun DocumentStore.syncWithSharedData(
     mpzPassKeylessSdJwtVcDomain: String,
     walletClient: WalletClient? = null,
     initialPreconsentSetting: DocumentPreconsentSetting? = null,
+    onDocumentOrderChanged: ((documentOrder: List<String>) -> Unit)? = null,
 ) {
     syncMpzPasses(
         sharedData = sharedData,
@@ -143,6 +190,10 @@ suspend fun DocumentStore.syncWithSharedData(
         walletClient = walletClient,
         initialPreconsentSetting = initialPreconsentSetting,
     )
+    if (sharedData.documentOrder != null && onDocumentOrderChanged != null) {
+        val mappedOrder = mapSharedDocumentOrderToLocal(sharedData.documentOrder)
+        onDocumentOrderChanged(mappedOrder)
+    }
 }
 
 private suspend fun DocumentStore.syncMpzPasses(

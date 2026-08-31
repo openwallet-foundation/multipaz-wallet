@@ -325,7 +325,13 @@ class ViewModel {
                 mpzPassSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
                 mpzPassKeylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS,
                 walletClient: walletClient,
-                initialPreconsentSetting: DocumentPreconsentSetting.NeverRequireConsent.shared
+                initialPreconsentSetting: DocumentPreconsentSetting.NeverRequireConsent.shared,
+                onDocumentOrderChanged: { [weak self] order in
+                    guard let self else { return }
+                    Task { @MainActor in
+                        try? await self.documentModel.setDocumentOrder(documentOrder: order)
+                    }
+                }
             )
         } catch {
             print("Failed to syncWithSharedData: \(error)")
