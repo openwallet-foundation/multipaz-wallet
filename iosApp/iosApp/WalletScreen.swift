@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Lottie
 import Multipaz
 import LinkPresentation
@@ -144,6 +145,9 @@ struct WalletScreen: View {
         ZStack(alignment: .top) {
             cardListView(safeAreaTop: safeAreaTop, safeAreaBottom: safeAreaBottom)
                 .ignoresSafeArea(edges: .all)
+                .background {
+                    RefreshControlAdjuster(topPadding: safeAreaTop + 44)
+                }
 
             customTopBar
 
@@ -857,6 +861,76 @@ private struct PresentQrCodePromptView: View {
             withAnimation(.easeInOut(duration: 0.5)) {
                 showPresentQrCode = true
             }
+        }
+    }
+}
+
+private struct RefreshControlAdjuster: UIViewRepresentable {
+    var topPadding: CGFloat
+
+    func makeUIView(context: Context) -> ObserverView {
+        let view = ObserverView()
+        view.backgroundColor = .clear
+        view.topPadding = topPadding
+        return view
+    }
+
+    func updateUIView(_ uiView: ObserverView, context: Context) {
+        uiView.topPadding = topPadding
+        uiView.adjustRefreshControl()
+    }
+
+    class ObserverView: UIView {
+        var topPadding: CGFloat = 0
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            adjustRefreshControl()
+            DispatchQueue.main.async { [weak self] in
+                self?.adjustRefreshControl()
+            }
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            adjustRefreshControl()
+        }
+
+        func adjustRefreshControl() {
+            guard let scrollView = findScrollView() else { return }
+            guard let refreshControl = scrollView.refreshControl else { return }
+            refreshControl.bounds.origin.y = -topPadding
+        }
+
+        private func findScrollView() -> UIScrollView? {
+            var current: UIView? = self
+            while let c = current {
+                if let sv = c as? UIScrollView {
+                    return sv
+                }
+                for sub in c.subviews {
+                    if let sv = sub as? UIScrollView {
+                        return sv
+                    }
+                }
+                current = c.superview
+            }
+            if let window = self.window {
+                return findScrollViewRecursively(in: window)
+            }
+            return nil
+        }
+
+        private func findScrollViewRecursively(in view: UIView) -> UIScrollView? {
+            if let sv = view as? UIScrollView {
+                return sv
+            }
+            for subview in view.subviews {
+                if let sv = findScrollViewRecursively(in: subview) {
+                    return sv
+                }
+            }
+            return nil
         }
     }
 }
