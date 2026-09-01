@@ -83,6 +83,7 @@ import org.multipaz.cbor.Cbor
 import org.multipaz.compose.datetime.durationFromNowText
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
+import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -550,28 +551,33 @@ fun RequestVerificationScreen(
                     )
                 }
             } else {
-                val activeReaderDisplayName = if (selectedReaderId != null) {
-                    externalReaders.find { it.id == selectedReaderId }?.let { it.userDisplayName ?: it.displayName }
-                        ?: stringResource(R.string.request_verification_internal_nfc_reader)
+                val activeReader = if (selectedReaderId != null) {
+                    externalReaders.find { it.id == selectedReaderId }
                 } else {
-                    stringResource(R.string.request_verification_internal_nfc_reader)
+                    null
+                }
+                val activeReaderDisplayName = activeReader?.let { it.userDisplayName ?: it.displayName }
+                    ?: stringResource(R.string.request_verification_internal_nfc_reader)
+
+                val activeReaderState = activeReader?.observeState()?.collectAsState(initial = null)?.value
+                val activeReaderSubtitle = if (activeReader == null) {
+                    stringResource(R.string.external_nfc_reader_type_builtin)
+                } else {
+                    val isConnected = activeReaderState != null && activeReaderState != ExternalNfcReaderState.NOT_CONNECTED
+                    val statusText = if (isConnected) {
+                        stringResource(R.string.external_nfc_reader_status_connected)
+                    } else {
+                        stringResource(R.string.external_nfc_reader_status_not_connected)
+                    }
+                    stringResource(R.string.external_nfc_reader_type_external_status, statusText)
                 }
 
                 FloatingItemList(title = stringResource(R.string.request_verification_nfc_reader_heading)) {
-                    FloatingItemHeadingAndContent(
+                    FloatingItemHeadingAndText(
                         modifier = Modifier.clickable { onSelectNfcReaderClicked() },
                         showChevron = true,
                         heading = activeReaderDisplayName,
-                        content = {
-                            Text(
-                                text = if (selectedReaderId == null || externalReaders.none { it.id == selectedReaderId })
-                                    stringResource(R.string.external_nfc_reader_type_builtin)
-                                else
-                                    stringResource(R.string.external_nfc_reader_type_external),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        text = activeReaderSubtitle
                     )
                 }
                 InfoNote(markdownString = stringResource(R.string.request_verification_nfc_reader_info))

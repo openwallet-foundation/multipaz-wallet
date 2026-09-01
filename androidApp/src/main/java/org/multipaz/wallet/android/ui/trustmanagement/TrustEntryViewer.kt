@@ -32,7 +32,6 @@ import org.multipaz.compose.certificateviewer.X509CertViewer
 import org.multipaz.compose.datetime.formattedDateTime
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509CertChain
@@ -219,12 +218,12 @@ private fun VicalDetails(
         title = stringResource(R.string.trust_entry_viewer_certificates)
     ) {
         signedVical.vical.certificateInfos.forEachIndexed { n, certificateInfo ->
-            FloatingItemText(
+            FloatingItemHeadingAndText(
                 modifier = Modifier.clickable { onViewVicalEntry(n) },
                 showChevron = true,
                 image = { certificateInfo.RenderIconWithFallback() },
-                text = certificateInfo.displayNameWithFallback,
-                secondary = stringResource(R.string.trust_entry_viewer_certificate_label),
+                heading = certificateInfo.displayNameWithFallback,
+                text = stringResource(R.string.trust_entry_viewer_certificate_label),
             )
         }
     }
@@ -298,12 +297,12 @@ private fun RicalDetails(
         title = stringResource(R.string.trust_entry_viewer_certificates)
     ) {
         signedRical.rical.certificateInfos.forEachIndexed { n, certificateInfo ->
-            FloatingItemText(
+            FloatingItemHeadingAndText(
                 modifier = Modifier.clickable { onViewRicalEntry(n) },
                 showChevron = true,
                 image = { certificateInfo.RenderIconWithFallback() },
-                text = certificateInfo.displayNameWithFallback,
-                secondary = stringResource(R.string.trust_entry_viewer_certificate_label),
+                heading = certificateInfo.displayNameWithFallback,
+                text = stringResource(R.string.trust_entry_viewer_certificate_label),
             )
         }
     }

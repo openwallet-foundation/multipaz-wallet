@@ -2,25 +2,21 @@ package org.multipaz.wallet.android.ui.document
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -46,10 +42,11 @@ import kotlinx.datetime.toLocalDateTime
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
-import org.multipaz.datetime.formatLocalized
 import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.FloatingItemHeadingAndText
+import org.multipaz.compose.items.LazyFloatingItemList
+import org.multipaz.compose.items.floatingItemList
+import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
 import org.multipaz.eventlogger.EventProvisioning
@@ -79,7 +76,6 @@ fun DocumentEventListScreen(
     val coroutineScope = rememberCoroutineScope()
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
-    val scrollState = rememberScrollState()
 
     val documentInfos by documentModel.documentInfos.collectAsState()
     val documentInfo = documentInfos.find { it.document.identifier == documentId }
@@ -116,61 +112,75 @@ fun DocumentEventListScreen(
             )
         }
     ) { innerPadding ->
-        // TODO: with many events Column might be too slow, consider using LazyColumn instead.
-        //
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .verticalScroll(scrollState)
-                .padding(
+        if (documentEvents == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyFloatingItemList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState),
+                contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
                     bottom = 16.dp
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-            Note(
-                markdownString = stringResource(R.string.document_event_list_screen_explainer)
-            )
-            FloatingItemList {
-                if (documentEvents == null) {
-                    CircularProgressIndicator()
-                } else {
-                    // Newest events at the top
-                    if (documentEvents.isEmpty()) {
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                }
+                item {
+                    Note(
+                        markdownString = stringResource(R.string.document_event_list_screen_explainer)
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                if (documentEvents.isEmpty()) {
+                    floatingItemList(count = 1) {
                         FloatingItemCenteredText(
                             text = stringResource(R.string.document_event_list_screen_no_events_text),
                         )
-                    } else {
-                        documentEvents.forEach { event ->
-                            when (event) {
-                                is EventPresentment -> {
-                                    EventPresentmentForDocument(
-                                        modifier = Modifier
-                                            .clickable { onEventClicked(event) },
-                                        event = event,
-                                        imageLoader = imageLoader,
-                                    )
-                                }
-                                is EventProvisioning -> {
-                                    EventProvisioningForDocument(
-                                        modifier = Modifier
-                                            .clickable { onEventClicked(event) },
-                                        event = event,
-                                        imageLoader = imageLoader,
-                                    )
-                                }
-                                is EventVerification -> {}
-                                is EventSimple -> {}
+                    }
+                } else {
+                    floatingItemList(
+                        items = documentEvents,
+                        key = { it.identifier }
+                    ) { event ->
+                        when (event) {
+                            is EventPresentment -> {
+                                EventPresentmentForDocument(
+                                    modifier = Modifier
+                                        .clickable { onEventClicked(event) },
+                                    event = event,
+                                    imageLoader = imageLoader,
+                                )
                             }
+                            is EventProvisioning -> {
+                                EventProvisioningForDocument(
+                                    modifier = Modifier
+                                        .clickable { onEventClicked(event) },
+                                    event = event,
+                                    imageLoader = imageLoader,
+                                )
+                            }
+                            is EventVerification -> {}
+                            is EventSimple -> {}
                         }
                     }
                 }
+                item {
+                    Spacer(modifier = Modifier.size(20.dp))
+                }
             }
-            Spacer(modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -192,7 +202,7 @@ private fun EventProvisioningForDocument(
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = "$eventDateTimeString • $eventType"
 
-    FloatingItemText(
+    FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -209,8 +219,8 @@ private fun EventProvisioningForDocument(
                 contentDescription = null
             )
         },
-        text = event.issuerData.display.text,
-        secondary = text,
+        heading = event.issuerData.display.text,
+        text = text,
     )
 }
 
@@ -226,7 +236,7 @@ private fun EventPresentmentForDocument(
     val sharingType = event.getSharingType()
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = stringResource(R.string.document_event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
-    FloatingItemText(
+    FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -251,7 +261,7 @@ private fun EventPresentmentForDocument(
                 contentDescription = null
             )
         },
-        text = event.presentmentData.trustMetadata?.displayName ?: stringResource(R.string.document_event_list_screen_unknown_requester_text),
-        secondary = text,
+        heading = event.presentmentData.trustMetadata?.displayName ?: stringResource(R.string.document_event_list_screen_unknown_requester_text),
+        text = text,
     )
 }

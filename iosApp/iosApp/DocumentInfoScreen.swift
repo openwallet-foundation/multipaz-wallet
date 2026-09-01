@@ -24,10 +24,7 @@ struct DocumentInfoScreen: View {
                         
                         FloatingItemList {
                             ForEach(0..<claimsToShow.count, id: \.self) { index in
-                                FloatingItemHeadingAndContent(
-                                    heading: claimsToShow[index].displayName,
-                                    content: { RenderClaimValue(claim: claimsToShow[index]) }
-                                )
+                                FloatingItemListClaim(claim: claimsToShow[index])
                             }
                         }
                         

@@ -2,22 +2,17 @@ package org.multipaz.wallet.android.ui.verification
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Contactless
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,10 +29,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,31 +42,29 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
+import org.multipaz.compose.datetime.durationFromNowText
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
 import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.datetime.durationFromNowText
-import org.multipaz.datetime.formatLocalized
+import org.multipaz.compose.items.LazyFloatingItemList
+import org.multipaz.compose.items.floatingItemList
+import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
-import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.util.Logger
 import org.multipaz.verification.PresentmentRecord
 import org.multipaz.wallet.android.R
-import org.multipaz.wallet.android.isProximityPresentment
 import org.multipaz.wallet.android.getDisplayName
+import org.multipaz.wallet.android.isProximityPresentment
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
@@ -107,7 +98,6 @@ fun VerificationEventListScreen(
     val coroutineScope = rememberCoroutineScope()
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
-    val scrollState = rememberScrollState()
 
     val currentEvents = events
         ?.filterIsInstance<EventVerification>()
@@ -200,40 +190,50 @@ fun VerificationEventListScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Column(
+            LazyFloatingItemList(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
-                    .verticalScroll(scrollState)
-                    .padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = 16.dp
-                    ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .hazeSource(hazeState),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             ) {
-                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-                Note(
-                    markdownString = stringResource(R.string.verification_history_note)
-                )
-                FloatingItemList {
-                    if (currentEvents.isNullOrEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                }
+                item {
+                    Note(
+                        markdownString = stringResource(R.string.verification_history_note)
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                if (currentEvents.isNullOrEmpty()) {
+                    floatingItemList(count = 1) {
                         FloatingItemCenteredText(
                             text = stringResource(R.string.verification_history_empty),
                         )
-                    } else {
-                        currentEvents.forEach { event ->
-                            val data = eventDataMap[event.identifier]
-                            EventItemVerification(
-                                modifier = Modifier
-                                    .clickable { onEventClicked(event) },
-                                event = event,
-                                data = data
-                            )
-                        }
+                    }
+                } else {
+                    floatingItemList(
+                        items = currentEvents,
+                        key = { it.identifier }
+                    ) { event ->
+                        val data = eventDataMap[event.identifier]
+                        EventItemVerification(
+                            modifier = Modifier
+                                .clickable { onEventClicked(event) },
+                            event = event,
+                            data = data
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.size(20.dp))
+                item {
+                    Spacer(modifier = Modifier.size(20.dp))
+                }
             }
         }
     }

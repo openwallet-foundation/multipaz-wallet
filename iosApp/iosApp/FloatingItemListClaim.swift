@@ -1,29 +1,42 @@
 import SwiftUI
 import Multipaz
 
-struct RenderClaimValue: View {
+struct FloatingItemListClaim: View {
     let claim: Claim
+    var heading: String? = nil
+    var timeZone: Multipaz.TimeZone = Multipaz.TimeZone.Companion.shared.currentSystemDefault()
+
+    private var resolvedHeading: String {
+        heading ?? claim.displayName
+    }
 
     var body: some View {
         if claim.attribute?.type is DocumentAttributeType.Picture {
-            if let uiImage = decodeImage() {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 150, maxHeight: 150)
+            if let uiImage = decodeImage(claim: claim) {
+                FloatingItemHeadingAndContent(
+                    heading: resolvedHeading,
+                    content: {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: 250, maxHeight: 250)
+                    }
+                )
             } else {
-                Text("Error decoding image")
-                    .font(.system(size: 15))
-                    .foregroundColor(.red)
+                FloatingItemHeadingAndText(
+                    heading: resolvedHeading,
+                    text: "Error decoding image"
+                )
             }
         } else {
-            // Try claim.render() or claim.render(timeZone:)
-            Text(claim.render(timeZone: Multipaz.TimeZone.Companion.shared.currentSystemDefault()))
-                .font(.system(size: 15))
+            FloatingItemHeadingAndText(
+                heading: resolvedHeading,
+                text: claim.render(timeZone: timeZone)
+            )
         }
     }
 
-    private func decodeImage() -> UIImage? {
+    private func decodeImage(claim: Claim) -> UIImage? {
         var data: Data? = nil
         if let mdocClaim = claim as? MdocClaim {
             var value = mdocClaim.value
@@ -38,7 +51,7 @@ struct RenderClaimValue: View {
                 data = decodeBase64Url(content)
             }
         }
-        
+
         if let data = data {
             return UIImage(data: data)
         }
@@ -49,12 +62,12 @@ struct RenderClaimValue: View {
         var base64 = string
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
-        
+
         let mod = base64.count % 4
         if mod > 0 {
             base64 += String(repeating: "=", count: 4 - mod)
         }
-        
+
         return Data(base64Encoded: base64)
     }
 }

@@ -427,9 +427,9 @@ private fun CredentialClaimsSection(credentialInfo: CredentialInfo) {
             for ((namespace, claims) in mdocClaimsByNamespace) {
                 FloatingItemList(title = "Namespace $namespace") {
                     claims.forEach { claim ->
-                        FloatingItemHeadingAndText(
-                            heading = claim.dataElementName,
-                            text = claim.render()
+                        FloatingItemListClaim(
+                            claim = claim,
+                            heading = claim.dataElementName
                         )
                     }
                 }
@@ -443,9 +443,9 @@ private fun CredentialClaimsSection(credentialInfo: CredentialInfo) {
                     } else {
                         claim.displayName
                     }
-                    FloatingItemHeadingAndText(
-                        heading = claimName,
-                        text = claim.render()
+                    FloatingItemListClaim(
+                        claim = claim,
+                        heading = claimName
                     )
                 }
             }

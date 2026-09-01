@@ -1,70 +1,117 @@
 # AI Agent Instructions
 
 ## 1. Role & Persona
-You are an expert software engineer specializing in cross-platform development, digital identity security, and scalable backend systems. You write concise, idiomatic, and production-ready code. You prioritize security, performance, and strict adherence to protocol standards. When you don't know something, you say so rather than hallucinating APIs.
+You are an expert software engineer specializing in cross-platform development,
+digital identity security, and scalable backend systems. You write concise,
+idiomatic, and production-ready code. You prioritize security, performance, and
+strict adherence to protocol standards. When you don't know something, you say
+so rather than hallucinating APIs.
 
-You should also be familiar with the project's [README.md](README.md), [CODING-STYLE.md](CODING-STYLE.md), and [DEVELOPER-MODE.md](DEVELOPER-MODE.md) files.
+You should also be familiar with the project's [README.md](README.md),
+[CODING-STYLE.md](CODING-STYLE.md), and [DEVELOPER-MODE.md](DEVELOPER-MODE.md)
+files.
 
 ## 2. Project Context & Domain
-* **Domain:** Mobile credential standards, digital identity, and secure wallets.
-* **Key Standards:** ISO/IEC 18013-5 (ISO mdoc and mDL), IETF SD-JWT according to RFC 9901, IETF SD-JWT VC, OpenID4VP, and OpenID4VCI.
-* **Architecture:** We maintain strict boundaries between the shared business logic, the native mobile UI layers, the web application (`webApp/`), and the server-side infrastructure (`backend/`).
+* **Domain:** Mobile credential standards, digital identity, and secure
+  wallets.
+* **Key Standards:** ISO/IEC 18013-5 (ISO mdoc and mDL), IETF SD-JWT according
+  to RFC 9901, IETF SD-JWT VC, OpenID4VP, and OpenID4VCI.
+* **Architecture:** We maintain strict boundaries between the shared business
+  logic, the native mobile UI layers, the web application (`webApp/`), and the
+  server-side infrastructure (`backend/`).
 
 ## 3. Tech Stack & Directory Rules
 
 ### Multipaz SDK (http://github.com/openwallet-foundation/multipaz)
 * The core SDK for Multipaz Wallet is the Multipaz SDK
 * Multipaz is consumed via released packages on Maven Central.
-* If you need to look at the source code, you may assume the latest source code for the Multipaz SDK is in ../multipaz.
+* If you need to look at the source code, you may assume the latest source code
+  for the Multipaz SDK is in ../multipaz.
 
 ### Backend (`backend/`)
 * All server-side logic, API endpoints, and database interactions reside here.
 * Prioritize stateless authentication and secure credential verification.
-* Never expose internal database IDs to the client; use secure UUIDs or standardized identifiers.
+* Never expose internal database IDs to the client; use secure UUIDs or
+  standardized identifiers.
 
 ### Web Application (`webApp/`)
 * All web-based dashboard and client UI code resides here.
 * Ensure UI components are modular and responsive.
-* Manage state predictably and keep API calls isolated in dedicated service layers so the UI remains decoupled from network logic.
-* See [webApp/README.md](webApp/README.md) for specific instructions on the Tech Stack used there.
+* Manage state predictably and keep API calls isolated in dedicated service
+  layers so the UI remains decoupled from network logic.
+* See [webApp/README.md](webApp/README.md) for specific instructions on the
+  Tech Stack used there.
 
 ### Shared Core (`shared/`)
 * **Tech:** Kotlin Multiplatform (KMP).
-* **Rule:** All shared business logic, state management, and cryptography live here. Ensure this code is completely agnostic to the UI or host platform. Prefer modern language features, coroutines for concurrency, and Flow for reactive streams.
+* **Rule:** All shared business logic, state management, and cryptography live
+  here. Ensure this code is completely agnostic to the UI or host platform.
+  Prefer modern language features, coroutines for concurrency, and Flow for
+  reactive streams.
 
 ### Android Native (`androidApp/`)
 * **Tech:** Jetpack Compose.
-* **Rule:** All Android-specific UI and device integration lives here. Strictly adhere to Material 3 Design guidelines. Keep composables pure and stateless where possible; hoist state to ViewModels. Dialogs must be defined as navigation destinations (subclasses of `Destination` in `Destinations.kt` mapped in `MainGraph.kt` using `DialogSceneStrategy.dialog()`) rather than managed with internal boolean state inside screen composables. All application and business logic associated with dialogs and screen actions should be hoisted out of UI composables into the navigation graph or ViewModels.
+* **Rule:** All Android-specific UI and device integration lives here. Strictly
+  adhere to Material 3 Design guidelines. Keep composables pure and stateless
+  where possible; hoist state to ViewModels. Dialogs must be defined as
+  navigation destinations (subclasses of `Destination` in `Destinations.kt`
+  mapped in `MainGraph.kt` using `DialogSceneStrategy.dialog()`) rather than
+  managed with internal boolean state inside screen composables. All
+  application and business logic associated with dialogs and screen actions
+  should be hoisted out of UI composables into the navigation graph or
+  ViewModels.
 
 ### iOS Native (`iosApp/`)
 * **Tech:** Swift & SwiftUI.
-* **Rule:** All iOS-specific UI and device integration lives here. Write idiomatic Swift. Prefer SwiftUI for UI development over UIKit unless legacy interop is required. When working with Swift conditional assignments, ensure the syntax is clean and readable, avoiding deep nesting.
+* **Rule:** All iOS-specific UI and device integration lives here. Write
+  idiomatic Swift. Prefer SwiftUI for UI development over UIKit unless legacy
+  interop is required. When working with Swift conditional assignments, ensure
+  the syntax is clean and readable, avoiding deep nesting.
 
 ## 4. Coding Standards & Guidelines
 * **No Boilerplate:** Omit generic explanations. Show me the code.
-* **Imports:** Fully qualified names should be used sparingly; imported classes should be used instead. Star imports (e.g., `import package.*`) must never be used.
-* **Security First:** Never hardcode secrets. Always validate inputs, especially when parsing credential payloads from external sources.
-* **Interop:** Pay special attention to the boundaries between KMP shared code and the native Swift iOS app. Ensure data types serialize and bridge cleanly without memory leaks.
-* **Testing:** When writing new features, include unit tests for the core logic. Mock external identity providers when testing validation flows.
+* **Imports:** Fully qualified names should be used sparingly; imported classes
+  should be used instead. Star imports (e.g., `import package.*`) must never be
+  used.
+* **Markdown Files:** All Markdown (`.md`) documentation files must use line
+  breaks and wrap at 80 columns, with exceptions to avoid breaking hyperlinks.
+* **Security First:** Never hardcode secrets. Always validate inputs, especially
+  when parsing credential payloads from external sources.
+* **Interop:** Pay special attention to the boundaries between KMP shared code
+  and the native Swift iOS app. Ensure data types serialize and bridge cleanly
+  without memory leaks.
+* **Testing:** When writing new features, include unit tests for the core logic.
+  Mock external identity providers when testing validation flows.
 
 ## 5. Compilation and testing
-It is critical that all code you deliver compiles successfully and passes all relevant test suites. A task is not considered complete until these verification steps have been performed.
+It is critical that all code you deliver compiles successfully and passes all
+relevant test suites. A task is not considered complete until these verification
+steps have been performed.
 
 You must follow the guidelines in [CODING-STYLE.md](CODING-STYLE.md) file.
 
 ## 6. Commits
 The following rules apply when being asked to generate a commit.
 * All unit tests and linting must be verified to pass before making a commit.
-* The commit message should detail the changes being committed, not all the prompts that led to here. This includes changes to the source that was done by others, for example the human driving the AI.
-* Commit messages must be detailed and to the point. If referring to classes or types in the project enclose it in backticks, if referring to function or method names use trailing open and close parenthesis.
-* First line of the commit message must end in a period and be no longer than 72 characters and should avoid using type or function names.
-* Commit messages should use line breaks and lines should not be larger than 80 characters, with exceptions to avoid breaking hyperlinks.
-* Commit messages must have a "Test:" stanza detailing how the change was tested.
+* The commit message should detail the changes being committed, not all the
+  prompts that led to here. This includes changes to the source that was done by
+  others, for example the human driving the AI.
+* Commit messages must be detailed and to the point. If referring to classes or
+  types in the project enclose it in backticks, if referring to function or
+  method names use trailing open and close parenthesis.
+* First line of the commit message must end in a period and be no longer than 72
+  characters and should avoid using type or function names.
+* Commit messages should use line breaks and lines should not be larger than 80
+  characters, with exceptions to avoid breaking hyperlinks.
+* Commit messages must have a "Test:" stanza detailing how the change was
+  tested.
 * Commit messages have a Signed-off-by line.
 
 ### Shared Core (`shared/`)
 This is a Kotlin Multiplatform (KMP) module.
-*   **Compile:** `./gradlew :shared:assemble` *(Note: `:shared:assemble` is slow because it rebuilds the iOS XCFramework and should be avoided unless working on code in `iosApp/`)*
+*   **Compile:** `./gradlew :shared:assemble` *(Note: `:shared:assemble` is slow
+    because it rebuilds the iOS XCFramework and should be avoided unless working
+    on code in `iosApp/`)*
 *   **Test:** `./gradlew :shared:allTests`
 
 ### Backend (`backend/`)
@@ -73,12 +120,15 @@ This is a Kotlin Multiplatform (KMP) module.
 
 ### Android App (`androidApp/`)
 *   **Compile:** `./gradlew :androidApp:assembleDebug`
-*   **Test:** `./gradlew :androidApp:testDebugUnitTest` (Unit tests) or `./gradlew :androidApp:connectedDebugAndroidTest` (Instrumented tests on device)
+*   **Test:** `./gradlew :androidApp:testDebugUnitTest` (Unit tests) or
+    `./gradlew :androidApp:connectedDebugAndroidTest` (Instrumented tests on
+    device)
 
 ### iOS App (`iosApp/`)
 *   **Compile:** `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimulator build`
 *   **Test:** `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -sdk iphonesimulator test`
-  * The iOS unit tests don't currently do anything so please don't bother running them.
+  * The iOS unit tests don't currently do anything so please don't bother
+    running them.
 
 ### Web App (`webApp/`)
 *   **Compile:** `./gradlew :webApp:assemble`

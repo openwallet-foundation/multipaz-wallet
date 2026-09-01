@@ -3,6 +3,7 @@ package org.multipaz.wallet.android.ui.trustmanagement
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
@@ -14,8 +15,8 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.FloatingItemHeadingAndText
+import org.multipaz.compose.items.floatingItemList
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.compose.trustmanagement.getDetails
@@ -24,54 +25,51 @@ import org.multipaz.trustmanagement.TrustEntryBasedTrustManager
 import org.multipaz.trustmanagement.TrustEntryX509Cert
 
 /**
- * A Composable that displays a scrollable list of trust entries managed in a [TrustEntryBasedTrustManager].
+ * Adds a list of trust entries managed in a [TrustEntryBasedTrustManager] into a [LazyListScope].
  *
- * It observes the [TrustManagerModel.trustManagerInfos] state and automatically updates
- * when trust entries are added, removed, or modified. It's using [FloatingItemList] to
- * display items
+ * It uses [LazyListScope.floatingItemList] to display items lazily.
  *
- * @param trustManagerModel A [TrustManagerModel].
+ * @param trustEntryInfos The list of [TrustEntryInfo] to display, or `null` if loading.
  * @param title The title to display at the top of the list.
  * @param imageLoader a [ImageLoader].
  * @param loading A Composable to render when loading entries, normally a [FloatingItemCenteredText].
  * @param noItems A Composable to render when the trust manager is empty, normally a [FloatingItemCenteredText].
  * @param onTrustEntryClicked Callback invoked when a specific trust entry in the list is clicked.
- * @param modifier The modifier to apply to the list.
  */
-@Composable
-fun TrustEntryList(
-    trustManagerModel: TrustManagerModel,
+fun LazyListScope.trustEntryList(
+    trustEntryInfos: List<TrustEntryInfo>?,
     title: String,
     imageLoader: ImageLoader,
     loading: @Composable () -> Unit = {},
     noItems: @Composable () -> Unit = {},
     onTrustEntryClicked: (trustEntry: TrustEntry) -> Unit,
-    modifier: Modifier = Modifier
 ) {
-    val infos = trustManagerModel.trustManagerInfos.collectAsState().value
-    FloatingItemList(
-        modifier = modifier,
-        title = title,
-    ) {
-        if (infos == null) {
+    if (trustEntryInfos == null) {
+        floatingItemList(count = 1, title = title) {
             loading()
-        } else if (infos.isEmpty()) {
+        }
+    } else if (trustEntryInfos.isEmpty()) {
+        floatingItemList(count = 1, title = title) {
             noItems()
-        } else {
-            infos.forEach { trustEntryInfo ->
-                FloatingItemText(
-                    modifier = Modifier.clickable { onTrustEntryClicked(trustEntryInfo.entry) },
-                    showChevron = true,
-                    image = {
-                        trustEntryInfo.RenderImage(
-                            size = 40.dp,
-                            imageLoader = imageLoader
-                        )
-                    },
-                    text = trustEntryInfo.getDisplayName(),
-                    secondary = trustEntryInfo.entry.getDetails(trustEntryInfo.signedVical, trustEntryInfo.signedRical),
-                )
-            }
+        }
+    } else {
+        floatingItemList(
+            items = trustEntryInfos,
+            title = title,
+            key = { it.entry.identifier }
+        ) { trustEntryInfo ->
+            FloatingItemHeadingAndText(
+                modifier = Modifier.clickable { onTrustEntryClicked(trustEntryInfo.entry) },
+                showChevron = true,
+                image = {
+                    trustEntryInfo.RenderImage(
+                        size = 40.dp,
+                        imageLoader = imageLoader
+                    )
+                },
+                heading = trustEntryInfo.getDisplayName(),
+                text = trustEntryInfo.entry.getDetails(trustEntryInfo.signedVical, trustEntryInfo.signedRical),
+            )
         }
     }
 }

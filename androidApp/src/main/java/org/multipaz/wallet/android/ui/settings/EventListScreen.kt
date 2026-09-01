@@ -2,19 +2,16 @@ package org.multipaz.wallet.android.ui.settings
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Sync
-import org.multipaz.wallet.client.PeriodicBookkeepingEventDetails
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -40,9 +38,11 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
+import org.multipaz.compose.getOutlinedImageVector
 import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.FloatingItemHeadingAndText
+import org.multipaz.compose.items.LazyFloatingItemList
+import org.multipaz.compose.items.floatingItemList
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
@@ -52,7 +52,6 @@ import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.OpenID4VPPresentmentRecord
-import org.multipaz.compose.getOutlinedImageVector
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getSharingType
 import org.multipaz.wallet.android.isForDocumentId
@@ -60,6 +59,7 @@ import org.multipaz.wallet.android.isProximityPresentment
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
+import org.multipaz.wallet.client.PeriodicBookkeepingEventDetails
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +76,6 @@ fun EventListScreen(
     val coroutineScope = rememberCoroutineScope()
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
-    val scrollState = rememberScrollState()
 
     val currentEvents = events?.sortedByDescending { it.timestamp }
 
@@ -109,74 +108,89 @@ fun EventListScreen(
             )
         }
     ) { innerPadding ->
-        // TODO: with many events Column might be too slow, consider using LazyColumn instead.
-        //
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .verticalScroll(scrollState)
-                .padding(
+        if (currentEvents == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyFloatingItemList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState),
+                contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
                     bottom = 16.dp
                 ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-            Note(
-                stringResource(R.string.event_list_screen_explainer)
-            )
-            FloatingItemList {
-                if (currentEvents == null) {
-                    CircularProgressIndicator()
-                } else {
-                    // Newest events at the top
-                    if (currentEvents.isEmpty()) {
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                }
+                item {
+                    Note(
+                        markdownString = stringResource(R.string.event_list_screen_explainer)
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                if (currentEvents.isEmpty()) {
+                    floatingItemList(count = 1) {
                         FloatingItemCenteredText(
                             text = stringResource(R.string.event_list_screen_no_events_text),
                         )
-                    } else {
-                        currentEvents.forEach { event ->
-                            when (event) {
-                                is EventPresentment -> {
-                                    EventItemPresentment(
-                                        modifier = Modifier
-                                            .clickable { onEventClicked(event) },
-                                        event = event,
-                                        imageLoader = imageLoader,
-                                        documentModel = documentModel
-                                    )
-                                }
-                                is EventProvisioning -> {
-                                    EventItemProvisioning(
-                                        modifier = Modifier
-                                            .clickable { onEventClicked(event) },
-                                        event = event,
-                                        imageLoader = imageLoader,
-                                        documentModel = documentModel
-                                    )
-                                }
-                                is EventVerification -> {
-                                    EventItemVerification(
-                                        modifier = Modifier
-                                            .clickable { onEventClicked(event) },
-                                        event = event
-                                    )
-                                }
-                                is EventSimple -> {
-                                    EventItemSimple(
-                                        modifier = Modifier
-                                            .clickable { onEventClicked(event) },
-                                        event = event
-                                    )
-                                }
+                    }
+                } else {
+                    floatingItemList(
+                        items = currentEvents,
+                        key = { it.identifier }
+                    ) { event ->
+                        when (event) {
+                            is EventPresentment -> {
+                                EventItemPresentment(
+                                    modifier = Modifier
+                                        .clickable { onEventClicked(event) },
+                                    event = event,
+                                    imageLoader = imageLoader,
+                                    documentModel = documentModel
+                                )
+                            }
+                            is EventProvisioning -> {
+                                EventItemProvisioning(
+                                    modifier = Modifier
+                                        .clickable { onEventClicked(event) },
+                                    event = event,
+                                    imageLoader = imageLoader,
+                                    documentModel = documentModel
+                                )
+                            }
+                            is EventVerification -> {
+                                EventItemVerification(
+                                    modifier = Modifier
+                                        .clickable { onEventClicked(event) },
+                                    event = event
+                                )
+                            }
+                            is EventSimple -> {
+                                EventItemSimple(
+                                    modifier = Modifier
+                                        .clickable { onEventClicked(event) },
+                                    event = event
+                                )
                             }
                         }
                     }
                 }
+                item {
+                    Spacer(modifier = Modifier.size(20.dp))
+                }
             }
-            Spacer(modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -205,7 +219,7 @@ private fun EventItemProvisioning(
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = "$eventDateTimeString • $eventType"
 
-    FloatingItemText(
+    FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -217,8 +231,8 @@ private fun EventItemProvisioning(
                 )
             } ?: Spacer(modifier = Modifier.size(imageSize))
         },
-        text = docInfo?.document?.displayName ?: event.documentName ?: stringResource(R.string.event_unknown_document),
-        secondary = text,
+        heading = docInfo?.document?.displayName ?: event.documentName ?: stringResource(R.string.event_unknown_document),
+        text = text,
     )
 }
 
@@ -242,7 +256,7 @@ private fun EventItemPresentment(
 
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = stringResource(R.string.event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
-    FloatingItemText(
+    FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -254,8 +268,8 @@ private fun EventItemPresentment(
                 )
             } ?: Spacer(modifier = Modifier.size(imageSize))
         },
-        text = firstDocInfo?.document?.displayName ?: firstDoc?.documentName ?: stringResource(R.string.event_list_screen_unknown_document_text),
-        secondary = text,
+        heading = firstDocInfo?.document?.displayName ?: firstDoc?.documentName ?: stringResource(R.string.event_list_screen_unknown_document_text),
+        text = text,
     )
 }
 
@@ -274,7 +288,7 @@ private fun EventItemVerification(
     }
     val text = "$eventDateTimeString • $protocol"
 
-    FloatingItemText(
+    FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -284,8 +298,8 @@ private fun EventItemVerification(
                 contentDescription = null
             )
         },
-        text = "Verification",
-        secondary = text,
+        heading = "Verification",
+        text = text,
     )
 }
 
@@ -336,7 +350,7 @@ private fun EventItemSimple(
         eventDateTimeString
     }
 
-    FloatingItemText(
+    FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -346,7 +360,7 @@ private fun EventItemSimple(
                 contentDescription = null
             )
         },
-        text = title,
-        secondary = summary,
+        heading = title,
+        text = summary,
     )
 }

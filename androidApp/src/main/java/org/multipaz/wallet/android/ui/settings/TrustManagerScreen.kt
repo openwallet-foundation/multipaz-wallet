@@ -8,15 +8,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -35,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,26 +45,27 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.multipaz.compose.items.FloatingItemCenteredText
+import org.multipaz.compose.items.LazyFloatingItemList
 import org.multipaz.compose.pickers.FilePicker
 import org.multipaz.compose.pickers.rememberFilePicker
-import org.multipaz.wallet.android.ui.trustmanagement.TrustEntryList
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509Cert
 import org.multipaz.mdoc.rical.SignedRical
 import org.multipaz.trustmanagement.TrustEntryAlreadyExistsException
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
-import org.multipaz.wallet.client.addRicalWithValidation
-import org.multipaz.wallet.client.addVicalWithValidation
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import org.multipaz.wallet.android.ui.Note
+import org.multipaz.wallet.android.ui.trustmanagement.trustEntryList
+import org.multipaz.wallet.client.addRicalWithValidation
+import org.multipaz.wallet.client.addVicalWithValidation
 
 @Composable
 private fun FloatingActionButtonMenu(
@@ -179,7 +179,6 @@ fun TrustManagerScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
     val importCertificateFilePicker = rememberFilePicker(
         types = listOf(
             "application/x-pem-file",
@@ -279,6 +278,21 @@ fun TrustManagerScreen(
 
     val hazeState = remember { HazeState() }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
+    val builtInInfos by builtIn.trustManagerInfos.collectAsState()
+    val userInfos by user.trustManagerInfos.collectAsState()
+
+    val explainer = if (isVical) {
+        stringResource(R.string.trust_manager_info_issuers)
+    } else {
+        stringResource(R.string.trust_manager_info_verifiers)
+    }
+    val builtInTitle = stringResource(R.string.trust_manager_built_in)
+    val builtInLoading = stringResource(R.string.trust_manager_loading)
+    val builtInNoItems = stringResource(R.string.trust_manager_no_built_in)
+    val userTitle = stringResource(R.string.trust_manager_manually_imported)
+    val userNoItems = stringResource(R.string.trust_manager_no_manually_imported)
+
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -303,47 +317,51 @@ fun TrustManagerScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        LazyFloatingItemList(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
-                .verticalScroll(scrollState)
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 16.dp
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .hazeSource(hazeState),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 16.dp
+            ),
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-            val explainer = if (isVical) {
-                stringResource(R.string.trust_manager_info_issuers)
-            } else {
-                stringResource(R.string.trust_manager_info_verifiers)
+            item {
+                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             }
-            Note(explainer)
-            TrustEntryList(
-                trustManagerModel = builtIn,
-                title = stringResource(R.string.trust_manager_built_in),
+            item {
+                Note(explainer)
+            }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            trustEntryList(
+                trustEntryInfos = builtInInfos,
+                title = builtInTitle,
                 imageLoader = imageLoader,
-                loading = { FloatingItemCenteredText(text = stringResource(R.string.trust_manager_loading)) },
-                noItems = { FloatingItemCenteredText(text = stringResource(R.string.trust_manager_no_built_in)) },
+                loading = { FloatingItemCenteredText(text = builtInLoading) },
+                noItems = { FloatingItemCenteredText(text = builtInNoItems) },
                 onTrustEntryClicked = { trustEntry ->
                     onTrustEntryClicked(builtIn.trustManager.identifier, trustEntry.identifier)
                 }
             )
-            TrustEntryList(
-                trustManagerModel = user,
-                title = stringResource(R.string.trust_manager_manually_imported),
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            trustEntryList(
+                trustEntryInfos = userInfos,
+                title = userTitle,
                 imageLoader = imageLoader,
-                loading = { FloatingItemCenteredText(text = stringResource(R.string.trust_manager_loading)) },
-                noItems = { FloatingItemCenteredText(text = stringResource(R.string.trust_manager_no_manually_imported)) },
+                loading = { FloatingItemCenteredText(text = builtInLoading) },
+                noItems = { FloatingItemCenteredText(text = userNoItems) },
                 onTrustEntryClicked = { trustEntry ->
                     onTrustEntryClicked(user.trustManager.identifier, trustEntry.identifier)
                 }
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            item {
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
     }
 }

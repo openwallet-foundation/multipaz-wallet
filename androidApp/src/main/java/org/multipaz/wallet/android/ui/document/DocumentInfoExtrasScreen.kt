@@ -55,7 +55,6 @@ import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.tags.Tags
@@ -246,7 +245,7 @@ fun DocumentInfoExtrasScreen(
                 FloatingItemList(title = "Domain $domain") {
                     creds.forEach { credential ->
 
-                        val (text, secondary) = if (credential.isCertified) {
+                        val (heading, text) = if (credential.isCertified) {
                             Pair(
                                 "${credential.credentialType} with use-count ${credential.usageCount}",
                                 buildString {
@@ -258,17 +257,17 @@ fun DocumentInfoExtrasScreen(
                             )
                         } else {
                             Pair(
-                               credential.credentialType,
+                                credential.credentialType,
                                 "Pending certification"
                             )
                         }
-                        FloatingItemText(
+                        FloatingItemHeadingAndText(
                             modifier = Modifier.clickable {
                                 onCredentialClicked(credential.identifier)
                             },
                             showChevron = true,
-                            text = text,
-                            secondary = secondary
+                            heading = heading,
+                            text = text
                         )
                     }
                 }

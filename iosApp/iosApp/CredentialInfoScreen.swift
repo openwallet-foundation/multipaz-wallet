@@ -71,7 +71,8 @@ struct CredentialInfoScreen: View {
                                 )
                                 FloatingItemHeadingAndText(
                                     heading: "ISO mdoc DS Key Certificate",
-                                    text: "Click for details"
+                                    text: "Click for details",
+                                    showChevron: true
                                 )
                                 .onTapGesture {
                                     showDsKeyCertDetails(credential: mdoc)
@@ -108,7 +109,8 @@ struct CredentialInfoScreen: View {
                             )
                             FloatingItemHeadingAndText(
                                 heading: "Device Key Attestation",
-                                text: "Click for details"
+                                text: "Click for details",
+                                showChevron: true
                             )
                             .onTapGesture {
                                 showDeviceKeyAttestationDetails(credential: secureAreaBound)
@@ -243,9 +245,9 @@ struct CredentialClaimsSection: View {
                 FloatingItemList(title: "Namespace \(namespace)") {
                     ForEach(0..<claims.count, id: \.self) { index in
                         let claim = claims[index]
-                        FloatingItemHeadingAndContent(
-                            heading: claim.dataElementName,
-                            content: { RenderClaimValue(claim: claim) }
+                        FloatingItemListClaim(
+                            claim: claim,
+                            heading: claim.dataElementName
                         )
                     }
                 }
@@ -256,9 +258,9 @@ struct CredentialClaimsSection: View {
                 ForEach(0..<claims.count, id: \.self) { index in
                     let claim = claims[index]
                     let claimName = getClaimName(claim)
-                    FloatingItemHeadingAndContent(
-                        heading: claimName,
-                        content: { RenderClaimValue(claim: claim) }
+                    FloatingItemListClaim(
+                        claim: claim,
+                        heading: claimName
                     )
                 }
             }

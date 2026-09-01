@@ -30,18 +30,18 @@ struct DocumentInfoExtrasScreen: View {
                                     let credential = creds[index]
                                     let isCertified = credential.isCertified
                                     
-                                    let title = isCertified ?
+                                    let heading = isCertified ?
                                         "\(credential.credentialType) with use-count \(credential.usageCount)" :
                                         credential.credentialType
                                     
-                                    let secondary = isCertified ?
+                                    let text = isCertified ?
                                         "Valid from \(formatInstant(credential.validFrom)) until \(formatInstant(credential.validUntil))" :
                                         "Pending certification"
                                     
-                                    FloatingItemText(
-                                        text: title,
-                                        showChevron: true,
-                                        secondary: secondary
+                                    FloatingItemHeadingAndText(
+                                        heading: heading,
+                                        text: text,
+                                        showChevron: true
                                     )
                                     .onTapGesture {
                                         viewModel.push(.credentialInfoScreen(documentId: documentId, credentialId: credential.identifier))

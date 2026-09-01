@@ -31,10 +31,9 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import org.multipaz.claim.JsonClaim
-import org.multipaz.compose.claim.RenderClaimValue
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemHeadingAndDate
+import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.wallet.android.R
@@ -120,12 +119,8 @@ fun DocumentInfoScreen(
                             return@forEach
                         }
                     }
-                    FloatingItemHeadingAndContent(
-                        heading = claim.displayName,
-                        content = {
-                            RenderClaimValue(claim = claim)
-                        }
-                    )
+
+                    FloatingItemListClaim(claim = claim)
                 }
             }
 

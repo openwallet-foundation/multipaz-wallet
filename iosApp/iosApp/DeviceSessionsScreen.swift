@@ -127,9 +127,9 @@ struct DeviceSessionsScreen: View {
         let iconName = deviceIcon(for: session)
         let secondary = secondaryText(for: session, isCurrentDevice: isCurrentDevice)
         
-        FloatingItemText(
-            text: deviceName,
-            secondary: secondary,
+        FloatingItemHeadingAndText(
+            heading: deviceName,
+            text: secondary,
             image: {
                 Image(systemName: iconName)
                     .font(.body)

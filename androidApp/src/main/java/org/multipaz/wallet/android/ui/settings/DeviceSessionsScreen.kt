@@ -52,8 +52,8 @@ import kotlin.time.Instant
 import org.multipaz.compose.datetime.durationFromNowText
 import org.multipaz.compose.items.FloatingItemCenteredText
 import org.multipaz.compose.items.FloatingItemContainer
+import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -222,9 +222,9 @@ fun DeviceSessionsScreen(
                             }
                             val secondaryText = secondaryTextParts.joinToString(" • ")
 
-                            FloatingItemText(
-                                text = deviceName,
-                                secondary = secondaryText,
+                            FloatingItemHeadingAndText(
+                                heading = deviceName,
+                                text = secondaryText,
                                 image = {
                                     Icon(deviceIcon, contentDescription = null)
                                 },

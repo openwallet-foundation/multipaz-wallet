@@ -43,8 +43,8 @@ import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.items.FloatingItemCenteredText
+import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509Cert
@@ -237,7 +237,7 @@ fun DocumentInfoReaderIdentifiersScreen(
                         } else {
                             getSecondaryText(info)
                         }
-                        FloatingItemText(
+                        FloatingItemHeadingAndText(
                             image = {
                                 RenderItemImage(
                                     trustPoint = trustPoint,
@@ -245,8 +245,8 @@ fun DocumentInfoReaderIdentifiersScreen(
                                     info = info
                                 )
                             },
-                            text = name,
-                            secondary = secondaryText,
+                            heading = name,
+                            text = secondaryText,
                             trailingContent = {
                                 IconButton(onClick = {
                                     val doc = documentInfo?.document
@@ -284,7 +284,7 @@ fun DocumentInfoReaderIdentifiersScreen(
                         val name = point.metadata.displayName ?: point.certificate.subject.toString()
                         val secondaryText = getSecondaryText(info)
                         val ski = point.certificate.subjectKeyIdentifier?.let { ByteString(it) }
-                        FloatingItemText(
+                        FloatingItemHeadingAndText(
                             modifier = Modifier.clickable {
                                 if (ski != null) {
                                     val doc = documentInfo?.document
@@ -304,8 +304,8 @@ fun DocumentInfoReaderIdentifiersScreen(
                                     info = info
                                 )
                             },
-                            text = name,
-                            secondary = secondaryText,
+                            heading = name,
+                            text = secondaryText,
                             trailingContent = {
                                 Icon(
                                     imageVector = Icons.Default.Add,
