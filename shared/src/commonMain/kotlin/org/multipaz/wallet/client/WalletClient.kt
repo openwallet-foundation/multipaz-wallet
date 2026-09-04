@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.annotation.CborSerializable
+import org.multipaz.certifiedkeys.CertifiedKeyManager
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.X509CertChain
@@ -31,7 +32,6 @@ import org.multipaz.rpc.handler.RpcDispatcher
 import org.multipaz.rpc.handler.RpcExceptionMap
 import org.multipaz.rpc.handler.RpcNotifier
 import org.multipaz.rpc.transport.HttpTransport
-import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.KeyInfo
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.NoRecordStorageException
@@ -175,6 +175,29 @@ class WalletClient private constructor(
         }
 
     private var lock = Mutex()
+
+    private val readerKeyManager: CertifiedKeyManager? = if (secureArea != null) {
+        CertifiedKeyManager(
+            secureArea = secureArea,
+            storage = storage,
+            numKeys = numReaderKeys,
+            tableName = "CertifiedKeys",
+            certify = { keys ->
+                lock.withLock {
+                    val walletBackend = getWalletBackend()
+                    withContext(session) {
+                        try {
+                            walletBackend.certifyReaderKeys(keys)
+                        } catch (e: WalletBackendNotSignedInException) {
+                            handleNotSignedInException(e)
+                        }
+                    }
+                }
+            }
+        )
+    } else {
+        null
+    }
 
     private suspend fun getWalletBackend(): WalletBackend {
         check(lock.isLocked)
@@ -698,8 +721,8 @@ class WalletClient private constructor(
             if (e is CancellationException) throw e
             Logger.w(TAG, "Ignoring error while signing user out", e)
         }
+        readerKeyManager?.clearKeys()
         lock.withLock {
-            clearReaderKeysLocked()
             val oldUrl = backendUrl
             backendUrl = url
             _walletBackend = null
@@ -1093,162 +1116,6 @@ class WalletClient private constructor(
         localPublicData = null
     }
 
-    @CborSerializable
-    internal data class CertifiedKey(
-        val alias: String,
-        val certification: X509CertChain,
-        val validFrom: Instant,
-        val validUntil: Instant,
-        val refreshAt: Instant,
-        val forReaderIdentity: String?
-    ) {
-        companion object
-    }
-
-    // Maps from rowId to CertifiedKey
-    private var certifiedKeys: MutableMap<String, CertifiedKey>? = null
-
-    private suspend fun ensureCertifiedKeys() {
-        check(lock.isLocked)
-
-        if (certifiedKeys != null) {
-            return
-        }
-        certifiedKeys = mutableMapOf()
-        val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
-        for ((key, encodedData) in certifiedKeysTable.enumerateWithData()) {
-            certifiedKeys!!.put(key, CertifiedKey.fromCbor(encodedData.toByteArray()))
-        }
-    }
-
-    private suspend fun clearReaderKeysLocked() {
-        check(lock.isLocked)
-        val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
-        certifiedKeysTable.deleteAll()
-        certifiedKeys = null
-        ensureCertifiedKeys()
-    }
-
-    // Ensures we have at least numReaderKeys/2 fresh keys. Also removes expired keys.
-    //
-    private suspend fun ensureReplenished(
-        readerIdentityId: String? = null,
-        atTime: Instant = Clock.System.now()
-    ): Int {
-        check(lock.isLocked) { "Called without holding lock" }
-        check(secureArea != null) { "SecureArea is null" }
-
-        ensureCertifiedKeys()
-
-        val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
-
-        // First, go through and immediately delete all keys that don't match readerIdentityId. We never
-        // want those to linger or stick around in case the server isn't reachable.
-        val keysNotMatchingReaderIdentityId = mutableListOf<Pair<String, CertifiedKey>>()
-        for ((id, certifiedKey) in certifiedKeys!!.entries) {
-            if (certifiedKey.forReaderIdentity != readerIdentityId) {
-                keysNotMatchingReaderIdentityId.add(Pair(id, certifiedKey))
-            }
-        }
-        keysNotMatchingReaderIdentityId.forEach {
-            try {
-                secureArea.deleteKey(it.second.alias)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Logger.w(TAG, "Error deleting key from SecureArea", e)
-            }
-            certifiedKeysTable.delete(it.first)
-            certifiedKeys!!.remove(it.first)
-        }
-
-        var numGoodKeys = 0
-        val toDelete = mutableListOf<Pair<String, CertifiedKey>>()
-        for ((id, certifiedKey) in certifiedKeys!!.entries) {
-            if (atTime > certifiedKey.refreshAt) {
-                toDelete.add(Pair(id, certifiedKey))
-            } else if (atTime > certifiedKey.validFrom && atTime < certifiedKey.validUntil) {
-                numGoodKeys += 1
-            }
-        }
-        // Note: We only delete these keys if either we have enough good keys OR if we successfully
-        // replenish. This is to avoid ending up in a situation where we don't have keys left!
-
-        Logger.i(TAG, "Before reader key replenishing: $numReaderKeys keys ($numGoodKeys good)")
-
-        // Only replenish if we are running below 50%...
-        if (numGoodKeys > numReaderKeys / 2) {
-            toDelete.forEach {
-                try {
-                    secureArea.deleteKey(it.second.alias)
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    Logger.w(TAG, "Error deleting key from SecureArea", e)
-                }
-                certifiedKeysTable.delete(it.first)
-                certifiedKeys!!.remove(it.first)
-            }
-            Logger.i(TAG, "Not replenishing reader keys")
-            return 0
-        }
-        val numKeysNeeded = numReaderKeys - numGoodKeys
-
-        val keysToCertify = mutableListOf<KeyInfo>()
-        repeat(numKeysNeeded) {
-            keysToCertify.add(secureArea.createKey(null, CreateKeySettings()))
-        }
-
-        val walletBackend = getWalletBackend()
-        val readerCertifications = withContext(session) {
-            try {
-                walletBackend.certifyReaderKeys(
-                    readerKeys = keysToCertify.map { it.attestation }
-                )
-            } catch (e: WalletBackendNotSignedInException) {
-                handleNotSignedInException(e)
-            }
-        }
-        check(readerCertifications.size == keysToCertify.size)
-        Logger.i(TAG, "Retrieved ${readerCertifications.size} new reader keys")
-
-        var n = 0
-        for (readerCertification in readerCertifications) {
-            // Refresh a key once it's past two thirds of its life. We do b/c otherwise folks might have
-            // certificates w/ very little life left (say, 1 day) and then they turn on Airplane Mode (or
-            // otherwise lose Internet connectivity) and then verification won't work.
-            //
-            val validFrom = readerCertification.certificates[0].validityNotBefore
-            val validUntil = readerCertification.certificates[0].validityNotAfter
-            val validFor = validUntil - validFrom
-            val refreshAt = validFrom + validFor * 2 / 3
-            val keyInfo = keysToCertify[n++]
-            val certifiedKey = CertifiedKey(
-                alias = keyInfo.alias,
-                certification = readerCertification,
-                validFrom = validFrom,
-                validUntil = validUntil,
-                refreshAt = refreshAt,
-                forReaderIdentity = readerIdentityId,
-            )
-            val id = certifiedKeysTable.insert(
-                key = null,
-                data = ByteString(certifiedKey.toCbor())
-            )
-            certifiedKeys!!.put(id, certifiedKey)
-        }
-
-        toDelete.forEach {
-            try {
-                secureArea.deleteKey(it.second.alias)
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Logger.w(TAG, "Error deleting key from SecureArea", e)
-            }
-            certifiedKeysTable.delete(it.first)
-            certifiedKeys!!.remove(it.first)
-        }
-        return readerCertifications.size
-    }
-
     /**
      * Gets a reader authentication key.
      *
@@ -1267,40 +1134,10 @@ class WalletClient private constructor(
     suspend fun getReaderKey(
         atTime: Instant = Clock.System.now()
     ): Pair<KeyInfo, X509CertChain> {
-        lock.withLock {
-            ensureCertifiedKeys()
-            try {
-                ensureReplenished(
-                    readerIdentityId = null,
-                    atTime = atTime
-                )
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                Logger.w(TAG, "Ignoring error replenishing keys", e)
-            }
-            // Return the oldest valid certificate whose key exists in SecureArea
-            val sortedCertifiedKeys = certifiedKeys!!.values
-                .filter { it.validFrom < atTime && atTime < it.validUntil }
-                .sortedBy { it.validFrom }
-            val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
-            for (certifiedKey in sortedCertifiedKeys) {
-                val keyInfo = try {
-                    secureArea!!.getKeyInfo(certifiedKey.alias)
-                } catch (e: IllegalArgumentException) {
-                    Logger.w(TAG, "Key ${certifiedKey.alias} missing from SecureArea, removing from certifiedKeys", e)
-                    val entry = certifiedKeys!!.entries.find { it.value.alias == certifiedKey.alias }
-                    if (entry != null) {
-                        certifiedKeysTable.delete(entry.key)
-                        certifiedKeys!!.remove(entry.key)
-                    }
-                    null
-                }
-                if (keyInfo != null) {
-                    return Pair(keyInfo, certifiedKey.certification)
-                }
-            }
-            throw IllegalStateException("No currently valid keys available")
-        }
+        val manager = readerKeyManager
+            ?: throw IllegalStateException("SecureArea is null")
+        val certifiedKey = manager.getKey(atTime)
+        return Pair(certifiedKey.keyInfo, certifiedKey.certChain)
     }
 
     /**
@@ -1318,48 +1155,16 @@ class WalletClient private constructor(
         keyInfo: KeyInfo,
         atTime: Instant = Clock.System.now()
     ) {
-        withContext(NonCancellable) {
-            lock.withLock {
-                ensureCertifiedKeys()
-                val entry = certifiedKeys!!.entries.find { (key, certifiedKey) ->
-                    certifiedKey.alias == keyInfo.alias
-                } ?: throw IllegalArgumentException("No such certified key to mark as used")
-
-                // If this was the last key, replenish immediately. If that fails (e.g. no Internet connectivity)
-                // leave the key around but mark that it's already been used
-                if (certifiedKeys!!.size == 1) {
-                    try {
-                        ensureReplenished(readerIdentityId = null, atTime)
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        Logger.w(TAG, "Ignoring error replenishing keys so keeping around last key", e)
-                        return@withLock
-                    }
-                }
-
-                val certifiedKeysTable = storage.getTable(certifiedKeysSpec)
-                try {
-                    secureArea!!.deleteKey(entry.value.alias)
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    Logger.w(TAG, "Error deleting key from SecureArea", e)
-                }
-                certifiedKeysTable.delete(key = entry.key)
-                certifiedKeys!!.remove(entry.key)
-            }
-        }
+        val manager = readerKeyManager
+            ?: throw IllegalStateException("SecureArea is null")
+        manager.markKeyAsUsed(keyInfo, atTime)
     }
 
     /**
      * Clears all reader keys.
      */
     suspend fun clearReaderKeys() {
-        if (numReaderKeys == 0) {
-            return
-        }
-        lock.withLock {
-            clearReaderKeysLocked()
-        }
+        readerKeyManager?.clearKeys()
     }
 
     /**
@@ -1368,12 +1173,7 @@ class WalletClient private constructor(
      * @return the number of reader keys that were newly certified / replenished.
      */
     suspend fun refreshReaderKeys(): Int {
-        if (numReaderKeys == 0) {
-            return 0
-        }
-        return lock.withLock {
-            ensureReplenished()
-        }
+        return readerKeyManager?.refreshKeys() ?: 0
     }
 
     suspend fun createVerificationLink(
@@ -1475,12 +1275,6 @@ class WalletClient private constructor(
         private const val ENCRYPTION_KEY_KEY = "EncryptionKey"
         private val encryptionKeyTableSpec = StorageTableSpec(
             name = "EncryptionKey",
-            supportExpiration = false,
-            supportPartitions = false
-        )
-
-        private val certifiedKeysSpec = StorageTableSpec(
-            name = "CertifiedKeys",
             supportExpiration = false,
             supportPartitions = false
         )
