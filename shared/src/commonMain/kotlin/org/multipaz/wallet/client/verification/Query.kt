@@ -40,10 +40,37 @@ import kotlin.time.Instant
 
 private const val TAG = "Query"
 
+/**
+ * Base class for queries requesting digital credentials from a holder.
+ *
+ * A [Query] encapsulates the high-level verification requirement consisting of one or more [documentQueries].
+ * It provides methods to generate request payloads for different verification transport protocols—such as the
+ * W3C Digital Credentials API ([generateDcRequest]) and ISO/IEC 18013-5 proximity engagement ([generateDeviceRequest])—
+ * and to process verified presentations returned by a holder ([processVerifiedPresentations]).
+ *
+ * @property documentQueries The list of [DocumentQuery] requirements that must be satisfied.
+ */
 @CborSerializable
 sealed class Query(
     open val documentQueries: List<DocumentQuery>
 ) {
+    /**
+     * Generates a request for the W3C Digital Credentials API (DC API).
+     *
+     * Constructs a pair of CBOR [DataItem]s: the first is an encoded [DeviceRequest] formatted for DC API
+     * presentation, and the second is the `encryptionInfo` structure containing the verifier's ephemeral public key
+     * and nonce for response encryption.
+     *
+     * @param nonce Nonce supplied by the caller/verifier to ensure freshness.
+     * @param origin The origin URI of the calling application or web page.
+     * @param responseEncryptionKey Public key used by the holder to encrypt the returned credentials.
+     * @param readerAuthKey Optional reader authentication key with an X.509 certificate chain.
+     * @param intentToRetain Whether the verifier intends to retain the received data elements.
+     * @param issuerIdentifiers Optional list of trusted issuer identifier byte strings to restrict accepted issuers.
+     * @return A [Pair] containing the encoded device request [DataItem] and the encryption info [DataItem].
+     * @throws IllegalArgumentException If [documentQueries] does not contain exactly one document query.
+     */
+    @Throws(IllegalArgumentException::class)
     suspend fun generateDcRequest(
         nonce: ByteString,
         origin: String,
@@ -84,6 +111,18 @@ sealed class Query(
         return Pair(deviceRequest.toDataItem(), encryptionInfo)
     }
 
+    /**
+     * Generates an ISO/IEC 18013-5 [DeviceRequest] for proximity verification or custom session transcripts.
+     *
+     * @param deviceEngagement Optional CBOR [DataItem] representing holder device engagement data.
+     * @param sessionTranscript The CBOR [DataItem] encoding the session transcript.
+     * @param readerAuthKey Optional reader authentication key with an X.509 certificate chain.
+     * @param intentToRetain Whether the verifier intends to retain the received data elements.
+     * @param issuerIdentifiers Optional list of trusted issuer identifier byte strings to restrict accepted issuers.
+     * @return The constructed [DeviceRequest].
+     * @throws IllegalArgumentException If [documentQueries] does not contain exactly one document query.
+     */
+    @Throws(IllegalArgumentException::class)
     suspend fun generateDeviceRequest(
         deviceEngagement: DataItem?,
         sessionTranscript: DataItem,
@@ -148,6 +187,18 @@ sealed class Query(
         }
     }
 
+    /**
+     * Processes a list of verified presentations returned by the holder and evaluates issuer trust.
+     *
+     * For each [VerifiedPresentation], verifies the document signer certificate chain using [issuerTrustManager]
+     * at [atTime], matches the presentation against the corresponding [IsoMdocRequest] or [SdJwtVcRequest],
+     * and constructs the resulting [DocumentQueryResult].
+     *
+     * @param verifiedPresentation The list of verified credential presentations received from the holder.
+     * @param issuerTrustManager Trust manager used to validate issuer certificates.
+     * @param atTime The point in time at which certificate validity and revocation should be evaluated.
+     * @return A [Result] containing this query and the list of processed [DocumentQueryResult]s.
+     */
     suspend fun processVerifiedPresentations(
         verifiedPresentation: List<VerifiedPresentation>,
         issuerTrustManager: TrustManagerInterface,
@@ -213,5 +264,8 @@ sealed class Query(
         )
     }
 
+    /**
+     * Companion object for CBOR serialization and deserialization of [Query] instances.
+     */
     companion object
 }

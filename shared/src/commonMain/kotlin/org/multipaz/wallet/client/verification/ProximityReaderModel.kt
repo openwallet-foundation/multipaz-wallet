@@ -31,12 +31,40 @@ import kotlin.time.Duration
 
 private const val TAG = "ProximityReaderModel"
 
+/**
+ * State machine and orchestrator for proximity-based ISO/IEC 18013-5 mdoc verification.
+ *
+ * Coordinates device engagement, reader key generation, session transcript construction,
+ * transport negotiation (NFC / BLE), request transmission, and response decryption.
+ */
 class ProximityReaderModel {
+    /**
+     * States of the proximity reader state machine.
+     */
     enum class State {
+        /**
+         * The reader model is idle and ready to accept device engagement and handover data via [setConnectionEndpoint].
+         */
         IDLE,
+
+        /**
+         * Device engagement and handover have been configured; waiting for a query and device request via [setDeviceRequest].
+         */
         WAITING_FOR_DEVICE_REQUEST,
+
+        /**
+         * Device request has been set; waiting for verification to begin via [start].
+         */
         WAITING_FOR_START,
+
+        /**
+         * The reader is actively connecting to the holder device and exchanging messages.
+         */
         CONNECTING,
+
+        /**
+         * The reader flow has finished (either successfully or with an error) and resources have been cleaned up.
+         */
         COMPLETED,
     }
 
@@ -74,10 +102,20 @@ class ProximityReaderModel {
         get() = _error
 
     private var _result: ProximityReaderModelResult? = null
+
+    /**
+     * The result of the proximity verification exchange, or `null` if verification has not completed successfully.
+     */
     val result: ProximityReaderModelResult?
         get() = _result
 
     private var _sessionTranscript: DataItem? = null
+
+    /**
+     * The CBOR session transcript for the active verification session.
+     *
+     * @throws IllegalStateException If read when in [State.IDLE] or [State.COMPLETED].
+     */
     val sessionTranscript: DataItem
         get() {
             check(_state.value != State.IDLE && _state.value != State.COMPLETED)
@@ -86,12 +124,21 @@ class ProximityReaderModel {
 
     private var deviceEngagement: DeviceEngagement? = null
     private var _eReaderKey: EcPrivateKey? = null
+
+    /**
+     * The reader's ephemeral private key used for session encryption.
+     *
+     * @throws IllegalStateException If read when in [State.IDLE] or [State.COMPLETED].
+     */
     val eReaderKey: EcPrivateKey
         get() {
             check(_state.value != State.IDLE && _state.value != State.COMPLETED)
             return _eReaderKey!!
         }
 
+    /**
+     * Resets the reader model back to [State.IDLE], canceling any running reader session and clearing all state.
+     */
     fun reset() {
         sessionJob?.cancel(CancellationException("ReaderModel reset"))
         sessionJob = null
@@ -119,10 +166,28 @@ class ProximityReaderModel {
     private var nfcHandoverType: MdocHandoverType? = null
     private var durationNfcTapToEngagement: Duration? = null
 
+    /**
+     * Configures transport options (e.g. BLE transport parameters) to use when creating the mdoc reader transport.
+     *
+     * @param options The [MdocTransportOptions] to configure.
+     */
     fun setMdocTransportOptions(options: MdocTransportOptions) {
         mdocTransportOptions = options
     }
 
+    /**
+     * Configures the connection endpoint following device engagement and handover.
+     *
+     * Transitions the state from [State.IDLE] to [State.WAITING_FOR_DEVICE_REQUEST].
+     *
+     * @param deviceEngagement CBOR [DataItem] containing the holder's device engagement.
+     * @param handover CBOR [DataItem] containing the handover structure (e.g. NFC handover or QR engagement handover).
+     * @param existingTransport Optional pre-established [MdocTransport], if available.
+     * @param nfcHandoverType Optional NFC handover type if NFC engagement was used.
+     * @param durationNfcTapToEngagement Optional measured duration from NFC tap to engagement.
+     * @throws IllegalStateException If the current state is not [State.IDLE].
+     */
+    @Throws(IllegalStateException::class)
     suspend fun setConnectionEndpoint(
         deviceEngagement: DataItem,
         handover: DataItem,
@@ -151,6 +216,16 @@ class ProximityReaderModel {
         _state.value = State.WAITING_FOR_DEVICE_REQUEST
     }
 
+    /**
+     * Sets the verification query and device request to transmit to the holder.
+     *
+     * Transitions the state from [State.WAITING_FOR_DEVICE_REQUEST] to [State.WAITING_FOR_START].
+     *
+     * @param query The [Query] being executed.
+     * @param deviceRequest The ISO/IEC 18013-5 [DeviceRequest] to send.
+     * @throws IllegalStateException If the current state is not [State.WAITING_FOR_DEVICE_REQUEST].
+     */
+    @Throws(IllegalStateException::class)
     fun setDeviceRequest(
         query: Query,
         deviceRequest: DeviceRequest
@@ -162,8 +237,15 @@ class ProximityReaderModel {
     }
 
     /**
-     * Sets the model to [State.CONNECTING].
+     * Starts the proximity reader communication flow with the holder device.
+     *
+     * Transitions the state from [State.WAITING_FOR_START] to [State.CONNECTING]. The reader session runs
+     * asynchronously in the provided [scope].
+     *
+     * @param scope The [CoroutineScope] in which to launch the reader communication flow.
+     * @throws IllegalStateException If the current state is not [State.WAITING_FOR_START].
      */
+    @Throws(IllegalStateException::class)
     fun start(
         scope: CoroutineScope,
     ) {

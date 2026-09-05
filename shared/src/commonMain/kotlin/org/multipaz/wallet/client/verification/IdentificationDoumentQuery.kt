@@ -16,10 +16,27 @@ import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.util.fromBase64Url
 import org.multipaz.verification.MdocVerifiedPresentation
 
+/**
+ * A [DocumentQuery] requesting identity verification claims (name, birth date, portrait, and optionally street address).
+ *
+ * Generates candidate requests across supported identity document types and formats:
+ * - ISO/IEC 18013-5 Mobile Driving License (mDL)
+ * - ISO/IEC 23220-4 Photo ID
+ * - European Union Personal Identification (EU PID) in both ISO mdoc and SD-JWT VC formats
+ * - Indian Aadhaar
+ * - Google Wallet ID Pass
+ *
+ * @property requestStreetAddress Whether to request the holder's resident address.
+ */
 data class IdentificationDocumentQuery(
     val requestStreetAddress: Boolean
 ): DocumentQuery() {
 
+    /**
+     * Returns candidate requests for all supported identity document types.
+     *
+     * @return A list of candidate [Request]s configured for identity verification.
+     */
     override fun getRequests(): List<Request> = listOf(
         // Mobile Driving License
         IsoMdocRequest(

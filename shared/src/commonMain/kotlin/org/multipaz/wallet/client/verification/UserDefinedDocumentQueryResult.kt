@@ -8,8 +8,14 @@ import org.multipaz.trustmanagement.TrustResult
 /**
  * Result of a user-defined document query.
  *
+ * @property trustResult Trust verification result for the document signer certificate chain.
+ * @property documentType The well-known [DocumentType] that satisfied the query, or `null` for custom types.
+ * @property issuingAuthority The issuing authority of the document, if known.
+ * @property issuingCountryCode The issuing country code of the issuer, if known.
+ * @property revocationStatus Revocation status of the document, if available.
+ * @property certificateChain Signer certificate chain of the document, if available.
  * @property docType The requested document type string.
- * @property elements Map of namespace name to a map of data element name to CBOR DataItem.
+ * @property elements Map of namespace name to a map of data element name to CBOR [DataItem].
  */
 data class UserDefinedDocumentQueryResult(
     override val trustResult: TrustResult,

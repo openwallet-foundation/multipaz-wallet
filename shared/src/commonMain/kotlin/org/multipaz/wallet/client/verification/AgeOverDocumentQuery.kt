@@ -36,10 +36,27 @@ internal fun List<MdocClaim>.claimsInNamespace(namespace: String): Map<String, M
     return claimsInNamespace
 }
 
+/**
+ * A [DocumentQuery] requesting proof that the credential holder exceeds [ageOver] years of age.
+ *
+ * Generates candidate requests across supported document types and formats:
+ * - ISO/IEC 18013-5 Mobile Driving License (mDL)
+ * - ISO/IEC 23220-4 Photo ID
+ * - European Union Personal Identification (EU PID) in both ISO mdoc and SD-JWT VC formats
+ * - Indian Aadhaar
+ * - Google Wallet ID Pass
+ *
+ * @property ageOver The threshold age in years that the holder must exceed.
+ */
 data class AgeOverDocumentQuery(
     val ageOver: Int
 ): DocumentQuery() {
 
+    /**
+     * Returns candidate requests for all supported document types capable of proving age over [ageOver].
+     *
+     * @return A list of candidate [Request]s configured for age-over verification.
+     */
     override fun getRequests(): List<Request> = listOf(
         // Mobile Driving License
         IsoMdocRequest(

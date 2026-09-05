@@ -4,10 +4,23 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.verification.MdocVerifiedPresentation
 
+/**
+ * A [DocumentQuery] requesting driving privileges, driver identity, and portrait from a mobile driving license (mDL).
+ *
+ * Requests the `org.iso.18013.5.1` namespace elements from an ISO/IEC 18013-5 mdoc, including `driving_privileges`,
+ * `portrait`, `given_name`, `family_name`, `birth_date`, `issuing_authority`, and `issuing_country`.
+ *
+ * @property unused Reserved for future options.
+ */
 data class DrivingPrivilegesDocumentQuery(
     val unused: Boolean = false
 ): DocumentQuery() {
 
+    /**
+     * Returns the list of format-specific requests for driving privileges verification.
+     *
+     * @return A list containing the [IsoMdocRequest] for mDL driving privileges.
+     */
     override fun getRequests(): List<Request> = listOf(
         // Mobile Driving License
         IsoMdocRequest(

@@ -10,11 +10,35 @@ import org.multipaz.mdoc.request.DeviceRequest
 import org.multipaz.mdoc.request.DocRequestInfo
 import org.multipaz.mdoc.request.ElementReference
 
+/**
+ * Base class representing a requirement for a specific document or credential in a verification interaction.
+ *
+ * A [DocumentQuery] defines the logical claims or data elements needed to satisfy a requirement (such as identity,
+ * driving privileges, or age verification). It can be satisfied by multiple credential formats and profiles, represented
+ * by a list of format-specific [Request] instances (such as [IsoMdocRequest] or [SdJwtVcRequest]) returned by [getRequests].
+ */
 @CborSerializable
 sealed class DocumentQuery {
 
+    /**
+     * Returns the list of format-specific candidate [Request]s that can satisfy this document query.
+     *
+     * @return A list of candidate [Request]s (e.g. [IsoMdocRequest], [SdJwtVcRequest]).
+     */
     abstract fun getRequests(): List<Request>
 
+    /**
+     * Adds document requests corresponding to this query to the given [DeviceRequest.Builder].
+     *
+     * Configures the requested document types, namespaces, data elements, alternatives, retention intent,
+     * and reader authentication keys for each candidate format supported by this query.
+     *
+     * @param deviceRequest The [DeviceRequest.Builder] to which the document requests will be added.
+     * @param intentToRetain Whether the verifier intends to retain the requested data elements.
+     * @param readerKey Optional reader authentication key with an X.509 certificate chain.
+     * @param issuerIdentifiers Optional list of trusted issuer identifier byte strings.
+     * @return The number of document requests added to the builder.
+     */
     suspend fun addDocRequests(
         deviceRequest: DeviceRequest.Builder,
         intentToRetain: Boolean,
@@ -125,6 +149,9 @@ sealed class DocumentQuery {
         return requests.size
     }
 
+    /**
+     * Companion object for CBOR serialization and deserialization of [DocumentQuery] instances.
+     */
     companion object
 }
 

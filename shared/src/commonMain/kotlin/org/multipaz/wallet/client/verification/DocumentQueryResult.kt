@@ -6,7 +6,7 @@ import org.multipaz.revocation.RevocationStatus
 import org.multipaz.trustmanagement.TrustResult
 
 /**
- * Base class for documents that are returned as for a query.
+ * Base class for documents that are returned for a query.
  *
  * @property trustResult A [TrustResult] indicating whether the issuer of the document is trusted or not.
  * @property documentType The type of document returned, if known.
@@ -35,6 +35,14 @@ val DocumentQueryResult.portrait: ByteString?
         is UserDefinedDocumentQueryResult -> extractPortraitImage()
     }
 
+/**
+ * Checks whether the given byte array represents a JPEG 2000 image.
+ *
+ * Checks for both JP2 file format header (`0x0000000C6A5020200D0A870A`) and J2K codestream header (`0xFF4FFF51`).
+ *
+ * @param bytes The raw bytes to inspect.
+ * @return `true` if the bytes match a JPEG 2000 signature; `false` otherwise.
+ */
 fun isJpeg2000(bytes: ByteArray): Boolean {
     val isJpeg2000Jp2 = bytes.size >= 12 &&
             (bytes[0].toInt() and 0xFF == 0x00) &&
@@ -57,6 +65,12 @@ fun isJpeg2000(bytes: ByteArray): Boolean {
     return isJpeg2000Jp2 || isJpeg2000J2k
 }
 
+/**
+ * Checks whether the given byte array represents a supported image format (JPEG, PNG, or JPEG 2000).
+ *
+ * @param bytes The raw bytes to inspect.
+ * @return `true` if the bytes match a JPEG, PNG, or JPEG 2000 header and meet the minimum size requirement; `false` otherwise.
+ */
 fun isJpegOrPng(bytes: ByteArray): Boolean {
     if (bytes.size < 500) return false
     val isJpeg = bytes.size >= 3 &&
