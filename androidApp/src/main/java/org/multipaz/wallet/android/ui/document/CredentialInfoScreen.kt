@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -414,6 +415,42 @@ private fun CredentialInfoSection(
                 }
             }
         )
+        if (credentialInfo.credential is MdocCredential && credentialInfo.credential.isCertified) {
+            val keyAuthorizationsText = try {
+                val mso = (credentialInfo.credential as MdocCredential).mso
+                val authorizedNamespaces = mso.deviceKeyAuthorizedNamespaces
+                val authorizedDataElements = mso.deviceKeyAuthorizedDataElements
+                if (authorizedNamespaces.isEmpty() && authorizedDataElements.isEmpty()) {
+                    AnnotatedString("None")
+                } else {
+                    buildAnnotatedString {
+                        val allNamespaces = (authorizedNamespaces + authorizedDataElements.keys).distinct().sorted()
+                        for ((index, ns) in allNamespaces.withIndex()) {
+                            if (index > 0) {
+                                append("\n")
+                            }
+                            append("• $ns")
+                            if (ns in authorizedNamespaces) {
+                                append("\n  - (all data elements)")
+                            } else {
+                                val elements = authorizedDataElements[ns] ?: emptyList()
+                                for (elem in elements) {
+                                    append("\n  - $elem")
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Logger.w(TAG, "Error getting MSO key authorizations", e)
+                AnnotatedString("Error parsing MSO")
+            }
+            FloatingItemHeadingAndText(
+                heading = "Device Key Authorizations",
+                text = keyAuthorizationsText
+            )
+        }
     } else {
         FloatingItemHeadingAndText("Secure Area", "N/A")
     }
