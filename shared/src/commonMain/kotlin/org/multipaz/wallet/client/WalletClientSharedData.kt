@@ -410,6 +410,51 @@ suspend fun DocumentStore.deleteDocumentFromWalletBackend(
 }
 
 /**
+ * Reverts a provisioned document back to a placeholder document that needs setup.
+ *
+ * This creates a new placeholder [Document] in the [DocumentStore] with the same
+ * provisioned document identifier and metadata, sets `provisionedDocumentSetupNeeded = true`,
+ * and deletes the old provisioned [Document] (and all its local credentials).
+ * The entry in [WalletClientSharedData] on the backend is left intact.
+ *
+ * @receiver the [DocumentStore] managing the documents.
+ * @param document the provisioned [Document] to unsetup.
+ * @param walletClient the [WalletClient] containing the shared data, if available.
+ * @return the newly created placeholder [Document].
+ * @throws Exception if the document does not have a provisioned document identifier or an error occurs.
+ */
+@Throws(Exception::class)
+suspend fun DocumentStore.unsetupDocument(
+    document: Document,
+    walletClient: WalletClient? = null,
+): Document {
+    val provDocId = document.provisionedDocumentIdentifier
+        ?: throw IllegalArgumentException("Document does not have a provisioned document identifier")
+    val provisionedDocument = walletClient?.sharedData?.value?.provisionedDocuments?.find {
+        it.identifier == provDocId
+    }
+    val existingPreconsent = document.preconsentSetting
+    val placeholder = createDocument(
+        displayName = provisionedDocument?.displayName ?: document.displayName,
+        typeDisplayName = provisionedDocument?.typeDisplayName ?: document.typeDisplayName,
+        cardArt = provisionedDocument?.cardArt ?: document.cardArt,
+        issuerLogo = document.issuerLogo,
+    )
+    withContext(NonCancellable) {
+        placeholder.setProvisionedDocumentIdentifier(provDocId)
+        placeholder.setProvisionedDocumentSetupNeeded(true)
+        placeholder.setPreconsentSetting(existingPreconsent)
+    }
+    deleteDocument(document.identifier)
+    Logger.i(
+        TAG,
+        "unsetupDocument: Replaced document ${document.identifier} with placeholder ${placeholder.identifier}"
+    )
+    return placeholder
+}
+
+
+/**
  * Monitors [WalletClient.signedInUser] and deletes all documents in [this] [DocumentStore]
  * whenever [WalletClient.signedInUser] transitions from non-null to `null`.
  *

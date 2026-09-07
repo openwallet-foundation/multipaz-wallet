@@ -145,6 +145,7 @@ import org.multipaz.wallet.client.isSyncing
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.setProvisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
+import org.multipaz.wallet.client.unsetupDocument
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
@@ -399,6 +400,13 @@ fun mainGraph(
                         onDocumentSyncClicked = { documentInfo ->
                             backStack.add(DeviceSessionsDestination)
                         },
+                        onDocumentUnsetupClicked = { documentInfo ->
+                            backStack.add(
+                                UnsetupDocumentConfirmationDialogDestination(
+                                    documentId = documentInfo.document.identifier
+                                )
+                            )
+                        },
                         onDocumentPreconsentSettingsClicked = { documentInfo ->
                             backStack.add(DocumentPreconsentSettingsDestination(documentInfo.document.identifier))
                         },
@@ -469,6 +477,69 @@ fun mainGraph(
                         val lastKey = backStack.lastOrNull()
                         if (lastKey is WalletDestination && lastKey.documentId == key.documentId) {
                             backStack.removeAt(backStack.size - 1)
+                        }
+                    }
+                )
+            }
+            is UnsetupDocumentConfirmationDialogDestination -> NavEntry(
+                key = key,
+                metadata = DialogSceneStrategy.dialog()
+            ) {
+                ConfirmationDialog(
+                    title = stringResource(R.string.app_navigation_unsetup_document_title),
+                    textMarkdown = stringResource(R.string.app_navigation_unsetup_document_text),
+                    confirmButtonText = stringResource(R.string.app_navigation_unsetup_document_confirm),
+                    isDestructive = true,
+                    onDismissed = { backStack.removeAt(backStack.size - 1) },
+                    onConfirmClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                        coroutineScope.launch {
+                            try {
+                                val oldDoc = documentStore.lookupDocument(key.documentId)
+                                if (oldDoc != null) {
+                                    val placeholder = documentStore.unsetupDocument(
+                                        document = oldDoc,
+                                        walletClient = walletClient
+                                    )
+                                    val oldIndex = documentModel.documentInfos.value.indexOfFirst {
+                                        it.document.identifier == oldDoc.identifier
+                                    }
+                                    if (oldIndex != -1) {
+                                        val newDocInfo = documentModel.documentInfos.first { list ->
+                                            list.any { it.document.identifier == placeholder.identifier }
+                                        }.find { it.document.identifier == placeholder.identifier }
+                                        if (newDocInfo != null) {
+                                            documentModel.setDocumentPosition(newDocInfo, oldIndex)
+                                        }
+                                    }
+                                    val order = verticalCardListState.model.displayOrderIdentifiers.toMutableList()
+                                    val idx = order.indexOf(oldDoc.identifier)
+                                    if (idx != -1) {
+                                        order[idx] = placeholder.identifier
+                                        verticalCardListState.model.displayOrderIdentifiers = order
+                                    }
+                                    verticalCardListState.model.lastFocusedCardIdentifier = placeholder.identifier
+                                    val currentIdx = backStack.indexOfLast {
+                                        it is WalletDestination && it.documentId == oldDoc.identifier
+                                    }
+                                    if (currentIdx != -1) {
+                                        backStack[currentIdx] = WalletDestination(
+                                            documentId = placeholder.identifier,
+                                            animateListTransitions = false
+                                        )
+                                    }
+                                    showToast(context.getString(R.string.wallet_screen_unsetup_success))
+                                }
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Logger.e(TAG, "Error unsetting up document", e)
+                                showToast(
+                                    context.getString(
+                                        R.string.wallet_screen_unsetup_error,
+                                        e.message ?: e.toString()
+                                    )
+                                )
+                            }
                         }
                     }
                 )

@@ -216,6 +216,7 @@ fun WalletScreen(
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentUnsetupClicked: (documentInfo: DocumentInfo) -> Unit = {},
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit,
     onBackClicked: () -> Unit,
     onRefresh: suspend () -> Unit = {},
@@ -643,6 +644,7 @@ fun WalletScreen(
                                 onDocumentRemoveClicked = onDocumentRemoveClicked,
                                 onDocumentSetupClicked = onDocumentSetupClicked,
                                 onDocumentSyncClicked = onDocumentSyncClicked,
+                                onDocumentUnsetupClicked = onDocumentUnsetupClicked,
                                 onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
                             )
                         },
@@ -768,6 +770,7 @@ private fun DocumentInfoContent(
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentUnsetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
     var showJustAdded by remember { mutableStateOf(justAdded) }
@@ -798,6 +801,7 @@ private fun DocumentInfoContent(
                     onDocumentRemoveClicked = onDocumentRemoveClicked,
                     onDocumentSetupClicked = onDocumentSetupClicked,
                     onDocumentSyncClicked = onDocumentSyncClicked,
+                    onDocumentUnsetupClicked = onDocumentUnsetupClicked,
                     onDocumentPreconsentSettingsClicked = onDocumentPreconsentSettingsClicked
                 )
             }
@@ -816,8 +820,10 @@ private fun DocumentInfoContentReal(
     onDocumentRemoveClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentSyncClicked: (documentInfo: DocumentInfo) -> Unit,
+    onDocumentUnsetupClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val iconSize = 24.dp
     if (documentInfo.isProximityPresentable) {
         var showHoldToReader by remember { mutableStateOf(false) }
@@ -880,8 +886,15 @@ private fun DocumentInfoContentReal(
                                 onDocumentSyncClicked(documentInfo)
                             }
                         },
-                        onLongClick = if (devMode && setupNeeded) {
-                            { onDocumentInfoExtrasClicked(documentInfo) }
+                        onLongClick = if (devMode) {
+                            if (setupNeeded) {
+                                { onDocumentInfoExtrasClicked(documentInfo) }
+                            } else {
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onDocumentUnsetupClicked(documentInfo)
+                                }
+                            }
                         } else null
                     ),
                     showChevron = true,

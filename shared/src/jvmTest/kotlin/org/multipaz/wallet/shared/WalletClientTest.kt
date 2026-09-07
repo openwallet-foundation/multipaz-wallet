@@ -74,10 +74,12 @@ import org.multipaz.wallet.client.mapSharedDocumentOrderToLocal
 import org.multipaz.wallet.client.mpzPassData
 import org.multipaz.wallet.client.preconsentSetting
 import org.multipaz.wallet.client.provisionedDocumentIdentifier
+import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.client.setPreconsentSetting
 import org.multipaz.wallet.client.setProvisionedDocumentIdentifier
 import org.multipaz.wallet.client.syncWithSharedData
 import org.multipaz.wallet.client.toCbor
+import org.multipaz.wallet.client.unsetupDocument
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
@@ -2210,6 +2212,79 @@ class WalletClientTest {
 
         // Verify shared data documentOrder is now null (empty list becomes null)
         assertNull(client.sharedData.value!!.documentOrder)
+    }
+
+    @Test
+    fun unsetupDocument() = runTest {
+        val provDoc1 = getProvisionedDocument1()
+
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+
+        val fooUser = WalletClientSignedInUser(
+            id = "foo@gmail.com",
+            displayName = "Foo Bar",
+            profilePicture = ByteString(4, 5, 6)
+        )
+        val fooEncryptionKey = ByteString(Random.nextBytes(32))
+
+        val clientStorage = EphemeralStorage()
+        val clientSecureArea = SoftwareSecureArea.create(clientStorage)
+        val client = createWalletClientBase(clientStorage, clientSecureArea)
+        val clientNonce = client.getNonce()
+        client.signInWithGoogle(
+            nonce = clientNonce,
+            googleIdTokenString = TestWalletBackendImpl.buildTestGoogleIdTokenString(
+                nonce = clientNonce,
+                id = fooUser.id
+            ),
+            signedInUser = fooUser,
+            walletBackendEncryptionKey = fooEncryptionKey,
+            resetSharedData = false
+        )
+        val documentStore = buildDocumentStore(
+            storage = clientStorage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        // Add provDoc1 to shared data
+        client.setSharedData(
+            client.sharedData.value!!
+                .addProvisionedDocument(provDoc1)
+                .copy(documentOrder = listOf(provDoc1.identifier))
+        )
+
+        // Create a provisioned document locally (not a placeholder, setupNeeded = false)
+        val provisionedDoc = documentStore.createDocument(
+            displayName = provDoc1.displayName,
+            typeDisplayName = provDoc1.typeDisplayName,
+            cardArt = provDoc1.cardArt,
+        )
+        provisionedDoc.setProvisionedDocumentIdentifier(provDoc1.identifier)
+        assertFalse(provisionedDoc.provisionedDocumentSetupNeeded)
+
+        val oldDocId = provisionedDoc.identifier
+
+        // Unsetup the document
+        val placeholder = documentStore.unsetupDocument(provisionedDoc, client)
+
+        // Verify the old document was deleted
+        assertNull(documentStore.lookupDocument(oldDocId))
+
+        // Verify the placeholder has setupNeeded = true and same identifier
+        assertNotNull(documentStore.lookupDocument(placeholder.identifier))
+        assertEquals(provDoc1.identifier, placeholder.provisionedDocumentIdentifier)
+        assertTrue(placeholder.provisionedDocumentSetupNeeded)
+        assertEquals(provDoc1.displayName, placeholder.displayName)
+        assertEquals(provDoc1.typeDisplayName, placeholder.typeDisplayName)
+        assertEquals(provDoc1.cardArt, placeholder.cardArt)
+
+        // Verify shared data on backend remains intact
+        assertNotNull(client.sharedData.value!!.provisionedDocuments?.find { it.identifier == provDoc1.identifier })
+        assertEquals(listOf(provDoc1.identifier), client.sharedData.value!!.documentOrder)
     }
 }
 

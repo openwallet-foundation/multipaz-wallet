@@ -71,6 +71,8 @@
     <string name="wallet_screen_syncs_to_account">Synced to your account</string>
     <string name="wallet_screen_setup">Complete setup…</string>
     <string name="wallet_screen_ready_to_use_on_this_device">Ready to use on this device</string>
+    <string name="wallet_screen_unsetup_success">Reset to setup required</string>
+    <string name="wallet_screen_unsetup_error">Failed to reset document: %1$s</string>
     <string name="wallet_screen_activity">View and manage activity</string>
     <string name="wallet_screen_document_type_name_fallback">Pass</string>
     <string name="wallet_screen_document_info">%1$s info</string>
@@ -319,6 +321,9 @@
     <string name="app_navigation_remove_document_text">This pass will be removed from your wallet and if you want to add it again, you will need to start the process from the beginning.</string>
     <string name="app_navigation_remove_document_text_syncing">This pass will be removed from your wallet on all devices you are signed in to.\n\nIf you want to add it again, you will need to start the process from the beginning.</string>
     <string name="app_navigation_remove_document_confirm">Remove</string>
+    <string name="app_navigation_unsetup_document_title">Reset to setup required?</string>
+    <string name="app_navigation_unsetup_document_text">This will remove this document from this device and return it to the state where it needs to be set up.\n\nOther devices linked to your account will not be affected.</string>
+    <string name="app_navigation_unsetup_document_confirm">Reset</string>
     <string name="app_navigation_disable_activity_log_title">Disable activity log?</string>
     <string name="app_navigation_disable_activity_log_text">The events in the activity log will be deleted and no further activity will be logged.</string>
     <string name="app_navigation_disable_activity_log_confirm">Disable</string>
