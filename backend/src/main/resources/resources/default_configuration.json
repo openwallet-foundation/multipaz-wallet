@@ -60,9 +60,7 @@
     },
     "ios": {
       "release_build": false,
-      "app_identifiers": [
-        "VKE2G3K56V.org.multipaz.wallet.iosApp"
-      ],
+      "app_identifiers": [],
       "secrets": ["1234567890"]
     },
     "android": {
