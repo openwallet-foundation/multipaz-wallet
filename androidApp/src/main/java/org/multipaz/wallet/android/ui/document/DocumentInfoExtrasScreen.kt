@@ -30,8 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
@@ -42,7 +40,6 @@ import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Bstr
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.CborArray
@@ -71,11 +68,10 @@ fun DocumentInfoExtrasScreen(
     onRefreshCredentialsClicked: () -> Unit,
     onBackClicked: () -> Unit,
     onCredentialClicked: (String) -> Unit,
-    onReaderIdentifiersClicked: () -> Unit
+    onReaderIdentifiersClicked: () -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null
 ) {
     val hazeState = remember { HazeState() }
-    @Suppress("DEPRECATION")
-    val clipboardManager = LocalClipboardManager.current
     val documentInfos by documentModel.documentInfos.collectAsState()
     val documentInfo = documentInfos.find { it.document.identifier == documentId }
 
@@ -195,15 +191,16 @@ fun DocumentInfoExtrasScreen(
                             }
                         }
                     )
-                    val authDataText = formatAuthorizationData(doc.authorizationData)
+                    val authData = doc.authorizationData
+                    val onAuthDataClick: (() -> Unit)? = if (authData != null && onViewCbor != null) {
+                        { onViewCbor("Authorization data", authData.toByteArray()) }
+                    } else null
                     FloatingItemHeadingAndText(
                         heading = "Authorization data",
-                        text = authDataText,
-                        showChevron = doc.authorizationData != null,
-                        modifier = if (doc.authorizationData != null) {
-                            Modifier.clickable {
-                                clipboardManager.setText(AnnotatedString(authDataText))
-                            }
+                        text = authData?.let { "${"%,d".format(it.size)} bytes of CBOR" } ?: "None",
+                        showChevron = onAuthDataClick != null,
+                        modifier = if (onAuthDataClick != null) {
+                            Modifier.clickable { onAuthDataClick() }
                         } else {
                             Modifier
                         }
@@ -220,9 +217,19 @@ fun DocumentInfoExtrasScreen(
                         heading = "MpzPass shareable",
                         text = if (doc.mpzPassId != null) (if (doc.isMpzPassShareable) "Yes" else "No") else "N/A"
                     )
+                    val serializedMetadata = doc.metadata?.serialize()
+                    val onMetadataClick: (() -> Unit)? = if (serializedMetadata != null && onViewCbor != null) {
+                        { onViewCbor("Metadata", serializedMetadata.toByteArray()) }
+                    } else null
                     FloatingItemHeadingAndText(
                         heading = "Metadata",
-                        text = doc.metadata?.serialize()?.let { "${it.size} bytes" } ?: "None"
+                        text = serializedMetadata?.let { "${"%,d".format(it.size)} bytes of CBOR" } ?: "None",
+                        showChevron = onMetadataClick != null,
+                        modifier = if (onMetadataClick != null) {
+                            Modifier.clickable { onMetadataClick() }
+                        } else {
+                            Modifier
+                        }
                     )
                 }
             }
@@ -233,9 +240,32 @@ fun DocumentInfoExtrasScreen(
                 } else {
                     tagKeys.forEach { key ->
                         val text = tags?.formatTagValue(key).orEmpty()
+                        val rawItem = tags?.getRawDataItem(key)
+                        val onTagClick: (() -> Unit)? = if (rawItem != null && onViewCbor != null) {
+                            {
+                                val cborBytes = when {
+                                    rawItem is Bstr -> {
+                                        try {
+                                            Cbor.decode(rawItem.asBstr)
+                                            rawItem.asBstr
+                                        } catch (_: Throwable) {
+                                            Cbor.encode(rawItem)
+                                        }
+                                    }
+                                    else -> Cbor.encode(rawItem)
+                                }
+                                onViewCbor("Tag: $key", cborBytes)
+                            }
+                        } else null
                         FloatingItemHeadingAndText(
                             heading = key,
-                            text = text
+                            text = text,
+                            showChevron = onTagClick != null,
+                            modifier = if (onTagClick != null) {
+                                Modifier.clickable { onTagClick() }
+                            } else {
+                                Modifier
+                            }
                         )
                     }
                 }
@@ -296,15 +326,6 @@ fun DocumentInfoExtrasScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
         }
-    }
-}
-
-private fun formatAuthorizationData(authorizationData: ByteString?): String {
-    if (authorizationData == null) return "None"
-    return try {
-        Cbor.decode(authorizationData.toByteArray()).toCdn()
-    } catch (_: Exception) {
-        authorizationData.toByteArray().toHex()
     }
 }
 

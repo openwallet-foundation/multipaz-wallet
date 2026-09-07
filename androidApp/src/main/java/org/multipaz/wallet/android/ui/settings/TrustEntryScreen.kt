@@ -75,6 +75,7 @@ fun TrustEntryScreen(
     onShowErrorDialog: (title: String, textMarkdown: String) -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     val hazeState = remember { HazeState() }
     val context = LocalContext.current
@@ -271,6 +272,7 @@ fun TrustEntryScreen(
                 onViewSignerCertificateChain = onViewSignerCertificateChain,
                 onViewVicalEntry = onViewVicalEntry,
                 onViewRicalEntry = onViewRicalEntry,
+                onViewCbor = onViewCbor,
             )
         }
     }

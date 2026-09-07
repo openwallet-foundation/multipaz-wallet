@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import org.multipaz.asn1.OID
 import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.CborMap
 import org.multipaz.cbor.DataItem
 import org.multipaz.cbor.DiagnosticOption
+import org.multipaz.cbor.Tstr
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.cards.InfoCard
 import org.multipaz.compose.certificateviewer.X509CertViewer
@@ -70,6 +72,7 @@ fun TrustEntryViewer(
     onViewSignerCertificateChain: (certificateChain: X509CertChain) -> Unit,
     onViewVicalEntry: (vicalCertNum: Int) -> Unit,
     onViewRicalEntry: (ricalCertNum: Int) -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     val entryInfo = trustManagerModel.trustManagerInfos.collectAsState().value?.find {
         it.entry.identifier == trustEntryId
@@ -138,7 +141,8 @@ fun TrustEntryViewer(
                         trustEntry = entry,
                         signedVical = entryInfo.signedVical!!,
                         onViewVicalEntry = onViewVicalEntry,
-                        onViewCertificateChain = onViewSignerCertificateChain
+                        onViewCertificateChain = onViewSignerCertificateChain,
+                        onViewCbor = onViewCbor
                     )
                 }
                 is TrustEntryRical -> {
@@ -146,7 +150,8 @@ fun TrustEntryViewer(
                         trustEntry = entry,
                         signedRical = entryInfo.signedRical!!,
                         onViewRicalEntry = onViewRicalEntry,
-                        onViewCertificateChain = onViewSignerCertificateChain
+                        onViewCertificateChain = onViewSignerCertificateChain,
+                        onViewCbor = onViewCbor
                     )
                 }
             }
@@ -160,6 +165,7 @@ private fun VicalDetails(
     signedVical: SignedVical,
     onViewVicalEntry: (vicalCertNum: Int) -> Unit,
     onViewCertificateChain: (certificateChain: X509CertChain) -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     FloatingItemList(
         modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
@@ -208,7 +214,8 @@ private fun VicalDetails(
         if (signedVical.vical.extensions.isNotEmpty()) {
             ItemWithExtensions(
                 heading = stringResource(R.string.trust_entry_viewer_extensions),
-                extensions = signedVical.vical.extensions
+                extensions = signedVical.vical.extensions,
+                onViewCbor = onViewCbor
             )
         }
     }
@@ -235,6 +242,7 @@ private fun RicalDetails(
     signedRical: SignedRical,
     onViewRicalEntry: (ricalCertNum: Int) -> Unit,
     onViewCertificateChain: (certificateChain: X509CertChain) -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     FloatingItemList(
         modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
@@ -287,7 +295,8 @@ private fun RicalDetails(
         if (signedRical.rical.extensions.isNotEmpty()) {
             ItemWithExtensions(
                 heading = stringResource(R.string.trust_entry_viewer_extensions),
-                extensions = signedRical.rical.extensions
+                extensions = signedRical.rical.extensions,
+                onViewCbor = onViewCbor
             )
         }
     }
@@ -314,12 +323,14 @@ private fun RicalDetails(
  * @param heading will be shown in bold at the top.
  * @param extensions the extensions to show.
  * @param modifier a [Modifier].
+ * @param onViewCbor optional callback to view extensions in CBOR viewer.
  */
 @Composable
 internal fun ItemWithExtensions(
     heading: String,
     extensions: Map<String, DataItem>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     val sb = StringBuilder()
     extensions.forEach { (key, value) ->
@@ -328,10 +339,19 @@ internal fun ItemWithExtensions(
         ))
         sb.append("$key: $valueStr\n")
     }
-    return FloatingItemHeadingAndText(
+    val isClickable = onViewCbor != null && extensions.isNotEmpty()
+    FloatingItemHeadingAndText(
         heading = heading,
         text = sb.toString(),
-        modifier = modifier
+        showChevron = isClickable,
+        modifier = if (isClickable) {
+            modifier.clickable {
+                val cborBytes = Cbor.encode(CborMap(extensions.mapKeys { (k, _) -> Tstr(k) }.toMutableMap()))
+                onViewCbor(heading, cborBytes)
+            }
+        } else {
+            modifier
+        }
     )
 }
 

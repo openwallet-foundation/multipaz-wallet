@@ -247,6 +247,55 @@ data class CertificateViewerDestination private constructor(
     }
 }
 
+@ConsistentCopyVisibility
+@Serializable
+data class CborViewerDestination private constructor(
+    val title: String,
+    val cborEncoded: String,
+) : Destination() {
+    companion object {
+        fun create(title: String, cborBytes: ByteArray): CborViewerDestination {
+            return CborViewerDestination(
+                title = title,
+                cborEncoded = cborBytes.toBase64Url()
+            )
+        }
+    }
+}
+
+@ConsistentCopyVisibility
+@Serializable
+data class JsonViewerDestination private constructor(
+    val title: String,
+    val jsonString: String,
+) : Destination() {
+    companion object {
+        fun create(title: String, jsonString: String): JsonViewerDestination {
+            return JsonViewerDestination(
+                title = title,
+                jsonString = jsonString
+            )
+        }
+    }
+}
+
+@ConsistentCopyVisibility
+@Serializable
+data class JwtViewerDestination private constructor(
+    val title: String,
+    val jwtString: String,
+) : Destination() {
+    companion object {
+        fun create(title: String, jwtString: String): JwtViewerDestination {
+            return JwtViewerDestination(
+                title = title,
+                jwtString = jwtString
+            )
+        }
+    }
+}
+
+
 @Serializable
 data class RemoveDocumentConfirmationDialogDestination(
     val documentId: String,

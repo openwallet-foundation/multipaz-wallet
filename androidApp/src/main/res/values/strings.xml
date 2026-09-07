@@ -790,6 +790,33 @@
     <string name="verification_show_response_developer_extras_claims_device_signed">Claims (device signed)</string>
     <string name="verification_show_response_verified_at">Verified at</string>
     <string name="verification_show_response_looking_up_address_fmt">Looking up address… (%1$s)</string>
+    <string name="verification_show_response_developer_extras_bytes_of_cbor">%1$s bytes of CBOR</string>
+    <string name="verification_show_response_developer_extras_bytes_of_json">%1$s bytes of JSON</string>
+    <string name="cbor_viewer_cbor_size">Encoded CBOR size: %1$s %2$s</string>
+    <string name="cbor_viewer_copy">Copy</string>
+    <string name="cbor_viewer_share">Share</string>
+    <string name="cbor_viewer_copied_to_clipboard">Copied to clipboard</string>
+    <string name="json_viewer_json_size">JSON payload size: %1$s %2$s</string>
+    <string name="json_viewer_copy">Copy</string>
+    <string name="json_viewer_share">Share</string>
+    <string name="json_viewer_copied_to_clipboard">Copied to clipboard</string>
+    <string name="jwt_viewer_jwt_size">JWT size: %1$s %2$s</string>
+    <string name="jwt_viewer_sd_jwt_size">SD-JWT size: %1$s %2$s</string>
+    <string name="jwt_viewer_sd_jwt_kb_size">SD-JWT+KB size: %1$s %2$s</string>
+    <string name="jwt_viewer_copy">Copy</string>
+    <string name="jwt_viewer_share">Share</string>
+    <string name="jwt_viewer_copied_to_clipboard">Copied to clipboard</string>
+    <string name="jwt_viewer_header">Header</string>
+    <string name="jwt_viewer_payload">Payload</string>
+    <string name="jwt_viewer_signature">Signature</string>
+    <string name="jwt_viewer_unsigned">Unsigned</string>
+    <string name="jwt_viewer_issuer_signed_jwt">Issuer-signed JWT</string>
+    <string name="jwt_viewer_disclosures">Disclosures</string>
+    <string name="jwt_viewer_disclosure_item">Disclosure %1$d</string>
+    <string name="jwt_viewer_disclosure_item_with_name">Disclosure %1$d (%2$s)</string>
+    <string name="jwt_viewer_key_binding_jwt">Key Binding JWT</string>
+    <string name="jwt_viewer_raw_token">Raw token</string>
+    <string name="jwt_viewer_parse_error">Unable to parse as JWT / SD-JWT</string>
 
     <!-- OpenID4VCI Refresh & Toasts -->
     <string name="openid4vci_refresh_not_supported">Cannot refresh. Pass isn\'t from a OpenID4VCI server</string>

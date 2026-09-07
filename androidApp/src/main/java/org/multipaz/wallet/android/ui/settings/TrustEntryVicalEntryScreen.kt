@@ -32,7 +32,8 @@ fun TrustEntryVicalEntryScreen(
     trustManagerModel: TrustManagerModel,
     vicalTrustEntryId: String,
     certNum: Int,
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null
 ) {
     val hazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
@@ -70,7 +71,8 @@ fun TrustEntryVicalEntryScreen(
             TrustEntryVicalEntryViewer(
                 trustManagerModel = trustManagerModel,
                 vicalTrustEntryId = vicalTrustEntryId,
-                certNum = certNum
+                certNum = certNum,
+                onViewCbor = onViewCbor
             )
         }
     }

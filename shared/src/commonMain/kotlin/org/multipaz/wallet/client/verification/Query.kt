@@ -1,12 +1,7 @@
 package org.multipaz.wallet.client.verification
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.io.bytestring.ByteString
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.addJsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
 import org.multipaz.cbor.Simple
@@ -17,6 +12,7 @@ import org.multipaz.cbor.buildCborArray
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
+import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.EcPublicKey
 import org.multipaz.mdoc.engagement.Capability
 import org.multipaz.mdoc.engagement.DeviceEngagement
@@ -25,15 +21,13 @@ import org.multipaz.mdoc.request.DeviceRequestInfo
 import org.multipaz.mdoc.request.DocumentSet
 import org.multipaz.mdoc.request.UseCase
 import org.multipaz.mdoc.request.buildDeviceRequest
-import org.multipaz.mdoc.response.DeviceResponse
-import org.multipaz.sdjwt.SdJwtKb
 import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.util.Logger
 import org.multipaz.util.generateAllPaths
 import org.multipaz.util.toBase64Url
-import org.multipaz.util.zlibInflate
 import org.multipaz.verification.JsonVerifiedPresentation
 import org.multipaz.verification.MdocVerifiedPresentation
+import org.multipaz.verification.VerificationSession
 import org.multipaz.verification.VerifiedPresentation
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -45,7 +39,7 @@ private const val TAG = "Query"
  *
  * A [Query] encapsulates the high-level verification requirement consisting of one or more [documentQueries].
  * It provides methods to generate request payloads for different verification transport protocols—such as the
- * W3C Digital Credentials API ([generateDcRequest]) and ISO/IEC 18013-5 proximity engagement ([generateDeviceRequest])—
+ * W3C Digital Credentials API ([generateDcRequestMdocApi]) and ISO/IEC 18013-5 proximity engagement ([generateDeviceRequest])—
  * and to process verified presentations returned by a holder ([processVerifiedPresentations]).
  *
  * @property documentQueries The list of [DocumentQuery] requirements that must be satisfied.
@@ -55,7 +49,7 @@ sealed class Query(
     open val documentQueries: List<DocumentQuery>
 ) {
     /**
-     * Generates a request for the W3C Digital Credentials API (DC API).
+     * Generates a request for the W3C Digital Credentials API (DC API) using ISO/IEC 18013-7:2025 Annex C.
      *
      * Constructs a pair of CBOR [DataItem]s: the first is an encoded [DeviceRequest] formatted for DC API
      * presentation, and the second is the `encryptionInfo` structure containing the verifier's ephemeral public key
@@ -63,27 +57,30 @@ sealed class Query(
      *
      * @param nonce Nonce supplied by the caller/verifier to ensure freshness.
      * @param origin The origin URI of the calling application or web page.
-     * @param responseEncryptionKey Public key used by the holder to encrypt the returned credentials.
+     * @param responseEncryptionKey Key used by the holder to encrypt the returned credentials.
      * @param readerAuthKey Optional reader authentication key with an X.509 certificate chain.
      * @param intentToRetain Whether the verifier intends to retain the received data elements.
      * @param issuerIdentifiers Optional list of trusted issuer identifier byte strings to restrict accepted issuers.
-     * @return A [Pair] containing the encoded device request [DataItem] and the encryption info [DataItem].
+     * @return A [VerificationSession.DcIso18013Request].
      * @throws IllegalArgumentException If [documentQueries] does not contain exactly one document query.
      */
-    @Throws(IllegalArgumentException::class)
-    suspend fun generateDcRequest(
+    @Throws(
+        IllegalArgumentException::class,
+        CancellationException::class
+    )
+    suspend fun generateDcRequestMdocApi(
         nonce: ByteString,
         origin: String,
-        responseEncryptionKey: EcPublicKey,
+        responseEncryptionKey: EcPrivateKey,
         readerAuthKey: AsymmetricKey.X509Compatible?,
         intentToRetain: Boolean,
         issuerIdentifiers: List<ByteString> = emptyList()
-    ): Pair<DataItem, DataItem> {
+    ): VerificationSession.DcIso18013Request {
         val encryptionInfo = buildCborArray {
             add("dcapi")
             addCborMap {
                 put("nonce", nonce.toByteArray())
-                put("recipientPublicKey", responseEncryptionKey.toCoseKey().toDataItem())
+                put("recipientPublicKey", responseEncryptionKey.publicKey.toCoseKey().toDataItem())
             }
         }
         val base64EncryptionInfo = Cbor.encode(encryptionInfo).toBase64Url()
@@ -108,7 +105,12 @@ sealed class Query(
             issuerIdentifiers = issuerIdentifiers
         )
 
-        return Pair(deviceRequest.toDataItem(), encryptionInfo)
+        return VerificationSession.DcIso18013Request(
+            origin = origin,
+            responseEncryptionKey = responseEncryptionKey,
+            deviceRequest = deviceRequest.toDataItem(),
+            encryptionInfo = encryptionInfo
+        )
     }
 
     /**
@@ -122,7 +124,10 @@ sealed class Query(
      * @return The constructed [DeviceRequest].
      * @throws IllegalArgumentException If [documentQueries] does not contain exactly one document query.
      */
-    @Throws(IllegalArgumentException::class)
+    @Throws(
+        IllegalArgumentException::class,
+        CancellationException::class
+    )
     suspend fun generateDeviceRequest(
         deviceEngagement: DataItem?,
         sessionTranscript: DataItem,

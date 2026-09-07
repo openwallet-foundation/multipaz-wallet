@@ -97,6 +97,8 @@ fun CredentialInfoScreen(
     issuerTrustManager: TrustManagerInterface,
     onBackClicked: () -> Unit,
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
     showToast: (message: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -199,6 +201,8 @@ fun CredentialInfoScreen(
                         revocationChecker = revocationChecker,
                         issuerTrustManager = issuerTrustManager,
                         onViewCertificateChain = onViewCertificateChain,
+                        onViewCbor = onViewCbor,
+                        onViewJwt = onViewJwt,
                         showToast = showToast
                     )
                 }
@@ -221,6 +225,8 @@ private fun CredentialInfoSection(
     revocationChecker: RevocationChecker,
     issuerTrustManager: TrustManagerInterface,
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
     showToast: (message: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -238,9 +244,43 @@ private fun CredentialInfoSection(
             stringResource(R.string.credential_info_valid_until),
             formattedDateTime(credentialInfo.credential.validUntil)
         )
+        val (issuerDataText, onIssuerDataClicked) = when (credentialInfo.credential) {
+            is MdocCredential -> Pair(
+                "${"%,d".format(credentialInfo.credential.issuerProvidedData.size)} bytes of CBOR",
+                if (onViewCbor != null) {
+                    {
+                        onViewCbor(
+                            "Issuer provided data",
+                            credentialInfo.credential.issuerProvidedData.toByteArray()
+                        )
+                    }
+                } else null
+            )
+            is SdJwtVcCredential -> Pair(
+                "${"%,d".format(credentialInfo.credential.issuerProvidedData.size)} bytes of SD-JWT",
+                if (onViewJwt != null) {
+                    {
+                        onViewJwt(
+                            "Issuer provided data",
+                            credentialInfo.credential.issuerProvidedData.decodeToString()
+                        )
+                    }
+                } else null
+            )
+            else -> Pair(
+                "${"%,d".format(credentialInfo.credential.issuerProvidedData.size)} bytes",
+                null
+            )
+        }
         FloatingItemHeadingAndText(
-            "Issuer provided data",
-            "${credentialInfo.credential.issuerProvidedData.size} bytes"
+            heading = "Issuer provided data",
+            text = issuerDataText,
+            showChevron = onIssuerDataClicked != null,
+            modifier = if (onIssuerDataClicked != null) {
+                Modifier.clickable { onIssuerDataClicked() }
+            } else {
+                Modifier
+            }
         )
         FloatingItemHeadingAndText("Usage Count", credentialInfo.credential.usageCount.toString())
         RevocationStatusSection(
@@ -252,8 +292,25 @@ private fun CredentialInfoSection(
             is MdocCredential -> {
                 val issuerSigned = Cbor.decode(credentialInfo.credential.issuerProvidedData.toByteArray())
                 val issuerAuth = issuerSigned["issuerAuth"].asCoseSign1
-                val msoBytes = issuerAuth.payload!!
-                FloatingItemHeadingAndText("MSO size", "${msoBytes.size} bytes")
+                val msoBytes = try {
+                    Cbor.decode(issuerAuth.payload!!).asTagged.asBstr
+                } catch (_: Throwable) {
+                    issuerAuth.payload
+                }
+                if (msoBytes != null) {
+                    FloatingItemHeadingAndText(
+                        heading = "Mobile Security Object (MSO)",
+                        text = "${"%,d".format(msoBytes.size)} bytes of CBOR",
+                        showChevron = onViewCbor != null,
+                        modifier = if (onViewCbor != null) {
+                            Modifier.clickable {
+                                onViewCbor("Mobile Security Object (MSO)", msoBytes)
+                            }
+                        } else {
+                            Modifier
+                        }
+                    )
+                }
                 FloatingItemHeadingAndText(
                     "ISO mdoc DocType",
                     (credentialInfo.credential as MdocCredential).docType

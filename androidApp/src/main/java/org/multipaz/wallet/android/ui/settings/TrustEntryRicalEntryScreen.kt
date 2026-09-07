@@ -32,7 +32,8 @@ fun TrustEntryRicalEntryScreen(
     trustManagerModel: TrustManagerModel,
     ricalTrustEntryId: String,
     certNum: Int,
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null
 ) {
     val hazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
@@ -70,7 +71,8 @@ fun TrustEntryRicalEntryScreen(
             TrustEntryRicalEntryViewer(
                 trustManagerModel = trustManagerModel,
                 ricalTrustEntryId = ricalTrustEntryId,
-                certNum = certNum
+                certNum = certNum,
+                onViewCbor = onViewCbor
             )
         }
     }

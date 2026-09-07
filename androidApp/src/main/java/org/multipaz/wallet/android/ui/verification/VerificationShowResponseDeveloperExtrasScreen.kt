@@ -23,9 +23,14 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -39,8 +44,19 @@ import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.bytestring.ByteString
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
@@ -50,20 +66,23 @@ import org.multipaz.compose.decodeImage
 import org.multipaz.compose.items.FloatingItemHeadingAndContent
 import org.multipaz.compose.items.FloatingItemHeadingAndText
 import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.crypto.AsymmetricKey
-import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.documenttype.DocumentTypeRepository
-import org.multipaz.mdoc.nfc.MdocHandoverType
 import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.sdjwt.SdJwt
+import org.multipaz.sdjwt.SdJwtKb
 import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toHex
+import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.JsonVerifiedPresentation
 import org.multipaz.verification.MdocVerifiedPresentation
+import org.multipaz.verification.OpenID4VPPresentmentRecord
 import org.multipaz.verification.PresentmentRecord
+import org.multipaz.verification.QueryData
+import org.multipaz.verification.SdJwtQueryData
 import org.multipaz.verification.VerificationUtil
 import org.multipaz.verification.VerifiedPresentation
 import org.multipaz.wallet.android.LinkVerification
@@ -84,7 +103,7 @@ import org.multipaz.revocation.RevocationCheckResult
 import org.multipaz.revocation.RevocationCheckState
 import kotlinx.coroutines.launch
 
-private const val TAG = "VerificationShowResponseScreen"
+private const val TAG = "VerificationShowResponseDeveloperExtrasScreen"
 
 private sealed class RevocationCheckStatus {
     object Idle : RevocationCheckStatus()
@@ -147,10 +166,16 @@ fun VerificationShowResponseDeveloperExtrasScreen(
     zkSystemRepository: ZkSystemRepository,
     onBackClicked: () -> Unit,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?,
-    revocationChecker: RevocationChecker? = null
+    revocationChecker: RevocationChecker? = null,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
+    onViewJson: ((title: String, jsonString: String) -> Unit)? = null,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+    var savedScrollPosition by rememberSaveable { mutableIntStateOf(0) }
+    var hasRestoredScroll by remember { mutableStateOf(false) }
+
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
     val showNotTrusted = remember { mutableStateOf(false) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
@@ -158,6 +183,57 @@ fun VerificationShowResponseDeveloperExtrasScreen(
     val verificationError = remember { mutableStateOf<Throwable?>(null) }
     val verficationResult = remember { mutableStateOf<VerificationResult?>(null) }
     val revocationCheckStatuses = remember { mutableStateMapOf<Int, RevocationCheckStatus>() }
+
+    val wrappedOnViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = if (onViewCbor != null) {
+        { title, cborBytes ->
+            savedScrollPosition = scrollState.value
+            onViewCbor(title, cborBytes)
+        }
+    } else null
+
+    val wrappedOnViewJson: ((title: String, jsonString: String) -> Unit)? = if (onViewJson != null) {
+        { title, jsonString ->
+            savedScrollPosition = scrollState.value
+            onViewJson(title, jsonString)
+        }
+    } else null
+
+    val wrappedOnViewJwt: ((title: String, jwtString: String) -> Unit)? = if (onViewJwt != null) {
+        { title, jwtString ->
+            savedScrollPosition = scrollState.value
+            onViewJwt(title, jwtString)
+        }
+    } else null
+
+    val wrappedOnViewCertChain: ((certChain: X509CertChain) -> Unit)? = if (onViewCertChain != null) {
+        { certChain ->
+            savedScrollPosition = scrollState.value
+            onViewCertChain(certChain)
+        }
+    } else null
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.value }
+            .collect { value ->
+                if (hasRestoredScroll) {
+                    savedScrollPosition = value
+                }
+            }
+    }
+
+    LaunchedEffect(verficationResult.value) {
+        if (verficationResult.value != null && !hasRestoredScroll) {
+            if (savedScrollPosition > 0) {
+                withTimeoutOrNull(1000) {
+                    snapshotFlow { scrollState.maxValue }
+                        .filter { it > 0 }
+                        .first()
+                }
+                scrollState.scrollTo(savedScrollPosition.coerceAtMost(scrollState.maxValue))
+            }
+            hasRestoredScroll = true
+        }
+    }
 
     val onTriggerRevocationCheck: (vpNum: Int, revocationStatus: RevocationStatus, certChain: X509CertChain) -> Unit = { vpNum, revStatus, certChain ->
         revocationCheckStatuses[vpNum] = RevocationCheckStatus.Checking
@@ -201,9 +277,13 @@ fun VerificationShowResponseDeveloperExtrasScreen(
         val vps = verifiedPresentationsState.value ?: return@LaunchedEffect
         try {
             verficationResult.value = parseResponse(
+                presentmentRecord = presentmentRecord,
                 verifiedPresentations = vps,
                 issuerTrustManager = issuerTrustManager,
-                onViewCertChain = onViewCertChain,
+                onViewCertChain = wrappedOnViewCertChain,
+                onViewCbor = wrappedOnViewCbor,
+                onViewJson = wrappedOnViewJson,
+                onViewJwt = wrappedOnViewJwt,
                 revocationChecker = revocationChecker,
                 revocationCheckStatuses = revocationCheckStatuses,
                 onTriggerRevocationCheck = onTriggerRevocationCheck
@@ -293,7 +373,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                 is ValueCertChain -> {
                                     FloatingItemHeadingAndText(
                                         modifier = Modifier.clickable {
-                                            onViewCertChain?.let { it(line.value.certChain) }
+                                            wrappedOnViewCertChain?.let { it(line.value.certChain) }
                                         },
                                         showChevron = true,
                                         heading = line.header,
@@ -327,16 +407,272 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 }
 
 
+private suspend fun createPresentmentRecordSection(
+    presentmentRecord: PresentmentRecord,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)?,
+    onViewJson: ((title: String, jsonString: String) -> Unit)?,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null
+): Section {
+    val lines = mutableListOf<Line>()
+    val title: String
+    when (presentmentRecord) {
+        is Iso18013PresentmentRecord -> {
+            title = "ISO/IEC 18013-5 Presentment Record"
+            val origin = presentmentRecord.origin
+            if (origin != null) {
+                lines.add(Line("Origin", ValueText(origin)))
+            } else {
+                lines.add(Line("Channel", ValueText("Proximity")))
+            }
+
+            val requestBytes = try {
+                Cbor.encode(presentmentRecord.request)
+            } catch (e: Throwable) {
+                null
+            }
+            if (requestBytes != null) {
+                val formatted = "%,d".format(requestBytes.size)
+                lines.add(
+                    Line(
+                        header = "Request",
+                        value = ValueText("$formatted bytes of CBOR"),
+                        onClick = { onViewCbor?.invoke("Device Request", requestBytes) },
+                        showChevron = true
+                    )
+                )
+            }
+
+            val responseBytes = try {
+                Cbor.encode(presentmentRecord.response)
+            } catch (e: Throwable) {
+                null
+            }
+            if (responseBytes != null) {
+                val formatted = "%,d".format(responseBytes.size)
+                lines.add(
+                    Line(
+                        header = "Response",
+                        value = ValueText("$formatted bytes of CBOR"),
+                        onClick = { onViewCbor?.invoke("Device Response", responseBytes) },
+                        showChevron = true
+                    )
+                )
+            }
+
+            val transcriptBytes = try {
+                Cbor.encode(presentmentRecord.sessionTranscript)
+            } catch (e: Throwable) {
+                null
+            }
+            if (transcriptBytes != null) {
+                val formatted = "%,d".format(transcriptBytes.size)
+                lines.add(
+                    Line(
+                        header = "Session transcript",
+                        value = ValueText("$formatted bytes of CBOR"),
+                        onClick = { onViewCbor?.invoke("Session Transcript", transcriptBytes) },
+                        showChevron = true
+                    )
+                )
+            }
+
+            val encInfo = presentmentRecord.encryptionInfo
+            if (encInfo != null) {
+                val encInfoBytes = encInfo.toByteArray()
+                val formatted = "%,d".format(encInfoBytes.size)
+                lines.add(
+                    Line(
+                        header = "DC API encryption info",
+                        value = ValueText("$formatted bytes of CBOR"),
+                        onClick = { onViewCbor?.invoke("DC API Encryption Info", encInfoBytes) },
+                        showChevron = true
+                    )
+                )
+            }
+        }
+
+        is OpenID4VPPresentmentRecord -> {
+            title = "OpenID4VP Presentment Record"
+
+            val requestJson = try {
+                Json.parseToJsonElement(presentmentRecord.vpRequest).jsonObject
+            } catch (e: Throwable) {
+                null
+            }
+
+            val clientId = requestJson?.get("client_id")?.jsonPrimitive?.content
+            if (clientId != null) {
+                val header = if (clientId.startsWith("https://") || clientId.startsWith("http://")) {
+                    "Origin"
+                } else {
+                    "Client ID"
+                }
+                lines.add(Line(header, ValueText(clientId)))
+            }
+
+            val requestBytes = presentmentRecord.vpRequest.encodeToByteArray()
+            val formattedReqSize = "%,d".format(requestBytes.size)
+            lines.add(
+                Line(
+                    header = "Request",
+                    value = ValueText("$formattedReqSize bytes of JSON"),
+                    onClick = { onViewJson?.invoke("OpenID4VP Authorization Request", presentmentRecord.vpRequest) },
+                    showChevron = true
+                )
+            )
+
+            val responseBytes = presentmentRecord.vpToken.encodeToByteArray()
+            val formattedRespSize = "%,d".format(responseBytes.size)
+            lines.add(
+                Line(
+                    header = "Response",
+                    value = ValueText("$formattedRespSize bytes of JSON"),
+                    onClick = { onViewJson?.invoke("OpenID4VP VP Token", presentmentRecord.vpToken) },
+                    showChevron = true
+                )
+            )
+
+            val vpTokenElement = try {
+                Json.parseToJsonElement(presentmentRecord.vpToken)
+            } catch (e: Throwable) {
+                null
+            }
+
+            if (vpTokenElement != null) {
+                val queryDataMap = try {
+                    requestJson?.get("dcql_query")?.jsonObject?.let {
+                        QueryData.fromDcql(it).associateBy { qd -> qd.id }
+                    }
+                } catch (e: Throwable) {
+                    null
+                }
+
+                val entries: List<Pair<String, List<String>>> = when (vpTokenElement) {
+                    is JsonObject -> {
+                        vpTokenElement.entries.map { (key, value) ->
+                            val list = when (value) {
+                                is JsonArray -> value.mapNotNull { (it as? JsonPrimitive)?.content }
+                                is JsonPrimitive -> listOf(value.content)
+                                else -> listOf(value.toString())
+                            }
+                            Pair(key, list)
+                        }
+                    }
+                    is JsonArray -> {
+                        listOf(
+                            Pair(
+                                "Credential",
+                                vpTokenElement.mapNotNull { (it as? JsonPrimitive)?.content }
+                            )
+                        )
+                    }
+                    is JsonPrimitive -> {
+                        listOf(Pair("Credential", listOf(vpTokenElement.content)))
+                    }
+                }
+
+                for ((credId, credList) in entries) {
+                    credList.forEachIndexed { index, credStr ->
+                        val credTitle = if (credList.size > 1) {
+                            "VPToken ($credId - ${index + 1}/${credList.size})"
+                        } else {
+                            "VPToken ($credId)"
+                        }
+
+                        val isSdJwt = queryDataMap?.get(credId) is SdJwtQueryData
+                            || credStr.contains('~')
+                            || (credStr.contains('.') && !credStr.startsWith("{"))
+
+                        val cborBytes = if (!isSdJwt) {
+                            try {
+                                credStr.fromBase64Url()
+                            } catch (e: Throwable) {
+                                null
+                            }
+                        } else {
+                            null
+                        }
+
+                        val isValidCbor = try {
+                            cborBytes != null && run { Cbor.decode(cborBytes); true }
+                        } catch (e: Throwable) {
+                            false
+                        }
+
+                        if (cborBytes != null && isValidCbor) {
+                            val formatted = "%,d".format(cborBytes.size)
+                            lines.add(
+                                Line(
+                                    header = credTitle,
+                                    value = ValueText("$formatted bytes of CBOR"),
+                                    onClick = { onViewCbor?.invoke(credTitle, cborBytes) },
+                                    showChevron = true
+                                )
+                            )
+                        } else {
+                            val isSdJwt = credStr.contains("~")
+                            val credBytes = credStr.encodeToByteArray()
+                            val formatted = "%,d".format(credBytes.size)
+                            val formatType = if (isSdJwt) "SD-JWT" else "JWT"
+                            lines.add(
+                                Line(
+                                    header = credTitle,
+                                    value = ValueText("$formatted bytes of $formatType"),
+                                    onClick = { onViewJwt?.invoke(credTitle, credStr) },
+                                    showChevron = true
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            val mdocTranscript = presentmentRecord.mdocSessionTranscript
+            if (mdocTranscript != null) {
+                val transcriptBytes = try {
+                    Cbor.encode(mdocTranscript)
+                } catch (e: Throwable) {
+                    null
+                }
+                if (transcriptBytes != null) {
+                    val formatted = "%,d".format(transcriptBytes.size)
+                    lines.add(
+                        Line(
+                            header = "Session transcript",
+                            value = ValueText("$formatted bytes of CBOR"),
+                            onClick = { onViewCbor?.invoke("Session Transcript", transcriptBytes) },
+                            showChevron = true
+                        )
+                    )
+                }
+            }
+        }
+    }
+    return Section(title, lines)
+}
+
 private suspend fun parseResponse(
+    presentmentRecord: PresentmentRecord,
     verifiedPresentations: List<VerifiedPresentation>,
     issuerTrustManager: TrustManagerInterface,
     onViewCertChain: ((certChain: X509CertChain) -> Unit)?,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)?,
+    onViewJson: ((title: String, jsonString: String) -> Unit)?,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
     revocationChecker: RevocationChecker?,
     revocationCheckStatuses: Map<Int, RevocationCheckStatus>,
     onTriggerRevocationCheck: (vpNum: Int, revocationStatus: RevocationStatus, certChain: X509CertChain) -> Unit,
     now: Instant = Clock.System.now(),
 ): VerificationResult {
     val sections = mutableListOf<Section>()
+    sections.add(
+        createPresentmentRecordSection(
+            presentmentRecord = presentmentRecord,
+            onViewCbor = onViewCbor,
+            onViewJson = onViewJson,
+            onViewJwt = onViewJwt
+        )
+    )
     verifiedPresentations.forEachIndexed { vpNum, vp ->
         when (vp) {
             is MdocVerifiedPresentation -> {
@@ -430,7 +766,7 @@ private suspend fun parseResponse(
 
                 sections.add(
                     Section(
-                        header = "Document ${vpNum + 1} of ${verifiedPresentations.size}",
+                        header = "Verified Presentation ${vpNum + 1} of ${verifiedPresentations.size}",
                         lines = lines
                     )
                 )
@@ -555,7 +891,7 @@ private suspend fun parseResponse(
 
                 sections.add(
                     Section(
-                        header = "Document ${vpNum + 1} of ${verifiedPresentations.size}",
+                        header = "Verified Presentation ${vpNum + 1} of ${verifiedPresentations.size}",
                         lines = lines
                     )
                 )

@@ -69,7 +69,10 @@ import org.multipaz.wallet.android.shareVerificationLink
 import org.multipaz.wallet.android.isForDocumentId
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.signin.SignInWithGoogle
-import org.multipaz.wallet.android.ui.CertificateViewerScreen
+import org.multipaz.wallet.android.ui.viewers.CborViewerScreen
+import org.multipaz.wallet.android.ui.viewers.CertificateViewerScreen
+import org.multipaz.wallet.android.ui.viewers.JsonViewerScreen
+import org.multipaz.wallet.android.ui.viewers.JwtViewerScreen
 import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.wallet.android.ui.DocumentQrPresentmentDialog
 import org.multipaz.wallet.android.ui.ErrorDialog
@@ -554,6 +557,9 @@ fun mainGraph(
                     },
                     onReaderIdentifiersClicked = {
                         backStack.add(DocumentInfoReaderIdentifiersDestination(key.documentId))
+                    },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
                     }
                 )
             }
@@ -633,6 +639,12 @@ fun mainGraph(
                     issuerTrustManager = issuerTrustManager,
                     onViewCertificateChain = { certChain ->
                         backStack.add(CertificateViewerDestination.create(certChain))
+                    },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
+                    onViewJwt = { title, jwtString ->
+                        backStack.add(JwtViewerDestination.create(title, jwtString))
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
@@ -1094,6 +1106,25 @@ fun mainGraph(
                     showToast = showToast,
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
+                    settingsModel = settingsModel,
+                    onDeveloperExtrasClicked = { presentmentRecord, query, atTime ->
+                        backStack.add(
+                            VerificationShowResponseDeveloperExtrasDestination(
+                                query = query,
+                                presentmentRecord = presentmentRecord,
+                                atTime = atTime
+                            )
+                        )
+                    },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
+                    onViewJson = { title, jsonString ->
+                        backStack.add(JsonViewerDestination.create(title, jsonString))
+                    },
+                    onViewJwt = { title, jwtString ->
+                        backStack.add(JwtViewerDestination.create(title, jwtString))
+                    },
                 )
             }
             is DeleteEventConfirmationDialogDestination -> NavEntry(
@@ -1502,6 +1533,9 @@ fun mainGraph(
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast,
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
                 )
             }
             is TrustEntryEditDestination -> NavEntry(key) {
@@ -1519,6 +1553,9 @@ fun mainGraph(
                     vicalTrustEntryId = key.trustEntryId,
                     certNum = key.vicalCertNumber,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
                 )
             }
             is TrustEntryRicalEntryDestination -> NavEntry(key) {
@@ -1527,6 +1564,9 @@ fun mainGraph(
                     ricalTrustEntryId = key.trustEntryId,
                     certNum = key.ricalCertNumber,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
                 )
             }
             is CertificateViewerDestination -> NavEntry(key) {
@@ -1541,6 +1581,28 @@ fun mainGraph(
                     )
                 }
             }
+            is CborViewerDestination -> NavEntry(key) {
+                CborViewerScreen(
+                    title = key.title,
+                    cborBytes = key.cborEncoded.fromBase64Url(),
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                )
+            }
+            is JsonViewerDestination -> NavEntry(key) {
+                JsonViewerScreen(
+                    title = key.title,
+                    jsonString = key.jsonString,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                )
+            }
+            is JwtViewerDestination -> NavEntry(key) {
+                JwtViewerScreen(
+                    title = key.title,
+                    jwtString = key.jwtString,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                )
+            }
+
             is RequestVerificationDestination -> NavEntry(key) {
                 val context = LocalContext.current
                 RequestVerificationScreen(
@@ -1942,6 +2004,9 @@ fun mainGraph(
                             atTime = Instant.fromEpochMilliseconds(key.atTimeMillis)
                         ))
                     },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },
@@ -1967,6 +2032,15 @@ fun mainGraph(
                     },
                     onViewCertChain = { certChain ->
                         backStack.add(CertificateViewerDestination.create(certChain))
+                    },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
+                    onViewJson = { title, jsonString ->
+                        backStack.add(JsonViewerDestination.create(title, jsonString))
+                    },
+                    onViewJwt = { title, jwtString ->
+                        backStack.add(JwtViewerDestination.create(title, jwtString))
                     }
                 )
             }

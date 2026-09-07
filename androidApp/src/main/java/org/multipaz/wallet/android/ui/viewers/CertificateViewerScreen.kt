@@ -1,4 +1,4 @@
-package org.multipaz.wallet.android.ui
+package org.multipaz.wallet.android.ui.viewers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +38,8 @@ import org.multipaz.compose.certificateviewer.X509CertViewer
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.wallet.android.R
+import org.multipaz.wallet.android.ui.AppBackButton
+import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 
 
 private val PAGER_INDICATOR_HEIGHT = 30.dp

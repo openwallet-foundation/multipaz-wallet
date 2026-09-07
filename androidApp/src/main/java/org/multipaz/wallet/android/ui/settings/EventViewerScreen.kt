@@ -55,6 +55,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import kotlin.time.Instant
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -64,8 +65,15 @@ import kotlinx.datetime.format.byUnicodePattern
 import kotlinx.datetime.offsetAt
 import kotlinx.datetime.toLocalDateTime
 import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.DataItem
 import org.multipaz.cbor.DiagnosticOption
 import org.multipaz.cbor.Simple
+import org.multipaz.util.fromBase64Url
+import org.multipaz.verification.PresentmentRecord
+import org.multipaz.wallet.android.settings.SettingsModel
+import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.UserDefinedQuery
+import org.multipaz.wallet.client.verification.fromCbor
 import org.multipaz.claim.Claim
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
@@ -142,6 +150,11 @@ fun EventViewerScreen(
     showToast: (message: String) -> Unit,
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
+    settingsModel: SettingsModel? = null,
+    onDeveloperExtrasClicked: ((presentmentRecord: PresentmentRecord, query: Query, atTime: Instant) -> Unit)? = null,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
+    onViewJson: ((title: String, jsonString: String) -> Unit)? = null,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
 ) {
     val hazeState = remember { HazeState() }
     val localContext = LocalContext.current
@@ -149,6 +162,8 @@ fun EventViewerScreen(
     val model = remember(eventLogger) { SimpleEventLoggerModel(eventLogger, coroutineScope) }
     val events by model.events.collectAsState()
     val scrollState = rememberScrollState()
+    val devModeEnabled = settingsModel?.devMode?.collectAsState()?.value ?: false
+    val currentEvent = events?.find { it.identifier == eventId }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -156,9 +171,24 @@ fun EventViewerScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
+            val onTitleClick: (() -> Unit)? = if (devModeEnabled && currentEvent is EventVerification && onDeveloperExtrasClicked != null) {
+                {
+                    val query = currentEvent.appData["query"]?.let {
+                        try {
+                            Query.fromCbor(Cbor.encode(it))
+                        } catch (_: Throwable) {
+                            null
+                        }
+                    } ?: UserDefinedQuery(docType = "", namespaces = emptyMap())
+                    onDeveloperExtrasClicked(currentEvent.presentmentRecord, query, currentEvent.timestamp)
+                }
+            } else null
             AppMediumTopAppBar(
                 title = {
-                    Text(stringResource(R.string.event_viewer_screen_title_text))
+                    Text(
+                        text = stringResource(R.string.event_viewer_screen_title_text),
+                        modifier = if (onTitleClick != null) Modifier.clickable { onTitleClick() } else Modifier
+                    )
                 },
                 navigationIcon = {
                     AppBackButton(onClick = onBackClicked)
@@ -227,7 +257,11 @@ fun EventViewerScreen(
                                 documentTypeRepository = documentTypeRepository,
                                 documentModel = documentModel,
                                 imageLoader = imageLoader,
-                                onViewCertificateChain = onViewCertificateChain
+                                onViewCertificateChain = onViewCertificateChain,
+                                devModeEnabled = devModeEnabled,
+                                onViewCbor = onViewCbor,
+                                onViewJson = onViewJson,
+                                onViewJwt = onViewJwt,
                             )
                         }
                         is EventProvisioning -> {
@@ -247,6 +281,8 @@ fun EventViewerScreen(
                                 onViewCertificateChain = onViewCertificateChain,
                                 zkSystemRepository = zkSystemRepository,
                                 issuerTrustManager = issuerTrustManager,
+                                devModeEnabled = devModeEnabled,
+                                onDeveloperExtrasClicked = onDeveloperExtrasClicked,
                             )
                         }
                         is EventSimple -> {
@@ -350,6 +386,10 @@ private fun EventViewerPresentment(
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
     modifier: Modifier = Modifier,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    devModeEnabled: Boolean = false,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
+    onViewJson: ((title: String, jsonString: String) -> Unit)? = null,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
 ) {
     val eventDateTime = event.timestamp.toLocalDateTime(timeZone = timeZone)
     val eventDateTimeString = eventDateTime.formatLocalized(
@@ -489,6 +529,16 @@ private fun EventViewerPresentment(
                             text = stringResource(R.string.event_viewer_screen_using_nfc_text)
                         )
                     }
+                    val sessionTranscriptBytes = Cbor.encode(event.sessionTranscript)
+                    val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
+                        { onViewCbor("Session transcript", sessionTranscriptBytes) }
+                    } else null
+                    FloatingItemHeadingAndText(
+                        heading = "Session transcript",
+                        text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
+                        showChevron = onTranscriptClick != null,
+                        modifier = if (onTranscriptClick != null) Modifier.clickable { onTranscriptClick() } else Modifier
+                    )
                 }
             }
 
@@ -582,6 +632,200 @@ private fun EventViewerPresentment(
                 Spacer(modifier = Modifier.size(20.dp))
             }
         }
+
+        if (devModeEnabled) {
+            FloatingItemList(
+                modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
+                title = "Developer extras"
+            ) {
+                when (event) {
+                    is EventPresentmentIso18013Proximity -> {
+                        val requestBytes = Cbor.encode(event.request)
+                        val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Device request", requestBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Device request",
+                            text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
+                            showChevron = onRequestClick != null,
+                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                        )
+
+                        val responseBytes = Cbor.encode(event.response)
+                        val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Device response", responseBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Device response",
+                            text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
+                            showChevron = onResponseClick != null,
+                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                        )
+                    }
+                    is EventPresentmentDigitalCredentialsMdocApi -> {
+                        val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
+                            { onViewJson("W3C DC Request", event.requestJson) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "W3C DC Request",
+                            text = "${"%,d".format(event.requestJson.length)} chars of JSON",
+                            showChevron = onRequestClick != null,
+                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                        )
+
+                        val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
+                            { onViewJson("W3C DC Response", event.responseJson) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "W3C DC Response",
+                            text = "${"%,d".format(event.responseJson.length)} chars of JSON",
+                            showChevron = onResponseClick != null,
+                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                        )
+
+                        val deviceResponseBytes = Cbor.encode(event.deviceResponse)
+                        val onDeviceResponseClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Device response", deviceResponseBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Device response",
+                            text = "${"%,d".format(deviceResponseBytes.size)} bytes of CBOR",
+                            showChevron = onDeviceResponseClick != null,
+                            modifier = if (onDeviceResponseClick != null) Modifier.clickable { onDeviceResponseClick() } else Modifier
+                        )
+                    }
+                    is EventPresentmentDigitalCredentialsOpenID4VP -> {
+                        val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
+                            { onViewJson("W3C DC Request", event.requestJson) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "W3C DC Request",
+                            text = "${"%,d".format(event.requestJson.length)} chars of JSON",
+                            showChevron = onRequestClick != null,
+                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                        )
+
+                        val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
+                            { onViewJson("W3C DC Response", event.responseJson) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "W3C DC Response",
+                            text = "${"%,d".format(event.responseJson.length)} chars of JSON",
+                            showChevron = onResponseClick != null,
+                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                        )
+
+                        val vpToken = event.vpToken
+                        val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
+                            { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "VP Token",
+                            text = formatVpTokenSummary(vpToken),
+                            showChevron = onVpTokenClick != null,
+                            modifier = if (onVpTokenClick != null) Modifier.clickable { onVpTokenClick() } else Modifier
+                        )
+                    }
+                    is EventPresentmentUriSchemeOpenID4VP -> {
+                        val onRequestClick: (() -> Unit)? = if (onViewJwt != null) {
+                            { onViewJwt("Authorization Request", event.requestJwt) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Authorization Request",
+                            text = "${"%,d".format(event.requestJwt.length)} chars (JWT)",
+                            showChevron = onRequestClick != null,
+                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                        )
+
+                        val vpToken = event.vpToken
+                        val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
+                            { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "VP Token",
+                            text = formatVpTokenSummary(vpToken),
+                            showChevron = onVpTokenClick != null,
+                            modifier = if (onVpTokenClick != null) Modifier.clickable { onVpTokenClick() } else Modifier
+                        )
+                    }
+                    is EventPresentmentIso18013AnnexA -> {
+                        val sessionTranscriptBytes = Cbor.encode(event.sessionTranscript)
+                        val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Session transcript", sessionTranscriptBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Session transcript",
+                            text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
+                            showChevron = onTranscriptClick != null,
+                            modifier = if (onTranscriptClick != null) Modifier.clickable { onTranscriptClick() } else Modifier
+                        )
+
+                        val requestBytes = Cbor.encode(event.request)
+                        val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Device request", requestBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Device request",
+                            text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
+                            showChevron = onRequestClick != null,
+                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                        )
+
+                        val responseBytes = Cbor.encode(event.response)
+                        val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Device response", responseBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Device response",
+                            text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
+                            showChevron = onResponseClick != null,
+                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                        )
+
+                        val reBytes = Cbor.encode(event.readerEngagement)
+                        val onReClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Reader engagement", reBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Reader engagement",
+                            text = "${"%,d".format(reBytes.size)} bytes of CBOR",
+                            showChevron = onReClick != null,
+                            modifier = if (onReClick != null) Modifier.clickable { onReClick() } else Modifier
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatVpTokenSummary(vpToken: String): String {
+    return if (vpToken.contains('~') || (vpToken.contains('.') && !vpToken.startsWith("{"))) {
+        "${"%,d".format(vpToken.length)} chars (SD-JWT)"
+    } else if (vpToken.startsWith("{")) {
+        "${"%,d".format(vpToken.length)} chars of JSON"
+    } else {
+        "${"%,d".format(vpToken.length)} chars"
+    }
+}
+
+private fun viewVpToken(
+    vpToken: String,
+    onViewJwt: ((title: String, jwtString: String) -> Unit)?,
+    onViewJson: ((title: String, jsonString: String) -> Unit)?,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)?
+) {
+    if ((vpToken.contains('~') || (vpToken.contains('.') && !vpToken.startsWith("{"))) && onViewJwt != null) {
+        onViewJwt("VP Token", vpToken)
+    } else if (vpToken.startsWith("{") && onViewJson != null) {
+        onViewJson("VP Token", vpToken)
+    } else if (onViewCbor != null) {
+        try {
+            val bytes = vpToken.fromBase64Url()
+            onViewCbor("VP Token", bytes)
+        } catch (_: Throwable) {
+            onViewJson?.invoke("VP Token", vpToken)
+        }
     }
 }
 
@@ -656,8 +900,10 @@ private fun EventViewerVerification(
     onViewCertificateChain: (certChain: X509CertChain) -> Unit,
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
+    modifier: Modifier = Modifier,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    modifier: Modifier = Modifier
+    devModeEnabled: Boolean = false,
+    onDeveloperExtrasClicked: ((presentmentRecord: PresentmentRecord, query: Query, atTime: Instant) -> Unit)? = null
 ) {
     val eventDateTime = event.timestamp.toLocalDateTime(timeZone = timeZone)
     val eventDateTimeString = eventDateTime.formatLocalized(
@@ -670,6 +916,19 @@ private fun EventViewerVerification(
     } else {
         "Verified using link"
     }
+
+    val onDevExtras: (() -> Unit)? = if (devModeEnabled && onDeveloperExtrasClicked != null) {
+        {
+            val query = event.appData["query"]?.let {
+                try {
+                    Query.fromCbor(Cbor.encode(it))
+                } catch (_: Throwable) {
+                    null
+                }
+            } ?: UserDefinedQuery(docType = "", namespaces = emptyMap())
+            onDeveloperExtrasClicked(event.presentmentRecord, query, event.timestamp)
+        }
+    } else null
 
     var verifiedPresentationsResult by remember { mutableStateOf<List<VerifiedPresentationResult>?>(null) }
     var verificationError by remember { mutableStateOf<Throwable?>(null) }
@@ -714,6 +973,7 @@ private fun EventViewerVerification(
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
+            modifier = if (onDevExtras != null) Modifier.clickable { onDevExtras() } else Modifier
         )
 
         FloatingItemList(
@@ -728,6 +988,15 @@ private fun EventViewerVerification(
                 heading = "Presentment protocol",
                 text = protocol
             )
+
+            if (onDevExtras != null) {
+                FloatingItemHeadingAndText(
+                    heading = "Developer extras",
+                    text = "View raw requests, responses, and transcripts",
+                    showChevron = true,
+                    modifier = Modifier.clickable { onDevExtras() }
+                )
+            }
 
             if (verificationError != null) {
                 FloatingItemHeadingAndText(

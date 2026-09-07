@@ -26,8 +26,6 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.chooser.ChooserAction
 import org.multipaz.wallet.client.verification.Query
-import org.multipaz.wallet.client.verification.AgeOverQuery
-import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.verification.VerifierIdentity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,12 +44,8 @@ import org.multipaz.eventlogger.EventVerification
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.trustmanagement.CompositeTrustManager
-import org.multipaz.verification.PresentmentRecord
-import org.multipaz.verification.toCbor
 import org.multipaz.wallet.client.verification.toCbor
-import org.multipaz.wallet.android.getDisplayName
 import org.multipaz.cbor.Cbor
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.jsonObject
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -134,20 +128,13 @@ suspend fun generateVerificationLink(
     val requestEncryptionKey = ByteString(Random.nextBytes(32))
     val responseEncryptionKey = Crypto.createEcPrivateKey(EcCurve.P256)
 
-    val (deviceRequest, encryptionInfo) = query.generateDcRequest(
+    val mdocApiRequest = query.generateDcRequestMdocApi(
         nonce = nonce,
         origin = origin,
-        responseEncryptionKey = responseEncryptionKey.publicKey,
+        responseEncryptionKey = responseEncryptionKey,
         readerAuthKey = readerAuthKey,
         intentToRetain = settingsModel.verificationStoreResponse.value,
         issuerIdentifiers = settingsModel.verificationIssuerIdentifiers.value
-    )
-
-    val mdocApiRequest = VerificationSession.DcIso18013Request(
-        origin = origin,
-        responseEncryptionKey = responseEncryptionKey,
-        deviceRequest = deviceRequest,
-        encryptionInfo = encryptionInfo
     )
 
     fun getClientIdFromOrigin(origin: String): String {
@@ -174,7 +161,7 @@ suspend fun generateVerificationLink(
             verifierIdentities = verifierIdentities,
             responseMode = OpenID4VP.ResponseMode.DC_API,
             responseUri = null,
-            dcqlQuery = DeviceRequest.fromDataItem(deviceRequest).toDcql(),
+            dcqlQuery = DeviceRequest.fromDataItem(mdocApiRequest.deviceRequest).toDcql(),
             jsonTransactionData = emptyList(),
             state = null
         ).toString()

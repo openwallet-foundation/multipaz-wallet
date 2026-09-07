@@ -36,7 +36,8 @@ import org.multipaz.wallet.android.R
 fun TrustEntryVicalEntryViewer(
     trustManagerModel: TrustManagerModel,
     vicalTrustEntryId: String,
-    certNum: Int
+    certNum: Int,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null
 ) {
     val info = trustManagerModel.trustManagerInfos.collectAsState().value?.find {
         it.entry.identifier == vicalTrustEntryId
@@ -72,7 +73,8 @@ fun TrustEntryVicalEntryViewer(
             if (vicalCertInfo.extensions.isNotEmpty()) {
                 ItemWithExtensions(
                     heading = stringResource(R.string.trust_entry_vical_entry_extensions),
-                    extensions = vicalCertInfo.extensions
+                    extensions = vicalCertInfo.extensions,
+                    onViewCbor = onViewCbor
                 )
             }
         }

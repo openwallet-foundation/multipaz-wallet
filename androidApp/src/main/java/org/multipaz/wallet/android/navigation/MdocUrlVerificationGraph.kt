@@ -30,7 +30,10 @@ import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.settings.SettingsModel
-import org.multipaz.wallet.android.ui.CertificateViewerScreen
+import org.multipaz.wallet.android.ui.viewers.CborViewerScreen
+import org.multipaz.wallet.android.ui.viewers.CertificateViewerScreen
+import org.multipaz.wallet.android.ui.viewers.JsonViewerScreen
+import org.multipaz.wallet.android.ui.viewers.JwtViewerScreen
 import org.multipaz.wallet.android.ui.verification.RequestVerificationFromMdocUrlScreen
 import org.multipaz.wallet.android.ui.verification.SelectCustomAgeDialog
 import org.multipaz.wallet.android.ui.verification.SelectVerificationTypeScreen
@@ -213,6 +216,9 @@ fun mdocUrlVerificationGraph(
                             atTime = Instant.fromEpochMilliseconds(key.atTimeMillis)
                         ))
                     },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
                     onBackClicked = {
                         onFinish()
                     }
@@ -233,6 +239,15 @@ fun mdocUrlVerificationGraph(
                     },
                     onViewCertChain = { certChain ->
                         backStack.add(CertificateViewerDestination.create(certChain))
+                    },
+                    onViewCbor = { title, cborBytes ->
+                        backStack.add(CborViewerDestination.create(title, cborBytes))
+                    },
+                    onViewJson = { title, jsonString ->
+                        backStack.add(JsonViewerDestination.create(title, jsonString))
+                    },
+                    onViewJwt = { title, jwtString ->
+                        backStack.add(JwtViewerDestination.create(title, jwtString))
                     }
                 )
             }
@@ -247,6 +262,27 @@ fun mdocUrlVerificationGraph(
                         onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     )
                 }
+            }
+            is CborViewerDestination -> NavEntry(key) {
+                CborViewerScreen(
+                    title = key.title,
+                    cborBytes = key.cborEncoded.fromBase64Url(),
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                )
+            }
+            is JsonViewerDestination -> NavEntry(key) {
+                JsonViewerScreen(
+                    title = key.title,
+                    jsonString = key.jsonString,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                )
+            }
+            is JwtViewerDestination -> NavEntry(key) {
+                JwtViewerScreen(
+                    title = key.title,
+                    jwtString = key.jwtString,
+                    onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                )
             }
             else -> null
         }

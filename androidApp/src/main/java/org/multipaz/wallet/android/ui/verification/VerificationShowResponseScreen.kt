@@ -98,6 +98,7 @@ import org.multipaz.trustmanagement.TrustManagerInterface
 import org.multipaz.trustmanagement.TrustPoint
 import org.multipaz.util.Logger
 import org.multipaz.verification.PresentmentRecord
+import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.toCdn
 import org.multipaz.wallet.android.R
 
@@ -156,7 +157,8 @@ fun VerificationShowResponseScreen(
     eventIdentifier: String? = null,
     onEventDelete: (() -> Unit)? = null,
     revocationChecker: RevocationChecker? = null,
-    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null
 ) {
     val localContext = LocalContext.current
     val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
@@ -324,7 +326,8 @@ fun VerificationShowResponseScreen(
                             verificationLocation = verificationLocation,
                             verificationTime = verificationTime,
                             revocationChecker = revocationChecker,
-                            onTrustEntryClicked = onTrustEntryClicked
+                            onTrustEntryClicked = onTrustEntryClicked,
+                            onViewCbor = onViewCbor
                         )
                     }
 
@@ -1053,7 +1056,8 @@ fun ShowUserDefinedResult(
     verificationLocation: Location?,
     verificationTime: Instant?,
     revocationChecker: RevocationChecker? = null,
-    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null
+    onTrustEntryClicked: ((trustManagerId: String, trustEntryId: String) -> Unit)? = null,
+    onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null
 ) {
     val atTime = verificationTime ?: Clock.System.now()
     val revocationCheckResult = rememberRevocationCheckResult(result, revocationChecker, atTime)
@@ -1107,7 +1111,30 @@ fun ShowUserDefinedResult(
                 }
                 FloatingItemHeadingAndText(
                     heading = dataElement,
-                    text = displayValue
+                    text = displayValue,
+                    showChevron = onViewCbor != null,
+                    modifier = if (onViewCbor != null) {
+                        Modifier.clickable {
+                            val cborBytes = try {
+                                val bstr = value.asBstr
+                                if (isJpegOrPng(bstr)) {
+                                    Cbor.encode(value)
+                                } else {
+                                    try {
+                                        Cbor.decode(bstr)
+                                        bstr
+                                    } catch (_: Throwable) {
+                                        Cbor.encode(value)
+                                    }
+                                }
+                            } catch (_: Throwable) {
+                                Cbor.encode(value)
+                            }
+                            onViewCbor(dataElement, cborBytes)
+                        }
+                    } else {
+                        Modifier
+                    }
                 )
             }
         }
