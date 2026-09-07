@@ -22,7 +22,7 @@ private const val PRECONSENT_SETTING_TAG_KEY = "org.multipaz.wallet.preconsentSe
  * Returns `true` if the document is synced to the backend and available on other devices.
  */
 val Document.isSyncing: Boolean
-    get() = provisionedDocumentIdentifier != null
+    get() = provisionedDocumentIdentifier != null || mpzPassId != null
 
 /**
  * The identifier of the provisioned document, if any.

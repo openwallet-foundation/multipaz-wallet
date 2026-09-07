@@ -69,6 +69,7 @@ import org.multipaz.wallet.client.deleteDocumentFromWalletBackend
 import org.multipaz.wallet.client.fromCbor
 import org.multipaz.wallet.client.getMpzPass
 import org.multipaz.wallet.client.isMpzPassShareable
+import org.multipaz.wallet.client.isSyncing
 import org.multipaz.wallet.client.mapLocalDocumentOrderToShared
 import org.multipaz.wallet.client.mapSharedDocumentOrderToLocal
 import org.multipaz.wallet.client.mpzPassData
@@ -2285,6 +2286,43 @@ class WalletClientTest {
         // Verify shared data on backend remains intact
         assertNotNull(client.sharedData.value!!.provisionedDocuments?.find { it.identifier == provDoc1.identifier })
         assertEquals(listOf(provDoc1.identifier), client.sharedData.value!!.documentOrder)
+    }
+
+    @Test
+    fun testIsSyncing() = runTest {
+        val storage = EphemeralStorage()
+        val softwareSecureArea = SoftwareSecureArea.create(storage)
+        val secureAreaRepository = SecureAreaRepository.Builder()
+            .add(softwareSecureArea)
+            .build()
+        val documentStore = buildDocumentStore(
+            storage = storage,
+            secureAreaRepository = secureAreaRepository,
+        ) {}
+
+        val pass1 = getPass1()
+        val passDoc = documentStore.importMpzPass(
+            mpzPass = pass1,
+            isoMdocDomain = "mdoc_software",
+            sdJwtVcDomain = "sdjwt_software",
+            keylessSdJwtVcDomain = "sdjwt_keyless"
+        )
+        assertTrue(passDoc.isSyncing)
+
+        val provDoc1 = getProvisionedDocument1()
+        val provDoc = documentStore.createDocument(
+            displayName = provDoc1.displayName,
+            typeDisplayName = provDoc1.typeDisplayName
+        )
+        assertFalse(provDoc.isSyncing)
+        provDoc.setProvisionedDocumentIdentifier(provDoc1.identifier)
+        assertTrue(provDoc.isSyncing)
+
+        val regularDoc = documentStore.createDocument(
+            displayName = "Regular Document",
+            typeDisplayName = "Regular"
+        )
+        assertFalse(regularDoc.isSyncing)
     }
 }
 

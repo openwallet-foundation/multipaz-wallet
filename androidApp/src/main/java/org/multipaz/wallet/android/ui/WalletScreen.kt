@@ -176,6 +176,7 @@ import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.isSyncing
 import org.multipaz.wallet.client.mapLocalDocumentOrderToShared
 import org.multipaz.wallet.client.preconsentSetting
+import org.multipaz.wallet.client.provisionedDocumentIdentifier
 import org.multipaz.wallet.client.provisionedDocumentSetupNeeded
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.Domains
@@ -889,12 +890,12 @@ private fun DocumentInfoContentReal(
                         onLongClick = if (devMode) {
                             if (setupNeeded) {
                                 { onDocumentInfoExtrasClicked(documentInfo) }
-                            } else {
+                            } else if (documentInfo.document.provisionedDocumentIdentifier != null) {
                                 {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onDocumentUnsetupClicked(documentInfo)
                                 }
-                            }
+                            } else null
                         } else null
                     ),
                     showChevron = true,

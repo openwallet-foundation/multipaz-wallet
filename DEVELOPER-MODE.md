@@ -40,10 +40,10 @@ When Developer Mode is enabled, tapping the top bar title on specific screens op
 - **User Defined Verification Query**: In the verifier's **Select Verification Type** screen, a **User Defined Query** option enables testing arbitrary or custom verification requests.
 - **NFC-Only Presentment Scan**: Long-pressing the NFC button in the verifier screen initiates an NFC-only presentment scan mode.
 - **Inspect Placeholder Document**: When a focused document is syncing and setup is needed in the main wallet screen, long-pressing the setup item navigates to **Document Info Extras** to inspect document tags and metadata.
-- **Unsetup Document**: When a focused document is synced and ready to use,
-  long-pressing the "Synced to your account" button prompts for confirmation and
-  resets the document to require setup, replacing it with a placeholder document
-  just as if it had not been set up on this device.
+- **Unsetup Document**: When a focused provisioned document is synced and ready
+  to use, long-pressing the "Synced to your account" button prompts for
+  confirmation and resets the document to require setup, replacing it with a
+  placeholder document just as if it had not been set up on this device.
 
 
 
