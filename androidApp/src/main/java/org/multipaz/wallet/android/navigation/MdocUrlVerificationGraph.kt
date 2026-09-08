@@ -20,6 +20,9 @@ import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.EventVerificationIso18013Proximity
+import org.multipaz.mdoc.engagement.EngagementType
+import org.multipaz.mdoc.engagement.toEngagementType
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.securearea.SecureArea
@@ -47,6 +50,7 @@ import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
 import org.multipaz.revocation.RevocationChecker
 import org.multipaz.wallet.client.verification.toCbor
+import org.multipaz.wallet.client.verification.toTelemetry
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -148,29 +152,39 @@ fun mdocUrlVerificationGraph(
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },
-                    onTransferComplete = { presentmentRecord ->
-                        if (settingsModel.verificationStoreResponse.value) {
-                            coroutineScope.launch {
+                    onTransferComplete = { presentmentRecord, result ->
+                        val query = settingsModel.readerQuery.value
+                        val engagementType = result.nfcHandoverType?.toEngagementType() ?: EngagementType.QR_CODE
+                        val event = EventVerificationIso18013Proximity(
+                            appData = mapOf("query" to Cbor.decode(query.toCbor())),
+                            presentmentRecord = presentmentRecord,
+                            engagementType = engagementType,
+                            durationNfcTapToEngagement = result.durationNfcTapToEngagement,
+                            durationEngagementReceivedToRequestSent = result.durationEngagementReceivedToRequestSent,
+                            durationRequestSentToResponseReceived = result.durationRequestSentToResponseReceived,
+                            durationScanningTime = result.durationScanningTime,
+                            nfcHybridTransportStats = result.nfcHybridTransportStats,
+                        )
+                        val telemetry = result.toTelemetry()
+                        coroutineScope.launch {
+                            val eventId = if (settingsModel.verificationStoreResponse.value) {
                                 try {
-                                    val query = settingsModel.readerQuery.value
-                                    eventLogger.addEvent(
-                                        EventVerification(
-                                            appData = mapOf("query" to Cbor.decode(query.toCbor())),
-                                            presentmentRecord = presentmentRecord
-                                        )
-                                    )
+                                    val loggedEvent = eventLogger.addEvent(event)
+                                    loggedEvent?.identifier
                                 } catch (e: Exception) {
                                     Logger.e(TAG, "Failed to log proximity verification event", e)
+                                    null
                                 }
-                            }
+                            } else null
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(VerificationShowResponseDestination(
+                                query = query,
+                                presentmentRecord = presentmentRecord,
+                                atTime = Clock.System.now(),
+                                eventIdentifier = eventId,
+                                telemetry = telemetry
+                            ))
                         }
-                        backStack.removeAt(backStack.size - 1)
-                        backStack.add(VerificationShowResponseDestination(
-                            query = settingsModel.readerQuery.value,
-                            presentmentRecord = presentmentRecord,
-                            atTime = Clock.System.now(),
-                            eventIdentifier = null
-                        ))
                     },
                     onTransferError = {
                         backStack.removeAt(backStack.size - 1)
@@ -213,7 +227,8 @@ fun mdocUrlVerificationGraph(
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
                             presentmentRecord = key.presentmentRecord,
-                            atTime = Instant.fromEpochMilliseconds(key.atTimeMillis)
+                            atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
+                            telemetry = key.telemetry
                         ))
                     },
                     onViewCbor = { title, cborBytes ->
@@ -229,6 +244,7 @@ fun mdocUrlVerificationGraph(
                     query = key.query,
                     presentmentRecord = key.presentmentRecord,
                     atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
+                    telemetry = key.telemetry,
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,

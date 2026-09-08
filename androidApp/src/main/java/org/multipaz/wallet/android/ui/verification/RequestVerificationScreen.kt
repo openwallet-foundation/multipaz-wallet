@@ -88,7 +88,10 @@ import org.multipaz.compose.items.FloatingItemList
 import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.EventVerificationDigitalCredentials
 import org.multipaz.eventlogger.SimpleEventLogger
+import org.multipaz.verification.VerificationSession
+import kotlin.time.Duration.Companion.milliseconds
 import org.multipaz.wallet.client.verification.toCbor
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.nfc.ExternalNfcReaderState
@@ -117,8 +120,10 @@ import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.ConfirmationDialog
 import org.multipaz.wallet.android.ui.InfoNote
 import org.multipaz.wallet.client.WalletClient
+import org.multipaz.wallet.client.verification.DigitalCredentialsVerificationTelemetry
 import org.multipaz.wallet.client.verification.Query
 import org.multipaz.wallet.client.verification.Result
+import org.multipaz.wallet.client.verification.VerificationTelemetry
 import kotlin.time.Instant
 
 private data class CompletedVerificationData(
@@ -149,7 +154,14 @@ fun RequestVerificationScreen(
     onScanQrClicked: () -> Unit,
     onScanNfcClicked: (nfcOnly: Boolean) -> Unit,
     onGenerateVerificationLinkClicked: () -> Unit,
-    onViewVerificationClicked: (query: Query, presentmentRecord: PresentmentRecord, atTime: Instant, showNotTrusted: Boolean) -> Unit,
+    onViewVerificationClicked: (
+        query: Query,
+        presentmentRecord: PresentmentRecord,
+        atTime: Instant,
+        showNotTrusted: Boolean,
+        telemetry: VerificationTelemetry?,
+        eventIdentifier: String?
+    ) -> Unit,
     onDeletePendingVerificationClicked: (requestId: String) -> Unit,
     refreshTrigger: Int,
     onBackClicked: () -> Unit,
@@ -232,8 +244,10 @@ fun RequestVerificationScreen(
     LaunchedEffect(completedList.value) {
         val states = withContext(Dispatchers.Default) {
             completedList.value.map { item ->
+                var decryptedResponseStr: String? = null
                 val presentmentRecord = try {
                     val decryptedResponse = item.decryptResponse()
+                    decryptedResponseStr = decryptedResponse
                     val dcResponse = Json.parseToJsonElement(decryptedResponse).jsonObject
                     item.session.processDcResponse(dcResponse = dcResponse)
                 } catch (e: Exception) {
@@ -257,7 +271,7 @@ fun RequestVerificationScreen(
                         true
                     }
                 } ?: true
-                CompletedVerificationUiState(item, presentmentRecord, isTrusted)
+                CompletedVerificationUiState(item, presentmentRecord, isTrusted, decryptedResponseStr)
             }
         }
         completedUiStates.value = states
@@ -476,44 +490,69 @@ fun RequestVerificationScreen(
                                 modifier = Modifier.clickable {
                                     if (presentmentRecord != null) {
                                         completedList.value = completedList.value.filter { it.requestId != item.requestId }
-                                        CoroutineScope(Dispatchers.IO).launch {
+                                        coroutineScope.launch {
+                                            val requestJson = Json.encodeToString(item.session.getDcRequest())
+                                            val origin = item.session.findOrNull<VerificationSession.DcIso18013Request>()?.origin
+                                                ?: item.session.findOrNull<VerificationSession.DcOpenID4VPRequest>()?.requestorId
+                                            val duration = item.responseReceivedAtMillis?.let {
+                                                (it - item.creationTimeMillis).milliseconds
+                                            }
+                                            val responseJson = state.decryptedResponse ?: item.decryptResponse()
+                                            val telemetry = DigitalCredentialsVerificationTelemetry(
+                                                requestJson = requestJson,
+                                                responseJson = responseJson,
+                                                origin = origin,
+                                                appId = null,
+                                                durationRequestSentToResponseReceived = duration
+                                            )
+                                            var eventId: String? = item.eventIdentifier
                                             if (item.storeResponse && !item.logged) {
                                                 try {
-                                                    val event = EventVerification(
+                                                    val event = EventVerificationDigitalCredentials(
                                                         appData = mapOf("query" to Cbor.decode(item.query.toCbor())),
-                                                        presentmentRecord = presentmentRecord
+                                                        presentmentRecord = presentmentRecord,
+                                                        requestJson = requestJson,
+                                                        responseJson = responseJson,
+                                                        durationRequestSentToResponseReceived = duration,
+                                                        origin = origin,
+                                                        appId = null,
                                                     )
-                                                    eventLogger.addEvent(event)
+                                                    val loggedEvent = eventLogger.addEvent(event)
+                                                    eventId = loggedEvent?.identifier
                                                 } catch (e: Exception) {
                                                     if (e is CancellationException) throw e
-                                                    Logger.e(TAG, "Failed to log verification event on review", e)
+                                                    Logger.e(TAG, "Failed to create verification event on review", e)
                                                 }
                                             }
-                                            try {
-                                                deleteVerification(storage, item.requestId)
-                                            } catch (e: Exception) {
-                                                if (e is CancellationException) throw e
-                                                Logger.e(TAG, "Failed to delete verification on click", e)
+                                            withContext(Dispatchers.IO) {
+                                                try {
+                                                    deleteVerification(storage, item.requestId)
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    Logger.e(TAG, "Failed to delete verification on click", e)
+                                                }
+                                                try {
+                                                    walletClient.deleteVerificationRequest(item.requestId)
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    Logger.w(TAG, "Failed to delete verification request from server", e)
+                                                }
+                                                try {
+                                                    walletClient.deleteVerificationResponse(item.requestId)
+                                                } catch (e: Exception) {
+                                                    if (e is CancellationException) throw e
+                                                    // Already deleted when polled, ignore
+                                                }
                                             }
-                                            try {
-                                                walletClient.deleteVerificationRequest(item.requestId)
-                                            } catch (e: Exception) {
-                                                if (e is CancellationException) throw e
-                                                Logger.w(TAG, "Failed to delete verification request from server", e)
-                                            }
-                                            try {
-                                                walletClient.deleteVerificationResponse(item.requestId)
-                                            } catch (e: Exception) {
-                                                if (e is CancellationException) throw e
-                                                // Already deleted when polled, ignore
-                                            }
+                                            onViewVerificationClicked(
+                                                item.query,
+                                                presentmentRecord,
+                                                Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis),
+                                                !isTrusted,
+                                                telemetry,
+                                                eventId
+                                            )
                                         }
-                                        onViewVerificationClicked(
-                                            item.query,
-                                            presentmentRecord,
-                                            Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis),
-                                            !isTrusted
-                                        )
                                     }
                                 },
                                 showChevron = true,
@@ -659,5 +698,6 @@ fun RequestVerificationScreen(
 data class CompletedVerificationUiState(
     val item: LinkVerification,
     val presentmentRecord: PresentmentRecord?,
-    val isTrusted: Boolean
+    val isTrusted: Boolean,
+    val decryptedResponse: String? = null
 )

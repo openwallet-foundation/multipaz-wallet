@@ -11,6 +11,8 @@ import org.multipaz.eventlogger.EventPresentmentUriSchemeOpenID4VP
 import org.multipaz.eventlogger.EventProvisioning
 import org.multipaz.eventlogger.EventSimple
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.EventVerificationDigitalCredentials
+import org.multipaz.eventlogger.EventVerificationIso18013Proximity
 import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.OpenID4VPPresentmentRecord
 
@@ -37,6 +39,12 @@ fun Event.isForDocumentId(documentId: String): Boolean {
 
 // Returns true iff the verification event is for proximity presentment.
 fun EventVerification.isProximityPresentment(): Boolean {
+    if (this is EventVerificationIso18013Proximity) {
+        return true
+    }
+    if (this is EventVerificationDigitalCredentials) {
+        return false
+    }
     when (presentmentRecord) {
         is Iso18013PresentmentRecord -> {
             return (presentmentRecord as Iso18013PresentmentRecord).origin == null

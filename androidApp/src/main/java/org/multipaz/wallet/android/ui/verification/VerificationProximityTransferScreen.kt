@@ -96,6 +96,7 @@ import org.multipaz.wallet.android.navigation.ProximityScanMode
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.ProximityReaderModelResult
 
 private const val TAG = "VerificationProximityTransferScreen"
 
@@ -113,7 +114,10 @@ fun VerificationProximityTransferScreen(
     onNfcHandover: (suspend (ScanMdocReaderResult) -> Unit)? = null,
     onQrCodeScanned: (suspend (String) -> Unit)? = null,
     onBackClicked: () -> Unit,
-    onTransferComplete: (presentmentRecord: PresentmentRecord) -> Unit,
+    onTransferComplete: (
+        presentmentRecord: PresentmentRecord,
+        result: ProximityReaderModelResult
+    ) -> Unit,
     onTransferError: (error: Throwable) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope { promptModel }
@@ -195,7 +199,7 @@ fun VerificationProximityTransferScreen(
                             encryptionInfo = null,
                             origin = null
                         )
-                        onTransferComplete(presentmentRecord)
+                        onTransferComplete(presentmentRecord, result)
                     }
                 }
             }

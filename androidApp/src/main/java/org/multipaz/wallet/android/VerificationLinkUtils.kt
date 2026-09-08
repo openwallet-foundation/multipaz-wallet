@@ -41,6 +41,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.EventVerificationDigitalCredentials
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.trustmanagement.CompositeTrustManager
@@ -49,6 +50,7 @@ import org.multipaz.cbor.Cbor
 import kotlinx.serialization.json.jsonObject
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "VerificationLinkUtils"
 
@@ -71,7 +73,8 @@ data class LinkVerification(
     val encryptedResponse: ByteString? = null,
     val responseReceivedAtMillis: Long? = null,
     val storeResponse: Boolean = false,
-    val logged: Boolean = false
+    val logged: Boolean = false,
+    val eventIdentifier: String? = null
 ) {
     companion object
 }
@@ -379,20 +382,33 @@ suspend fun checkVerificationResults(
 
                 if (updated.storeResponse && !updated.logged) {
                     try {
-                        val event = EventVerification(
+                        val requestJson = Json.encodeToString(updated.session.getDcRequest())
+                        val origin = updated.session.findOrNull<VerificationSession.DcIso18013Request>()?.origin
+                            ?: updated.session.findOrNull<VerificationSession.DcOpenID4VPRequest>()?.requestorId
+                        val duration = updated.responseReceivedAtMillis?.let {
+                            (it - updated.creationTimeMillis).milliseconds
+                        }
+                        val event = EventVerificationDigitalCredentials(
                             appData = mapOf("query" to Cbor.decode(updated.query.toCbor())),
-                            presentmentRecord = presentmentRecord
+                            presentmentRecord = presentmentRecord,
+                            requestJson = requestJson,
+                            responseJson = decryptedResponse,
+                            durationRequestSentToResponseReceived = duration,
+                            origin = origin,
+                            appId = null
                         )
-                        eventLogger.addEvent(event)
-                        val finalUpdated = updated.copy(logged = true)
+                        val loggedEvent = eventLogger.addEvent(event)
+                        val finalUpdated = updated.copy(logged = true, eventIdentifier = loggedEvent?.identifier)
                         table.update(updated.requestId, ByteString(finalUpdated.toCbor()))
+                        onResponseReceived(finalUpdated)
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         Logger.e(TAG, "Failed to log event in checkVerificationResults for ${verification.requestId}", e)
+                        onResponseReceived(updated)
                     }
+                } else {
+                    onResponseReceived(updated)
                 }
-
-                onResponseReceived(updated)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Logger.e(TAG, "Failed to decrypt/process completed response for ${verification.requestId}", e)

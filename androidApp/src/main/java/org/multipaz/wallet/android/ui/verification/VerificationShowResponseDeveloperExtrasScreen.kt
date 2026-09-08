@@ -85,7 +85,12 @@ import org.multipaz.verification.QueryData
 import org.multipaz.verification.SdJwtQueryData
 import org.multipaz.verification.VerificationUtil
 import org.multipaz.verification.VerifiedPresentation
-import org.multipaz.wallet.android.LinkVerification
+import org.multipaz.wallet.client.verification.VerificationTelemetry
+import org.multipaz.wallet.client.verification.ProximityVerificationTelemetry
+import org.multipaz.wallet.client.verification.DigitalCredentialsVerificationTelemetry
+import org.multipaz.wallet.client.verification.GenericVerificationTelemetry
+import org.multipaz.wallet.client.verification.formatDuration
+import org.multipaz.mdoc.engagement.EngagementType
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.ProximityReaderModel
@@ -169,7 +174,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
     revocationChecker: RevocationChecker? = null,
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
     onViewJson: ((title: String, jsonString: String) -> Unit)? = null,
-    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null
+    onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
+    telemetry: VerificationTelemetry? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -273,7 +279,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
         }
     }
 
-    LaunchedEffect(verifiedPresentationsState.value, revocationCheckStatuses.toMap()) {
+    LaunchedEffect(verifiedPresentationsState.value, revocationCheckStatuses.toMap(), telemetry) {
         val vps = verifiedPresentationsState.value ?: return@LaunchedEffect
         try {
             verficationResult.value = parseResponse(
@@ -286,7 +292,8 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                 onViewJwt = wrappedOnViewJwt,
                 revocationChecker = revocationChecker,
                 revocationCheckStatuses = revocationCheckStatuses,
-                onTriggerRevocationCheck = onTriggerRevocationCheck
+                onTriggerRevocationCheck = onTriggerRevocationCheck,
+                telemetry = telemetry,
             )
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -384,7 +391,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                 is ValueDuration -> {
                                     FloatingItemHeadingAndText(
                                         heading = line.header,
-                                        text = line.value.duration?.let { stringResource(R.string.verification_show_response_developer_extras_msec, it.inWholeMilliseconds) } ?: "-"
+                                        text = line.value.duration?.formatDuration() ?: "-"
                                     )
                                 }
 
@@ -409,6 +416,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
 
 private suspend fun createPresentmentRecordSection(
     presentmentRecord: PresentmentRecord,
+    telemetry: VerificationTelemetry? = null,
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)?,
     onViewJson: ((title: String, jsonString: String) -> Unit)?,
     onViewJwt: ((title: String, jwtString: String) -> Unit)? = null
@@ -417,12 +425,14 @@ private suspend fun createPresentmentRecordSection(
     val title: String
     when (presentmentRecord) {
         is Iso18013PresentmentRecord -> {
-            title = "ISO/IEC 18013-5 Presentment Record"
-            val origin = presentmentRecord.origin
+            title = "ISO/IEC 18013-5 presentment record"
+            val origin = presentmentRecord.origin ?: (telemetry as? DigitalCredentialsVerificationTelemetry)?.origin
             if (origin != null) {
                 lines.add(Line("Origin", ValueText(origin)))
-            } else {
-                lines.add(Line("Channel", ValueText("Proximity")))
+            }
+            val appId = (telemetry as? DigitalCredentialsVerificationTelemetry)?.appId
+            if (appId != null) {
+                lines.add(Line("App ID", ValueText(appId)))
             }
 
             val requestBytes = try {
@@ -492,7 +502,7 @@ private suspend fun createPresentmentRecordSection(
         }
 
         is OpenID4VPPresentmentRecord -> {
-            title = "OpenID4VP Presentment Record"
+            title = "OpenID4VP presentment record"
 
             val requestJson = try {
                 Json.parseToJsonElement(presentmentRecord.vpRequest).jsonObject
@@ -500,14 +510,22 @@ private suspend fun createPresentmentRecordSection(
                 null
             }
 
-            val clientId = requestJson?.get("client_id")?.jsonPrimitive?.content
-            if (clientId != null) {
-                val header = if (clientId.startsWith("https://") || clientId.startsWith("http://")) {
-                    "Origin"
-                } else {
-                    "Client ID"
+            val origin = (telemetry as? DigitalCredentialsVerificationTelemetry)?.origin
+                ?: requestJson?.get("client_id")?.jsonPrimitive?.content?.takeIf {
+                    it.startsWith("https://") || it.startsWith("http://")
                 }
-                lines.add(Line(header, ValueText(clientId)))
+            if (origin != null) {
+                lines.add(Line("Origin", ValueText(origin)))
+            }
+
+            val clientId = requestJson?.get("client_id")?.jsonPrimitive?.content
+            if (clientId != null && clientId != origin) {
+                lines.add(Line("Client ID", ValueText(clientId)))
+            }
+
+            val appId = (telemetry as? DigitalCredentialsVerificationTelemetry)?.appId
+            if (appId != null) {
+                lines.add(Line("App ID", ValueText(appId)))
             }
 
             val requestBytes = presentmentRecord.vpRequest.encodeToByteArray()
@@ -651,6 +669,71 @@ private suspend fun createPresentmentRecordSection(
     return Section(title, lines)
 }
 
+private fun createProtocolDetailsSection(
+    telemetry: VerificationTelemetry,
+    onViewJson: ((title: String, jsonString: String) -> Unit)?
+): Section? {
+    val lines = mutableListOf<Line>()
+    when (telemetry) {
+        is ProximityVerificationTelemetry -> {
+            val engagementText = when (telemetry.engagementType) {
+                EngagementType.QR_CODE -> "QR code"
+                EngagementType.NFC_STATIC_HANDOVER -> "NFC static handover"
+                EngagementType.NFC_NEGOTIATED_HANDOVER -> "NFC negotiated handover"
+                EngagementType.NFC_CONCURRENT_CHANNEL_ENGAGEMENT -> "NFC concurrent channel engagement"
+            }
+            lines.add(Line("Engagement channel", ValueText(engagementText)))
+            telemetry.durationNfcTapToEngagement?.let {
+                lines.add(Line("NFC tap to engagement", ValueDuration(it)))
+            }
+            telemetry.durationEngagementReceivedToRequestSent?.let {
+                lines.add(Line("Engagement to request sent", ValueDuration(it)))
+            }
+            telemetry.durationRequestSentToResponseReceived?.let {
+                lines.add(Line("Request sent to response received", ValueDuration(it)))
+            }
+            telemetry.durationScanningTime?.let {
+                lines.add(Line("Transport scanning time", ValueDuration(it)))
+            }
+            telemetry.nfcHybridTransportStats?.let { stats ->
+                val text = "Sent: ${stats.numSent} (${stats.numSentViaNfc} NFC, ${stats.numSentViaTransport} transport)\nReceived: ${stats.numReceived} (${stats.numReceivedFirstOnNfc} NFC, ${stats.numReceivedFirstOnTransport} transport)"
+                lines.add(Line("NFC hybrid transport stats", ValueText(text)))
+            }
+        }
+        is DigitalCredentialsVerificationTelemetry -> {
+            telemetry.durationRequestSentToResponseReceived?.let {
+                lines.add(Line("Request sent to response received", ValueDuration(it)))
+            }
+            val reqLength = telemetry.requestJson.length
+            val formattedReq = "%,d".format(reqLength)
+            lines.add(
+                Line(
+                    header = "W3C DC request",
+                    value = ValueText("$formattedReq chars of JSON"),
+                    onClick = { onViewJson?.invoke("W3C DC Request", telemetry.requestJson) },
+                    showChevron = true
+                )
+            )
+            val respLength = telemetry.responseJson.length
+            val formattedResp = "%,d".format(respLength)
+            lines.add(
+                Line(
+                    header = "W3C DC response",
+                    value = ValueText("$formattedResp chars of JSON"),
+                    onClick = { onViewJson?.invoke("W3C DC Response", telemetry.responseJson) },
+                    showChevron = true
+                )
+            )
+        }
+        is GenericVerificationTelemetry -> {
+            telemetry.durationRequestSentToResponseReceived?.let {
+                lines.add(Line("Request sent to response received", ValueDuration(it)))
+            }
+        }
+    }
+    return if (lines.isNotEmpty()) Section("Protocol details", lines) else null
+}
+
 private suspend fun parseResponse(
     presentmentRecord: PresentmentRecord,
     verifiedPresentations: List<VerifiedPresentation>,
@@ -663,11 +746,17 @@ private suspend fun parseResponse(
     revocationCheckStatuses: Map<Int, RevocationCheckStatus>,
     onTriggerRevocationCheck: (vpNum: Int, revocationStatus: RevocationStatus, certChain: X509CertChain) -> Unit,
     now: Instant = Clock.System.now(),
+    telemetry: VerificationTelemetry? = null,
 ): VerificationResult {
     val sections = mutableListOf<Section>()
+    val protocolDetailsSection = telemetry?.let { createProtocolDetailsSection(it, onViewJson) }
+    if (protocolDetailsSection != null) {
+        sections.add(protocolDetailsSection)
+    }
     sections.add(
         createPresentmentRecordSection(
             presentmentRecord = presentmentRecord,
+            telemetry = telemetry,
             onViewCbor = onViewCbor,
             onViewJson = onViewJson,
             onViewJwt = onViewJwt
@@ -684,10 +773,10 @@ private suspend fun parseResponse(
                     issuerTrustManager.verify(vp.documentSignerCertChain.certificates, now)
                 if (trustResult.isTrusted) {
                     val tpName =
-                        trustResult.trustPoints.first().metadata?.displayName?.let { " ($it)" } ?: ""
-                    lines.add(Line("Issuer Trusted", ValueText("Yes$tpName")))
+                        trustResult.trustPoints.first().metadata.displayName?.let { " ($it)" } ?: ""
+                    lines.add(Line("Issuer trusted", ValueText("Yes$tpName")))
                 } else {
-                    lines.add(Line("Issuer Trusted", ValueText("No")))
+                    lines.add(Line("Issuer trusted", ValueText("No")))
                 }
                 lines.add(
                     Line(
@@ -766,7 +855,7 @@ private suspend fun parseResponse(
 
                 sections.add(
                     Section(
-                        header = "Verified Presentation ${vpNum + 1} of ${verifiedPresentations.size}",
+                        header = "Verified presentation ${vpNum + 1} of ${verifiedPresentations.size}",
                         lines = lines
                     )
                 )
@@ -790,7 +879,7 @@ private suspend fun parseResponse(
                                     header = if (n == 0) {
                                         "Namespace $namespace"
                                     } else {
-                                        "Namespace $namespace (Device-Signed)"
+                                        "Namespace $namespace (device-signed)"
                                     },
                                     lines = claimLines
                                 )
@@ -803,16 +892,16 @@ private suspend fun parseResponse(
             is JsonVerifiedPresentation -> {
                 val lines = mutableListOf<Line>()
                 lines.add(Line("Credential format", ValueText("IETF SD-JWT VC")))
-                lines.add(Line("Verifiable Credential Type", ValueText(vp.vct)))
+                lines.add(Line("Verifiable credential type", ValueText(vp.vct)))
                 lines.add(Line("Issuer DS curve", ValueText(vp.documentSignerCertChain.certificates.first().ecPublicKey.curve.name)))
                 val trustResult =
                     issuerTrustManager.verify(vp.documentSignerCertChain.certificates, now)
                 if (trustResult.isTrusted) {
                     val tpName =
-                        trustResult.trustPoints.first().metadata?.displayName?.let { " ($it)" } ?: ""
-                    lines.add(Line("Issuer Trusted", ValueText("Yes$tpName")))
+                        trustResult.trustPoints.first().metadata.displayName?.let { " ($it)" } ?: ""
+                    lines.add(Line("Issuer trusted", ValueText("Yes$tpName")))
                 } else {
-                    lines.add(Line("Issuer Trusted", ValueText("No")))
+                    lines.add(Line("Issuer trusted", ValueText("No")))
                 }
                 lines.add(
                     Line(
@@ -891,7 +980,7 @@ private suspend fun parseResponse(
 
                 sections.add(
                     Section(
-                        header = "Verified Presentation ${vpNum + 1} of ${verifiedPresentations.size}",
+                        header = "Verified presentation ${vpNum + 1} of ${verifiedPresentations.size}",
                         lines = lines
                     )
                 )
@@ -901,7 +990,7 @@ private suspend fun parseResponse(
                     val (claims, claimsHeader) = if (n == 0) {
                         Pair(vp.issuerSignedClaims, "Claims")
                     } else {
-                        Pair(vp.deviceSignedClaims, "Claims (Device Signed)")
+                        Pair(vp.deviceSignedClaims, "Claims (device-signed)")
                     }
                     for (claim in claims) {
                         val path = claim.claimPath.map { it.jsonPrimitive.content }.joinToString(".")

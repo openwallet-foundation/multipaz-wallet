@@ -45,6 +45,9 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.EventVerificationIso18013Proximity
+import org.multipaz.mdoc.engagement.EngagementType
+import org.multipaz.mdoc.engagement.toEngagementType
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
@@ -149,6 +152,7 @@ import org.multipaz.wallet.client.unsetupDocument
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
 import org.multipaz.wallet.client.verification.ProximityReaderModel
+import org.multipaz.wallet.client.verification.toTelemetry
 import org.multipaz.wallet.shared.BuildConfig
 import org.multipaz.wallet.shared.CredentialIssuerOpenID4VCI
 import org.multipaz.wallet.shared.Domains
@@ -1031,24 +1035,7 @@ fun mainGraph(
                     documentModel = documentModel,
                     onDeleteAllEvents = { backStack.add(DeleteAllEventsConfirmationDialogDestination) },
                     onEventClicked = { event ->
-                        if (event is EventVerification) {
-                            val queryDataItem = event.appData["query"]
-                            if (queryDataItem != null) {
-                                val query = Query.fromCbor(Cbor.encode(queryDataItem))
-                                backStack.add(
-                                    VerificationShowResponseDestination(
-                                        query = query,
-                                        presentmentRecord = event.presentmentRecord,
-                                        atTime = event.timestamp,
-                                        eventIdentifier = event.identifier
-                                    )
-                                )
-                            } else {
-                                backStack.add(EventViewerDestination(event.identifier))
-                            }
-                        } else {
-                            backStack.add(EventViewerDestination(event.identifier))
-                        }
+                        backStack.add(EventViewerDestination(event.identifier))
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
@@ -1070,7 +1057,8 @@ fun mainGraph(
                                     query = query,
                                     presentmentRecord = event.presentmentRecord,
                                     atTime = event.timestamp,
-                                    eventIdentifier = event.identifier
+                                    eventIdentifier = event.identifier,
+                                    telemetry = event.toTelemetry()
                                 )
                             )
                         }
@@ -1178,12 +1166,13 @@ fun mainGraph(
                     zkSystemRepository = zkSystemRepository,
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
-                    onDeveloperExtrasClicked = { presentmentRecord, query, atTime ->
+                    onDeveloperExtrasClicked = { presentmentRecord, query, atTime, telemetry ->
                         backStack.add(
                             VerificationShowResponseDeveloperExtrasDestination(
                                 query = query,
                                 presentmentRecord = presentmentRecord,
-                                atTime = atTime
+                                atTime = atTime,
+                                telemetry = telemetry
                             )
                         )
                     },
@@ -1736,11 +1725,13 @@ fun mainGraph(
                             }
                         }
                     },
-                    onViewVerificationClicked = { query, presentmentRecord, atTime, showNotTrusted ->
+                    onViewVerificationClicked = { query, presentmentRecord, atTime, showNotTrusted, telemetry, eventIdentifier ->
                         backStack.add(VerificationShowResponseDestination(
                             query = query,
                             presentmentRecord = presentmentRecord,
                             atTime = atTime,
+                            eventIdentifier = eventIdentifier,
+                            telemetry = telemetry
                         ))
                     },
                     onDeletePendingVerificationClicked = { requestId ->
@@ -2007,29 +1998,39 @@ fun mainGraph(
                     onBackClicked = {
                         backStack.removeAt(backStack.size - 1)
                     },
-                    onTransferComplete = { presentmentRecord ->
-                        if (settingsModel.verificationStoreResponse.value) {
-                            coroutineScope.launch {
+                    onTransferComplete = { presentmentRecord, result ->
+                        val query = settingsModel.readerQuery.value
+                        val engagementType = result.nfcHandoverType?.toEngagementType() ?: EngagementType.QR_CODE
+                        val event = EventVerificationIso18013Proximity(
+                            appData = mapOf("query" to Cbor.decode(query.toCbor())),
+                            presentmentRecord = presentmentRecord,
+                            engagementType = engagementType,
+                            durationNfcTapToEngagement = result.durationNfcTapToEngagement,
+                            durationEngagementReceivedToRequestSent = result.durationEngagementReceivedToRequestSent,
+                            durationRequestSentToResponseReceived = result.durationRequestSentToResponseReceived,
+                            durationScanningTime = result.durationScanningTime,
+                            nfcHybridTransportStats = result.nfcHybridTransportStats,
+                        )
+                        val telemetry = result.toTelemetry()
+                        coroutineScope.launch {
+                            val eventId = if (settingsModel.verificationStoreResponse.value) {
                                 try {
-                                    val query = settingsModel.readerQuery.value
-                                    eventLogger.addEvent(
-                                        EventVerification(
-                                            appData = mapOf("query" to Cbor.decode(query.toCbor())),
-                                            presentmentRecord = presentmentRecord
-                                        )
-                                    )
+                                    val loggedEvent = eventLogger.addEvent(event)
+                                    loggedEvent?.identifier
                                 } catch (e: Exception) {
                                     Logger.e(TAG, "Failed to log proximity verification event", e)
+                                    null
                                 }
-                            }
+                            } else null
+                            backStack.removeAt(backStack.size - 1)
+                            backStack.add(VerificationShowResponseDestination(
+                                query = query,
+                                presentmentRecord = presentmentRecord,
+                                atTime = Clock.System.now(),
+                                eventIdentifier = eventId,
+                                telemetry = telemetry
+                            ))
                         }
-                        backStack.removeAt(backStack.size - 1)
-                        backStack.add(VerificationShowResponseDestination(
-                            query = settingsModel.readerQuery.value,
-                            presentmentRecord = presentmentRecord,
-                            atTime = Clock.System.now(),
-                            eventIdentifier = null
-                        ))
                     },
                     onTransferError = {
                         backStack.removeAt(backStack.size - 1)
@@ -2072,7 +2073,8 @@ fun mainGraph(
                         backStack.add(VerificationShowResponseDeveloperExtrasDestination(
                             query = key.query,
                             presentmentRecord = key.presentmentRecord,
-                            atTime = Instant.fromEpochMilliseconds(key.atTimeMillis)
+                            atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
+                            telemetry = key.telemetry
                         ))
                     },
                     onViewCbor = { title, cborBytes ->
@@ -2093,6 +2095,7 @@ fun mainGraph(
                     query = key.query,
                     presentmentRecord = key.presentmentRecord,
                     atTime = Instant.fromEpochMilliseconds(key.atTimeMillis),
+                    telemetry = key.telemetry,
                     issuerTrustManager = issuerTrustManager,
                     settingsModel = settingsModel,
                     documentTypeRepository = documentTypeRepository,

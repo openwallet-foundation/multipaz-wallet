@@ -165,14 +165,14 @@ fun VerificationShowResponseScreen(
     val scrollState = rememberScrollState()
     val queryResult = remember { mutableStateOf<Result?>(null) }
     
-    var event by remember { mutableStateOf<EventVerification?>(null) }
+    var eventState by remember { mutableStateOf<EventVerification?>(null) }
     LaunchedEffect(eventIdentifier) {
-        if (eventIdentifier != null) {
-            event = eventLogger.getEvents().find { it.identifier == eventIdentifier } as? EventVerification
+        if (eventState == null && eventIdentifier != null) {
+            eventState = eventLogger.getEvents().find { it.identifier == eventIdentifier } as? EventVerification
         }
     }
-    val verificationLocation = event?.appData?.get("location")?.let { Location.fromDataItem(it) }
-    val verificationTime = event?.timestamp
+    val verificationLocation = eventState?.appData?.get("location")?.let { Location.fromDataItem(it) }
+    val verificationTime = eventState?.timestamp
     val parsingResponseFailed = remember { mutableStateOf<Exception?>(null) }
     val devModeEnabled = settingsModel.devMode.collectAsState().value
 
@@ -196,11 +196,12 @@ fun VerificationShowResponseScreen(
                     AppBackButton(onClick = onBackClicked)
                 },
                 actions = {
-                    if (eventIdentifier != null) {
+                    if (eventState != null || eventIdentifier != null) {
                         IconButton(
                             onClick = {
                                 coroutineScope.launch {
-                                    val eventToShare = eventLogger.getEvents().find { it.identifier == eventIdentifier }
+                                    val eventToShare = eventState
+                                        ?: eventLogger.getEvents().find { it.identifier == eventIdentifier }
                                     if (eventToShare != null) {
                                         shareEvent(
                                             context = localContext,

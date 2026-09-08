@@ -101,8 +101,11 @@ import org.multipaz.eventlogger.EventProvisioning
 import org.multipaz.eventlogger.EventProvisioningIssuerDataOpenID4VCI
 import org.multipaz.eventlogger.EventSimple
 import org.multipaz.eventlogger.EventVerification
+import org.multipaz.eventlogger.EventVerificationDigitalCredentials
+import org.multipaz.eventlogger.EventVerificationIso18013Proximity
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.toDataItem
+import org.multipaz.mdoc.engagement.EngagementType
 import org.multipaz.prompt.PromptModel
 import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.OpenID4VPPresentmentRecord
@@ -131,6 +134,9 @@ import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.time.Clock
+import org.multipaz.wallet.client.verification.VerificationTelemetry
+import org.multipaz.wallet.client.verification.formatDuration
+import org.multipaz.wallet.client.verification.toTelemetry
 
 private const val TAG = "EventViewerScreen"
 
@@ -151,7 +157,7 @@ fun EventViewerScreen(
     zkSystemRepository: ZkSystemRepository,
     issuerTrustManager: CompositeTrustManager,
     settingsModel: SettingsModel? = null,
-    onDeveloperExtrasClicked: ((presentmentRecord: PresentmentRecord, query: Query, atTime: Instant) -> Unit)? = null,
+    onDeveloperExtrasClicked: ((presentmentRecord: PresentmentRecord, query: Query, atTime: Instant, telemetry: VerificationTelemetry?) -> Unit)? = null,
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
     onViewJson: ((title: String, jsonString: String) -> Unit)? = null,
     onViewJwt: ((title: String, jwtString: String) -> Unit)? = null,
@@ -180,7 +186,7 @@ fun EventViewerScreen(
                             null
                         }
                     } ?: UserDefinedQuery(docType = "", namespaces = emptyMap())
-                    onDeveloperExtrasClicked(currentEvent.presentmentRecord, query, currentEvent.timestamp)
+                    onDeveloperExtrasClicked(currentEvent.presentmentRecord, query, currentEvent.timestamp, currentEvent.toTelemetry())
                 }
             } else null
             AppMediumTopAppBar(
@@ -283,6 +289,7 @@ fun EventViewerScreen(
                                 issuerTrustManager = issuerTrustManager,
                                 devModeEnabled = devModeEnabled,
                                 onDeveloperExtrasClicked = onDeveloperExtrasClicked,
+                                onViewJson = onViewJson,
                             )
                         }
                         is EventSimple -> {
@@ -903,7 +910,8 @@ private fun EventViewerVerification(
     modifier: Modifier = Modifier,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
     devModeEnabled: Boolean = false,
-    onDeveloperExtrasClicked: ((presentmentRecord: PresentmentRecord, query: Query, atTime: Instant) -> Unit)? = null
+    onDeveloperExtrasClicked: ((presentmentRecord: PresentmentRecord, query: Query, atTime: Instant, telemetry: VerificationTelemetry?) -> Unit)? = null,
+    onViewJson: ((title: String, jsonString: String) -> Unit)? = null,
 ) {
     val eventDateTime = event.timestamp.toLocalDateTime(timeZone = timeZone)
     val eventDateTimeString = eventDateTime.formatLocalized(
@@ -911,10 +919,9 @@ private fun EventViewerVerification(
         timeStyle = FormatStyle.LONG
     )
 
-    val protocol = if (event.isProximityPresentment()) {
-        "Verified in-person"
-    } else {
-        "Verified using link"
+    val protocol = when (event.presentmentRecord) {
+        is Iso18013PresentmentRecord -> "ISO 18013-5"
+        is OpenID4VPPresentmentRecord -> "OpenID4VP"
     }
 
     val onDevExtras: (() -> Unit)? = if (devModeEnabled && onDeveloperExtrasClicked != null) {
@@ -926,7 +933,7 @@ private fun EventViewerVerification(
                     null
                 }
             } ?: UserDefinedQuery(docType = "", namespaces = emptyMap())
-            onDeveloperExtrasClicked(event.presentmentRecord, query, event.timestamp)
+            onDeveloperExtrasClicked(event.presentmentRecord, query, event.timestamp, event.toTelemetry())
         }
     } else null
 
@@ -984,10 +991,97 @@ private fun EventViewerVerification(
                 text = eventDateTimeString
             )
 
-            FloatingItemHeadingAndText(
-                heading = "Presentment protocol",
-                text = protocol
-            )
+            when (event) {
+                is EventVerificationDigitalCredentials -> {
+                    OriginAndAppIdItem(event.origin, event.appId)
+                    FloatingItemHeadingAndText(
+                        heading = "Presentment protocol",
+                        text = protocol
+                    )
+                    event.durationRequestSentToResponseReceived?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Request sent to response received",
+                            text = it.formatDuration()
+                        )
+                    }
+                    val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
+                        { onViewJson("W3C DC Request", event.requestJson) }
+                    } else null
+                    FloatingItemHeadingAndText(
+                        heading = "Request JSON",
+                        text = "${"%,d".format(event.requestJson.length)} chars of JSON",
+                        showChevron = onRequestClick != null,
+                        modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                    )
+                    val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
+                        { onViewJson("W3C DC Response", event.responseJson) }
+                    } else null
+                    FloatingItemHeadingAndText(
+                        heading = "Response JSON",
+                        text = "${"%,d".format(event.responseJson.length)} chars of JSON",
+                        showChevron = onResponseClick != null,
+                        modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                    )
+                }
+                is EventVerificationIso18013Proximity -> {
+                    val engagementText = when (event.engagementType) {
+                        EngagementType.QR_CODE -> "QR code"
+                        EngagementType.NFC_STATIC_HANDOVER -> "NFC static handover"
+                        EngagementType.NFC_NEGOTIATED_HANDOVER -> "NFC negotiated handover"
+                        EngagementType.NFC_CONCURRENT_CHANNEL_ENGAGEMENT -> "NFC concurrent channel engagement"
+                    }
+                    FloatingItemHeadingAndText(
+                        heading = "Engagement channel",
+                        text = engagementText
+                    )
+                    FloatingItemHeadingAndText(
+                        heading = "Presentment protocol",
+                        text = protocol
+                    )
+                    event.durationNfcTapToEngagement?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "NFC tap to engagement",
+                            text = it.formatDuration()
+                        )
+                    }
+                    event.durationEngagementReceivedToRequestSent?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Engagement to request sent",
+                            text = it.formatDuration()
+                        )
+                    }
+                    event.durationRequestSentToResponseReceived?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Request sent to response received",
+                            text = it.formatDuration()
+                        )
+                    }
+                    event.durationScanningTime?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Transport scanning time",
+                            text = it.formatDuration()
+                        )
+                    }
+                    event.nfcHybridTransportStats?.let { stats ->
+                        FloatingItemHeadingAndText(
+                            heading = "NFC hybrid transport stats",
+                            text = "Sent: ${stats.numSent} (${stats.numSentViaNfc} NFC, ${stats.numSentViaTransport} transport)\nReceived: ${stats.numReceived} (${stats.numReceivedFirstOnNfc} NFC, ${stats.numReceivedFirstOnTransport} transport)"
+                        )
+                    }
+                }
+                else -> {
+                    FloatingItemHeadingAndText(
+                        heading = "Presentment protocol",
+                        text = protocol
+                    )
+                    event.durationRequestSentToResponseReceived?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Request sent to response received",
+                            text = it.formatDuration()
+                        )
+                    }
+                }
+            }
 
             if (onDevExtras != null) {
                 FloatingItemHeadingAndText(

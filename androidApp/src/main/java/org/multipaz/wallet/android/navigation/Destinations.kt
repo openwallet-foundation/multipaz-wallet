@@ -12,6 +12,7 @@ import org.multipaz.verification.PresentmentRecord
 import org.multipaz.verification.fromCbor
 import org.multipaz.verification.toCbor
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.VerificationTelemetry
 import org.multipaz.wallet.client.verification.fromCbor
 import org.multipaz.wallet.client.verification.toCbor
 import org.multipaz.wallet.shared.CredentialIssuer
@@ -413,17 +414,20 @@ data class VerificationShowResponseDestination(
     val presentmentRecordEncoded: String,
     val atTimeMillis: Long,
     val eventIdentifier: String? = null,
+    val telemetryEncoded: String? = null,
 ): Destination() {
     constructor(
         query: Query,
         presentmentRecord: PresentmentRecord,
         atTime: Instant,
         eventIdentifier: String? = null,
+        telemetry: VerificationTelemetry? = null,
     ): this(
         queryEncoded = query.toCbor().toBase64Url(),
         presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
         atTimeMillis = atTime.toEpochMilliseconds(),
-        eventIdentifier = eventIdentifier
+        eventIdentifier = eventIdentifier,
+        telemetryEncoded = telemetry?.toCbor()?.toBase64Url()
     )
 
     val query: Query
@@ -432,22 +436,27 @@ data class VerificationShowResponseDestination(
     val presentmentRecord: PresentmentRecord
         get() = presentmentRecordEncoded.fromBase64Url().let { PresentmentRecord.fromCbor(it) }
 
+    val telemetry: VerificationTelemetry?
+        get() = telemetryEncoded?.fromBase64Url()?.let { VerificationTelemetry.fromCbor(it) }
 }
 
 @Serializable
 data class VerificationShowResponseDeveloperExtrasDestination(
     val queryEncoded: String,
     val presentmentRecordEncoded: String,
-    val atTimeMillis: Long
+    val atTimeMillis: Long,
+    val telemetryEncoded: String? = null,
 ): Destination() {
     constructor(
         query: Query,
         presentmentRecord: PresentmentRecord,
-        atTime: Instant
+        atTime: Instant,
+        telemetry: VerificationTelemetry? = null,
     ): this(
         queryEncoded = query.toCbor().toBase64Url(),
         presentmentRecordEncoded = presentmentRecord.toCbor().toBase64Url(),
-        atTimeMillis = atTime.toEpochMilliseconds()
+        atTimeMillis = atTime.toEpochMilliseconds(),
+        telemetryEncoded = telemetry?.toCbor()?.toBase64Url()
     )
 
     val query: Query
@@ -456,6 +465,8 @@ data class VerificationShowResponseDeveloperExtrasDestination(
     val presentmentRecord: PresentmentRecord
         get() = presentmentRecordEncoded.fromBase64Url().let { PresentmentRecord.fromCbor(it) }
 
+    val telemetry: VerificationTelemetry?
+        get() = telemetryEncoded?.fromBase64Url()?.let { VerificationTelemetry.fromCbor(it) }
 }
 
 @Serializable
