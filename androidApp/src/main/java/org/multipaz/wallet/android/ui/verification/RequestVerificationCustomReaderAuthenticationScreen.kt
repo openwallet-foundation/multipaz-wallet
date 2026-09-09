@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -45,6 +47,7 @@ import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
 import org.multipaz.wallet.android.ui.Note
+import org.multipaz.wallet.android.ui.hazeTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,31 +79,82 @@ fun RequestVerificationCustomReaderAuthenticationScreen(
         }
     )
 
+    val certificates = readerCertChain?.certificates.orEmpty()
     var selectedCertIndex by remember(readerCertChain) { mutableIntStateOf(0) }
+
+    LaunchedEffect(selectedCertIndex) {
+        scrollState.scrollTo(0)
+    }
 
     Scaffold(
         modifier = Modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            AppMediumTopAppBar(
-                title = { Text(stringResource(R.string.request_verification_custom_reader_auth_screen_title)) },
-                navigationIcon = {
-                    AppBackButton(onClick = onBackClicked)
-                },
-                actions = {
-                    if (readerKey != null && readerCertChain != null) {
-                        IconButton(onClick = onDeleteClicked) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = stringResource(R.string.request_verification_custom_reader_auth_action_delete)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .hazeTopAppBar(hazeState)
+            ) {
+                AppMediumTopAppBar(
+                    title = { Text(stringResource(R.string.request_verification_custom_reader_auth_screen_title)) },
+                    navigationIcon = {
+                        AppBackButton(onClick = onBackClicked)
+                    },
+                    actions = {
+                        if (readerKey != null && readerCertChain != null) {
+                            IconButton(onClick = onDeleteClicked) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = stringResource(R.string.request_verification_custom_reader_auth_action_delete)
+                                )
+                            }
+                        }
+                    },
+                    scrollBehavior = scrollBehavior
+                )
+                if (readerKey != null && readerCertChain != null) {
+                    Note(
+                        markdownString = stringResource(R.string.request_verification_custom_reader_auth_note_configured),
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = if (certificates.size > 1) 12.dp else 16.dp
+                        )
+                    )
+                }
+                if (certificates.size > 1) {
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                    ) {
+                        certificates.forEachIndexed { index, _ ->
+                            val label = when {
+                                index == 0 -> stringResource(R.string.cert_tab_leaf)
+                                index == certificates.size - 1 -> stringResource(R.string.cert_tab_root)
+                                certificates.size == 3 -> stringResource(R.string.cert_tab_intermediate)
+                                else -> stringResource(R.string.cert_tab_intermediate_n, index)
+                            }
+                            SegmentedButton(
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = certificates.size
+                                ),
+                                selected = selectedCertIndex == index,
+                                onClick = { selectedCertIndex = index },
+                                label = {
+                                    Text(
+                                        text = label,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             )
                         }
                     }
-                },
-                scrollBehavior = scrollBehavior,
-                hazeState = hazeState
-            )
+                }
+            }
         }
     ) { innerPadding ->
         Column(
@@ -117,14 +171,9 @@ fun RequestVerificationCustomReaderAuthenticationScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            val noteText = if (readerKey != null && readerCertChain != null) {
-                stringResource(R.string.request_verification_custom_reader_auth_note_configured)
-            } else {
-                stringResource(R.string.request_verification_custom_reader_auth_note_not_configured)
-            }
-            Note(noteText)
 
             if (readerKey == null || readerCertChain == null) {
+                Note(stringResource(R.string.request_verification_custom_reader_auth_note_not_configured))
                 Button(
                     onClick = { filePicker.launch() },
                     modifier = Modifier.fillMaxWidth()
@@ -137,28 +186,6 @@ fun RequestVerificationCustomReaderAuthenticationScreen(
                     Text(stringResource(R.string.request_verification_custom_reader_auth_import_button))
                 }
             } else {
-                val certificates = readerCertChain!!.certificates
-                if (certificates.size > 1) {
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        certificates.forEachIndexed { index, _ ->
-                            val label = when {
-                                index == 0 -> stringResource(R.string.request_verification_custom_reader_auth_cert_tab_leaf)
-                                index == certificates.size - 1 -> stringResource(R.string.request_verification_custom_reader_auth_cert_tab_root)
-                                certificates.size == 3 -> stringResource(R.string.request_verification_custom_reader_auth_cert_tab_intermediate)
-                                else -> stringResource(R.string.request_verification_custom_reader_auth_cert_tab_intermediate_n, index)
-                            }
-                            SegmentedButton(
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = certificates.size),
-                                selected = selectedCertIndex == index,
-                                onClick = { selectedCertIndex = index },
-                                label = { Text(label) }
-                            )
-                        }
-                    }
-                }
-
                 val currentCert = certificates.getOrNull(selectedCertIndex) ?: certificates[0]
                 key(selectedCertIndex, currentCert) {
                     X509CertViewer(certificate = currentCert)

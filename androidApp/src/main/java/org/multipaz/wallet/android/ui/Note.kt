@@ -18,9 +18,10 @@ import org.multipaz.compose.text.fromMarkdown
 @Composable
 fun Note(
     markdownString: String,
+    modifier: Modifier = Modifier,
 ) {
     Text(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         text = AnnotatedString.fromMarkdown(markdownString = markdownString),
         style = MaterialTheme.typography.bodyMedium,
     )

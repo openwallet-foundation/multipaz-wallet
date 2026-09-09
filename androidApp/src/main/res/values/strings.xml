@@ -413,6 +413,10 @@
 
     <string name="cert_viewer_title">Certificate</string>
     <string name="cert_viewer_chain_title">Certificate chain</string>
+    <string name="cert_tab_leaf">Leaf</string>
+    <string name="cert_tab_intermediate">Intermediate</string>
+    <string name="cert_tab_intermediate_n">Intermediate %1$d</string>
+    <string name="cert_tab_root">Root</string>
 
     <string name="vical_entry_title">VICAL entry</string>
     <string name="rical_entry_title">RICAL entry</string>
