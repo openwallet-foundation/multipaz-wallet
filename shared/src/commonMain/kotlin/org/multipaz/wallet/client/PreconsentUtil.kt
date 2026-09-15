@@ -104,7 +104,7 @@ suspend fun CredentialQueryResult.checkPreconsent(
                             }
 
                             // 1. Direct match by public key
-                            if (certs.any { it.ecPublicKey == approvedReader.certificate.ecPublicKey }) {
+                            if (certs.any { it.publicKey == approvedReader.certificate.publicKey }) {
                                 return@any true
                             }
 

@@ -602,7 +602,6 @@ private fun ShowSource(
                     is TrustEntryX509Cert -> entry.certificate == trustPoint.certificate
                     is TrustEntryVical -> info.signedVical?.vical?.certificateInfos?.any { it.certificate == trustPoint.certificate } == true
                     is TrustEntryRical -> info.signedRical?.rical?.certificateInfos?.any { it.certificate == trustPoint.certificate } == true
-                    else -> false
                 }
             }?.entry?.identifier
                 ?: infos.find { it.entry.metadata.displayName == trustPoint.metadata.displayName }?.entry?.identifier

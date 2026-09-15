@@ -21,6 +21,7 @@ import org.multipaz.cbor.annotation.CborSerializable
 import org.multipaz.certifiedkeys.CertifiedKeyManager
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
+import org.multipaz.crypto.SecretKey
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackend
 import org.multipaz.provisioning.openid4vci.OpenID4VCIBackendStub
@@ -59,7 +60,6 @@ import org.multipaz.wallet.shared.WalletClientPublicData
 import org.multipaz.wallet.shared.fromCbor
 import org.multipaz.wallet.shared.register
 import org.multipaz.wallet.shared.toCbor
-import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -935,14 +935,16 @@ class WalletClient private constructor(
     ): ByteString {
         val data = ByteString()
         val compressedData = data.toByteArray().deflate()
-        val nonce = Random.nextBytes(12)
-        val encryptedData = Crypto.encrypt(
-            algorithm = Algorithm.A256GCM,
-            key = encryptionKey.toByteArray(),
-            nonce = nonce,
-            messagePlaintext = compressedData,
-            aad = byteArrayOf()
-        )
+        val nonce = Crypto.secureRandom.nextBytes(12)
+        val encryptedData = SecretKey(encryptionKey.toByteArray()).use { secretKey ->
+            Crypto.encrypt(
+                algorithm = Algorithm.A256GCM,
+                key = secretKey,
+                nonce = nonce,
+                messagePlaintext = compressedData,
+                aad = byteArrayOf()
+            )
+        }
         return ByteString(nonce + encryptedData)
     }
 
@@ -952,7 +954,7 @@ class WalletClient private constructor(
 
         val compressedData = data.toByteArray().deflate()
         val encryptionKey = getEncryptionKey()
-        val nonce = Random.nextBytes(12)
+        val nonce = Crypto.secureRandom.nextBytes(12)
         val encryptedData = ByteString(
             Crypto.encrypt(
                 algorithm = Algorithm.A256GCM,
@@ -1001,7 +1003,7 @@ class WalletClient private constructor(
         localSharedData = null
     }
 
-    private var _encryptionKey: ByteArray? = null
+    private var _encryptionKey: SecretKey? = null
 
     private suspend fun saveEncryptionKey(newEncryptionKey: ByteString?) {
         check(lock.isLocked)
@@ -1010,6 +1012,7 @@ class WalletClient private constructor(
             encryptionKeyTable.delete(
                 key = ENCRYPTION_KEY_KEY,
             )
+            _encryptionKey?.close()
             _encryptionKey = null
             return
         }
@@ -1024,10 +1027,11 @@ class WalletClient private constructor(
                 data = newEncryptionKey
             )
         }
-        _encryptionKey = newEncryptionKey.toByteArray()
+        _encryptionKey?.close()
+        _encryptionKey = SecretKey(newEncryptionKey.toByteArray())
     }
 
-    private suspend fun getEncryptionKey(): ByteArray {
+    private suspend fun getEncryptionKey(): SecretKey {
         check(lock.isLocked)
         _encryptionKey?.let {
             return it
@@ -1038,7 +1042,7 @@ class WalletClient private constructor(
             key = ENCRYPTION_KEY_KEY
         )
         if (encryptionKey != null) {
-            _encryptionKey = encryptionKey.toByteArray()
+            _encryptionKey = SecretKey(encryptionKey.toByteArray())
             return _encryptionKey!!
         }
 

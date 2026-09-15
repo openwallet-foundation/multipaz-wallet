@@ -10,6 +10,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
+import org.multipaz.crypto.SecretKey
 import org.multipaz.util.Logger
 import org.multipaz.util.fromBase64Url
 import org.multipaz.util.toBase64Url
@@ -29,7 +30,6 @@ import react.dom.svg.ReactSVG.svg
 import react.useEffectOnce
 import react.useState
 import web.cssom.ClassName
-import kotlin.random.Random
 
 private const val TAG = "VerifyApp"
 
@@ -91,13 +91,15 @@ val VerifyApp = FC<VerifyAppProps> { props ->
                 val iv = encryptedBytes.copyOfRange(0, 12)
                 val ciphertext = encryptedBytes.copyOfRange(12, encryptedBytes.size)
 
-                val plaintextBytes = Crypto.decrypt(
-                    algorithm = Algorithm.A256GCM,
-                    key = key.toByteArray(),
-                    nonce = iv,
-                    messageCiphertext = ciphertext,
-                    aad = byteArrayOf()
-                )
+                val plaintextBytes = SecretKey(key.toByteArray()).use { secretKey ->
+                    Crypto.decrypt(
+                        algorithm = Algorithm.A256GCM,
+                        key = secretKey,
+                        nonce = iv,
+                        messageCiphertext = ciphertext,
+                        aad = byteArrayOf()
+                    )
+                }
 
                 val plaintext = plaintextBytes.decodeToString()
                 val jsonElement = Json.parseToJsonElement(plaintext)
@@ -134,14 +136,16 @@ val VerifyApp = FC<VerifyAppProps> { props ->
                 
                 // Encrypt response using the same symmetric key
                 val key = encryptionKey ?: throw Exception("Encryption key is missing")
-                val iv = Random.nextBytes(12)
-                val encryptedData = Crypto.encrypt(
-                    algorithm = Algorithm.A256GCM,
-                    key = key.toByteArray(),
-                    nonce = iv,
-                    messagePlaintext = credentialStr.encodeToByteArray(),
-                    aad = byteArrayOf()
-                )
+                val iv = Crypto.secureRandom.nextBytes(12)
+                val encryptedData = SecretKey(key.toByteArray()).use { secretKey ->
+                    Crypto.encrypt(
+                        algorithm = Algorithm.A256GCM,
+                        key = secretKey,
+                        nonce = iv,
+                        messagePlaintext = credentialStr.encodeToByteArray(),
+                        aad = byteArrayOf()
+                    )
+                }
                 val encryptedResponse = ByteString(iv + encryptedData)
 
                 val reqId = requestId ?: throw Exception("Request ID is missing")

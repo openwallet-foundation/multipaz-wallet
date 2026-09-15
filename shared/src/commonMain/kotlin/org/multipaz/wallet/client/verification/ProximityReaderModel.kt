@@ -147,6 +147,7 @@ class ProximityReaderModel {
         _error = null
         _sessionTranscript = null
         deviceEngagement = null
+        _eReaderKey?.close()
         _eReaderKey = null
         mdocTransportOptions = null
         query = null
@@ -278,6 +279,7 @@ class ProximityReaderModel {
                     if (_state.value != State.IDLE) {
                         Logger.i(TAG, "Setting state to COMPLETED")
                         deviceEngagement = null
+                        _eReaderKey?.close()
                         _eReaderKey = null
                         query = null
                         deviceRequest = null

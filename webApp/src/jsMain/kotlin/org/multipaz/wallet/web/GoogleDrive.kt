@@ -4,11 +4,11 @@ import kotlinx.browser.window
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Uint8Array
 import org.khronos.webgl.get
+import org.multipaz.crypto.Crypto
 import org.multipaz.util.Logger
 import org.w3c.fetch.RequestInit
 import org.w3c.fetch.Response
 import kotlin.js.json
-import kotlin.random.Random
 import kotlin.js.Promise
 import kotlinx.coroutines.await
 
@@ -30,7 +30,7 @@ class GoogleDrive(private val accessToken: String) {
         }
 
         Logger.i(TAG, "Creating new 32-byte encryption key.")
-        val newKeyBytes = Random.nextBytes(32)
+        val newKeyBytes = Crypto.secureRandom.nextBytes(32)
 
         if (existingFileId != null) {
             updateFile(existingFileId, newKeyBytes)

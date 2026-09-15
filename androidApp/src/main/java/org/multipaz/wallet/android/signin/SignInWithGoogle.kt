@@ -39,11 +39,11 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.context.applicationContext
+import org.multipaz.crypto.Crypto
 import org.multipaz.util.Logger
 import org.multipaz.util.toHex
 import org.multipaz.wallet.shared.BuildConfig
 import java.io.ByteArrayOutputStream
-import kotlin.random.Random
 
 private const val TAG = "SignInWithGoogle"
 
@@ -482,7 +482,7 @@ private suspend fun retrieveOrCreateEncryptionKey(
 
     // 2. Generate a new 32-byte key
     Logger.i(TAG, "Creating new 32-byte encryption key.")
-    val newKeyBytes = Random.nextBytes(32)
+    val newKeyBytes = Crypto.secureRandom.nextBytes(32)
 
     val mediaContent = ByteArrayContent("application/octet-stream", newKeyBytes)
 
@@ -520,7 +520,7 @@ private suspend fun corruptEncryptionKey(
     val existingFile = fileList.files.firstOrNull()
 
     Logger.i(TAG, "Creating new 32-byte encryption key.")
-    val newKeyBytes = Random.nextBytes(32)
+    val newKeyBytes = Crypto.secureRandom.nextBytes(32)
 
     val mediaContent = ByteArrayContent("application/octet-stream", newKeyBytes)
 

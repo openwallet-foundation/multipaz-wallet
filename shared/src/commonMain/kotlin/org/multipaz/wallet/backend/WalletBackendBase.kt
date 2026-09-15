@@ -10,6 +10,7 @@ import org.multipaz.asn1.ASN1Integer
 import org.multipaz.cbor.annotation.CborSerializable
 import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
+import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcPrivateKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
@@ -91,7 +92,7 @@ abstract class WalletBackendBase: WalletBackend {
 
     override suspend fun getNonce(): String {
         val nonceTable = BackendEnvironment.getTable(nonceTableSpec)
-        val nonce = Random.nextBytes(16).toBase64Url()
+        val nonce = Crypto.secureRandom.nextBytes(16).toBase64Url()
         nonceTable.insert(
             key = nonce,
             data = ByteString(),
@@ -480,7 +481,7 @@ abstract class WalletBackendBase: WalletBackend {
     suspend fun certifyReaderKeys(
         readerKeys: List<KeyAttestation>,
         readerRootKey: AsymmetricKey.X509Certified,
-        random: Random = Random.Default,
+        random: Random = Crypto.secureRandom,
         atTime: Instant = Clock.System.now(),
         validFor: Duration = 30.days,
         jitterSize: Duration = 12.hours

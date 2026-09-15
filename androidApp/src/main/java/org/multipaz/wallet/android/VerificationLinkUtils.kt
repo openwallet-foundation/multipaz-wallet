@@ -8,6 +8,7 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
+import org.multipaz.crypto.SecretKey
 import org.multipaz.mdoc.request.DeviceRequest
 import org.multipaz.openid.OpenID4VP
 import org.multipaz.securearea.KeyInfo
@@ -31,7 +32,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.random.Random
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
@@ -127,8 +127,8 @@ suspend fun generateVerificationLink(
     val query = settingsModel.readerQuery.value
 
     val origin = walletClient.getVerificationLinkOrigin()
-    val nonce = ByteString(Random.nextBytes(16))
-    val requestEncryptionKey = ByteString(Random.nextBytes(32))
+    val nonce = ByteString(Crypto.secureRandom.nextBytes(16))
+    val requestEncryptionKey = ByteString(Crypto.secureRandom.nextBytes(32))
     val responseEncryptionKey = Crypto.createEcPrivateKey(EcCurve.P256)
 
     val mdocApiRequest = query.generateDcRequestMdocApi(
@@ -194,14 +194,16 @@ suspend fun generateVerificationLink(
     }
     val envelopeStr = Json.encodeToString(envelope)
     Logger.i(TAG, "Cleartext data before encrypting: $envelopeStr")
-    val iv = Random.nextBytes(12)
-    val encryptedData = Crypto.encrypt(
-        algorithm = Algorithm.A256GCM,
-        key = requestEncryptionKey.toByteArray(),
-        nonce = iv,
-        messagePlaintext = envelopeStr.toByteArray(),
-        aad = byteArrayOf()
-    )
+    val iv = Crypto.secureRandom.nextBytes(12)
+    val encryptedData = SecretKey(requestEncryptionKey.toByteArray()).use { secretKey ->
+        Crypto.encrypt(
+            algorithm = Algorithm.A256GCM,
+            key = secretKey,
+            nonce = iv,
+            messagePlaintext = envelopeStr.toByteArray(),
+            aad = byteArrayOf()
+        )
+    }
     val cipherText = ByteString(iv + encryptedData)
  
     val result = walletClient.createVerificationLink(
@@ -427,13 +429,15 @@ suspend fun LinkVerification.decryptResponse(): String {
     val iv = responseBytes.sliceArray(0 until 12)
     val ciphertext = responseBytes.sliceArray(12 until responseBytes.size)
 
-    val plaintextBytes = Crypto.decrypt(
-        algorithm = Algorithm.A256GCM,
-        key = requestEncryptionKey.toByteArray(),
-        nonce = iv,
-        messageCiphertext = ciphertext,
-        aad = byteArrayOf()
-    )
+    val plaintextBytes = SecretKey(requestEncryptionKey.toByteArray()).use { secretKey ->
+        Crypto.decrypt(
+            algorithm = Algorithm.A256GCM,
+            key = secretKey,
+            nonce = iv,
+            messageCiphertext = ciphertext,
+            aad = byteArrayOf()
+        )
+    }
     return plaintextBytes.decodeToString()
 }
 

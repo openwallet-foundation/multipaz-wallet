@@ -24,6 +24,7 @@ import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.crypto.Crypto
 import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.EcPrivateKey
+import org.multipaz.crypto.SecretKey
 import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509CertChain
@@ -227,7 +228,7 @@ private fun TestScope.buildLocalDispatcher(
 ): RpcDispatcherLocal {
     val builder = RpcDispatcherLocal.Builder()
     TestWalletBackendImpl.register(builder)
-    val cipher = AesGcmCipher(Random.nextBytes(16))
+    val cipher = AesGcmCipher(SecretKey(Crypto.secureRandom.nextBytes(16)))
     val local = RpcNotificationsLocal(cipher)
     val environment = TestBackendEnvironment(
         notifications = local,
