@@ -435,7 +435,7 @@ class DocumentStoreTestHarness {
             expectedUpdate = null,
             digestAlgorithm = Algorithm.SHA256,
             valueDigests = issuerNamespaces.getValueDigests(Algorithm.SHA256),
-            deviceKey = mdocCredential.getAttestation().publicKey,
+            deviceKey = mdocCredential.getAttestation().ecPublicKey,
         )
         val taggedEncodedMso = Cbor.encode(Tagged(
             Tagged.ENCODED_CBOR,
