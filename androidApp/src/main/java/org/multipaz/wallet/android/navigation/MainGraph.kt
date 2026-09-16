@@ -52,6 +52,7 @@ import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.prompt.PromptModel
 import org.multipaz.provisioning.ProvisioningModel
+import org.multipaz.document.Document
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.trustmanagement.CompositeTrustManager
@@ -100,6 +101,7 @@ import org.multipaz.wallet.android.ui.settings.AboutScreen
 import org.multipaz.wallet.android.ui.settings.ActivityLoggingSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConfigureWalletBackendDialog
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsConnectToWalletServerDialog
+import org.multipaz.wallet.android.ui.settings.DeveloperAddPhotoIdScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperSettingsScreen
 import org.multipaz.wallet.android.ui.settings.DeveloperModeDocumentationScreen
 import org.multipaz.wallet.android.ui.settings.PreconsentSettingsScreen
@@ -749,6 +751,9 @@ fun mainGraph(
                     onEnterIssuerUrlClicked = {
                         backStack.add(EnterIssuerUrlDestination)
                     },
+                    onAddPhotoIdClicked = {
+                        backStack.add(DeveloperAddPhotoIdDestination)
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     showToast = showToast
                 )
@@ -1309,6 +1314,28 @@ fun mainGraph(
                         backStack.add(DeveloperModeDocumentationDestination)
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
+                    showToast = showToast
+                )
+            }
+            is DeveloperAddPhotoIdDestination -> NavEntry(key) {
+                DeveloperAddPhotoIdScreen(
+                    documentStore = documentStore,
+                    secureArea = secureArea,
+                    userIssuerTrustManager = app.userIssuerTrustManager,
+                    settingsModel = settingsModel,
+                    onPhotoIdCreated = { document ->
+                        backStack.clear()
+                        backStack.add(WalletDestination())
+                        backStack.add(
+                            WalletDestination(
+                                documentId = document.identifier,
+                                justAddedAtMillis = Clock.System.now().toEpochMilliseconds(),
+                            )
+                        )
+                    },
+                    onBackClicked = {
+                        backStack.removeAt(backStack.size - 1)
+                    },
                     showToast = showToast
                 )
             }

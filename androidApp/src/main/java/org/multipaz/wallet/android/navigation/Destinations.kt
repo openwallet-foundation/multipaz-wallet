@@ -162,6 +162,9 @@ data class EventViewerDestination(
 data object DeveloperSettingsDestination: Destination()
 
 @Serializable
+data object DeveloperAddPhotoIdDestination: Destination()
+
+@Serializable
 data object DeveloperModeDocumentationDestination: Destination()
 
 @Serializable

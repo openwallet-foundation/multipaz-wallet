@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +67,7 @@ fun AddToWalletScreen(
     onImportMpzPass: (encodedMpzPass: ByteString) -> Unit,
     onScanCredentialOfferClicked: () -> Unit,
     onEnterIssuerUrlClicked: () -> Unit,
+    onAddPhotoIdClicked: () -> Unit,
     onBackClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
@@ -210,6 +213,21 @@ fun AddToWalletScreen(
                             )
                         }
                     )
+                    if (settingsModel.devMode.collectAsState().value) {
+                        FloatingItemText(
+                            modifier = Modifier.clickable { onAddPhotoIdClicked() },
+                            showChevron = true,
+                            text = stringResource(R.string.provisioning_add_to_wallet_screen_add_photo_id),
+                            image = {
+                                Icon(
+                                    modifier = Modifier
+                                        .width(1.586 * iconSize).height(iconSize),
+                                    imageVector = Icons.Outlined.Badge,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }

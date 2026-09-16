@@ -74,6 +74,9 @@ android {
             pickFirsts += "values/strings.json"
         }
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -121,6 +124,7 @@ dependencies {
     implementation(libs.bouncy.castle.bcprov)
     implementation(libs.haze)
     implementation(libs.haze.materials)
+    implementation(libs.androidx.camera.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
