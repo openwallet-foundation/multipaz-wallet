@@ -24,7 +24,7 @@ fun Query.getDisplayName(): String = when (this) {
         stringResource(R.string.reader_query_driving_privileges)
     }
     is UserDefinedQuery -> {
-        stringResource(R.string.reader_query_user_defined)
+        name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.reader_query_user_defined)
     }
 }
 
