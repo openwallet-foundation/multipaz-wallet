@@ -1,8 +1,10 @@
 package org.multipaz.wallet.client.verification
 
 import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.buildCborMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class UserDefinedQueryTest {
@@ -50,5 +52,38 @@ class UserDefinedQueryTest {
         assertTrue(decoded is UserDefinedQuery)
         assertEquals(docType, decoded.docType)
         assertEquals(namespaces, decoded.namespaces)
+        assertNull(decoded.name)
+    }
+
+    @Test
+    fun testUserDefinedQueryNameSurvivesCborRoundTrip() {
+        val query = UserDefinedQuery(
+            docType = "org.example.custom_doctype",
+            namespaces = mapOf("org.example.ns1" to listOf("elem1")),
+            name = "Residence record"
+        )
+        assertEquals(query, Query.fromCbor(query.toCbor()))
+    }
+
+    @Test
+    fun testUserDefinedQueryWithoutNameDecodes() {
+        // Queries saved before the name existed have no "name" key, and must still decode.
+        val query = UserDefinedQuery(
+            docType = "org.example.custom_doctype",
+            namespaces = mapOf("org.example.ns1" to listOf("elem1")),
+            name = "Removed below"
+        )
+        val encoded = buildCborMap {
+            for ((key, value) in query.toDataItem().asMap) {
+                if (key.asTstr != "name") {
+                    put(key, value)
+                }
+            }
+        }
+        val decoded = Query.fromDataItem(encoded)
+        assertTrue(decoded is UserDefinedQuery)
+        assertNull(decoded.name)
+        assertEquals(query.docType, decoded.docType)
+        assertEquals(query.namespaces, decoded.namespaces)
     }
 }

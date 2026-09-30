@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -57,17 +57,79 @@ private class NamespaceEntryState(
     val elements = mutableStateListOf<String>().apply { addAll(elements) }
 }
 
+/**
+ * The result of checking the input of [SelectUserDefinedQueryScreen].
+ */
+internal sealed class UserDefinedQueryInput {
+    /** The input makes up [query]. */
+    data class Valid(val query: UserDefinedQuery) : UserDefinedQueryInput()
+
+    /** The input cannot be saved, for the reasons given. */
+    data class Invalid(
+        val missingDocType: Boolean,
+        val missingDataElements: Boolean
+    ) : UserDefinedQueryInput()
+}
+
+/**
+ * Builds a [UserDefinedQuery] from the text entered by the user.
+ *
+ * Surrounding whitespace is removed, blank data elements and namespaces without data elements are left out, and
+ * namespaces entered more than once are merged.
+ *
+ * @param name the name of the query, or a blank string for none.
+ * @param docType the document type.
+ * @param namespaces the namespace names with the data element names entered for each, in order.
+ * @return the query, or why it cannot be built.
+ */
+internal fun buildUserDefinedQuery(
+    name: String,
+    docType: String,
+    namespaces: List<Pair<String, List<String>>>
+): UserDefinedQueryInput {
+    val cleanDocType = docType.trim()
+    val namespacesMap = mutableMapOf<String, List<String>>()
+    for ((namespace, elements) in namespaces) {
+        val cleanNamespace = namespace.trim()
+        val cleanElements = elements.map { it.trim() }.filter { it.isNotEmpty() }
+        if (cleanNamespace.isNotEmpty() && cleanElements.isNotEmpty()) {
+            namespacesMap[cleanNamespace] = ((namespacesMap[cleanNamespace] ?: emptyList()) + cleanElements).distinct()
+        }
+    }
+    if (cleanDocType.isEmpty() || namespacesMap.isEmpty()) {
+        return UserDefinedQueryInput.Invalid(
+            missingDocType = cleanDocType.isEmpty(),
+            missingDataElements = namespacesMap.isEmpty()
+        )
+    }
+    return UserDefinedQueryInput.Valid(
+        UserDefinedQuery(
+            docType = cleanDocType,
+            namespaces = namespacesMap,
+            name = name.trim().ifEmpty { null }
+        )
+    )
+}
+
+/**
+ * Screen for adding or editing a user defined query.
+ *
+ * @param initialQuery the saved query to edit, or `null` to add a new one.
+ * @param onSaved called with the query when the user saves it.
+ * @param onDeleted called when the user deletes the query, or `null` if it has not been saved yet.
+ * @param onBackClicked called when the user leaves without saving.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectUserDefinedQueryScreen(
     initialQuery: UserDefinedQuery?,
-    onConfirmed: (query: UserDefinedQuery) -> Unit,
+    onSaved: (query: UserDefinedQuery) -> Unit,
+    onDeleted: (() -> Unit)?,
     onBackClicked: () -> Unit
 ) {
     val hazeState = remember { HazeState() }
-    var docType by remember {
-        mutableStateOf(initialQuery?.docType ?: org.multipaz.documenttype.knowntypes.PhotoID.PHOTO_ID_DOCTYPE)
-    }
+    var name by remember { mutableStateOf(initialQuery?.name ?: "") }
+    var docType by remember { mutableStateOf(initialQuery?.docType ?: "") }
 
     val namespaceEntries = remember {
         mutableStateListOf<NamespaceEntryState>().apply {
@@ -76,39 +138,18 @@ fun SelectUserDefinedQueryScreen(
                     add(NamespaceEntryState(ns, if (elems.isEmpty()) listOf("") else elems))
                 }
             } else {
-                add(
-                    NamespaceEntryState(
-                        org.multipaz.documenttype.knowntypes.PhotoID.ISO_23220_2_NAMESPACE,
-                        listOf("portrait", "age_in_years", "birth_date")
-                    )
-                )
+                add(NamespaceEntryState())
             }
         }
     }
-
-    // Instant-apply changes whenever docType or any namespace/element entry changes
-    LaunchedEffect(Unit) {
-        androidx.compose.runtime.snapshotFlow {
-            val cleanDocType = docType.trim()
-            val namespacesMap = mutableMapOf<String, List<String>>()
-            namespaceEntries.forEach { nsState ->
-                val cleanNs = nsState.name.trim()
-                if (cleanNs.isNotEmpty()) {
-                    val cleanElems = nsState.elements
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() }
-                    if (cleanElems.isNotEmpty()) {
-                        namespacesMap[cleanNs] = cleanElems
-                    }
-                }
-            }
-            cleanDocType to namespacesMap
-        }.collect { (cleanDocType, namespacesMap) ->
-            if (cleanDocType.isNotEmpty() && namespacesMap.isNotEmpty()) {
-                onConfirmed(UserDefinedQuery(docType = cleanDocType, namespaces = namespacesMap))
-            }
-        }
-    }
+    val input = buildUserDefinedQuery(
+        name = name,
+        docType = docType,
+        namespaces = namespaceEntries.map { it.name to it.elements.toList() }
+    )
+    // Only point out what is missing once the user has tried to save.
+    var saveAttempted by remember { mutableStateOf(false) }
+    val invalid = if (saveAttempted) input as? UserDefinedQueryInput.Invalid else null
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberScrollState()
@@ -122,6 +163,16 @@ fun SelectUserDefinedQueryScreen(
                 title = { Text(stringResource(R.string.select_user_defined_query_dialog_title)) },
                 navigationIcon = {
                     AppBackButton(onClick = onBackClicked)
+                },
+                actions = {
+                    if (onDeleted != null) {
+                        IconButton(onClick = onDeleted) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = stringResource(R.string.select_user_defined_query_delete)
+                            )
+                        }
+                    }
                 },
                 scrollBehavior = scrollBehavior,
                 hazeState = hazeState
@@ -145,6 +196,19 @@ fun SelectUserDefinedQueryScreen(
                 markdownString = stringResource(R.string.select_user_defined_query_note)
             )
 
+            SegmentedItemList(title = stringResource(R.string.select_user_defined_query_dialog_name)) {
+                SegmentedItemContainer {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text(stringResource(R.string.select_user_defined_query_dialog_name)) },
+                        supportingText = { Text(stringResource(R.string.select_user_defined_query_dialog_name_description)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            }
+
             // Document Type segmented item list
             SegmentedItemList(title = stringResource(R.string.select_user_defined_query_dialog_doc_type)) {
                 SegmentedItemContainer {
@@ -152,6 +216,12 @@ fun SelectUserDefinedQueryScreen(
                         value = docType,
                         onValueChange = { docType = it },
                         label = { Text(stringResource(R.string.select_user_defined_query_dialog_doc_type)) },
+                        isError = invalid?.missingDocType == true,
+                        supportingText = if (invalid?.missingDocType == true) {
+                            { Text(stringResource(R.string.select_user_defined_query_error_doc_type)) }
+                        } else {
+                            null
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -241,7 +311,7 @@ fun SelectUserDefinedQueryScreen(
             }
 
             // Add namespace button
-            Button(
+            OutlinedButton(
                 onClick = {
                     namespaceEntries.add(NamespaceEntryState("", listOf("")))
                 },
@@ -253,6 +323,26 @@ fun SelectUserDefinedQueryScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.select_user_defined_query_dialog_add_namespace))
+            }
+
+            if (invalid?.missingDataElements == true) {
+                Text(
+                    text = stringResource(R.string.select_user_defined_query_error_data_elements),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Button(
+                onClick = {
+                    saveAttempted = true
+                    if (input is UserDefinedQueryInput.Valid) {
+                        onSaved(input.query)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.select_user_defined_query_save))
             }
         }
     }
