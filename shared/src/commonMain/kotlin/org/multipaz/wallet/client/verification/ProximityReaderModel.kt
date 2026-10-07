@@ -393,7 +393,8 @@ class ProximityReaderModel {
                 deviceRequest = deviceRequest,
                 deviceResponse = message?.let { DeviceResponse.fromDataItem(Cbor.decode(it)) },
                 sessionTranscript = sessionTranscript,
-                eReaderKey = eReaderKey,
+                // The model closes its own key once the session completes, before the result is consumed.
+                eReaderKey = eReaderKey.duplicate(),
                 nfcHandoverType = nfcHandoverType,
                 durationNfcTapToEngagement = durationNfcTapToEngagement,
                 durationEngagementReceivedToRequestSent = timeOfFirstMessageSent - timeOfEngagementReceived,
