@@ -121,6 +121,9 @@ class ViewModel {
             clientDevice: getIosClientDevice(),
             clientPlatform: getIosClientPlatform()
         )
+        // Locale.preferredLanguages is the user's ordered list of languages. Locale.current is
+        // not used since it is limited to the languages this app bundle is localized into.
+        walletClient.preferredLocales = { Locale.preferredLanguages }
         
         softwareSecureArea = try! await SoftwareSecureArea.companion.create(storage: storage)
         secureAreaRepository = SecureAreaRepository.Builder()

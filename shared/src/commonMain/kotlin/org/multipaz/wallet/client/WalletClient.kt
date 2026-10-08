@@ -240,6 +240,21 @@ class WalletClient private constructor(
     private var _openID4VCIBackend: OpenID4VCIBackend? = null
     private var _openID4VCIClientPreferences: OpenID4VCIClientPreferences? = null
 
+    /**
+     * Returns the user's preferred languages, most preferred first, as language tags.
+     *
+     * This is used to pick localized display data, such as credential names, from OpenID4VCI
+     * issuer metadata. It is evaluated each time [getOpenID4VCIClientPreferences] is called,
+     * so a change of the device language applies to subsequent provisioning and credential
+     * refreshes without restarting the app. Display data already stored with a document is
+     * not affected.
+     *
+     * The default returns `en-US`. Applications should set this to a function returning the
+     * platform's preferred languages, e.g. `LocaleList.getDefault()` on Android or
+     * `Locale.preferredLanguages` on iOS.
+     */
+    var preferredLocales: () -> List<String> = { listOf("en-US") }
+
     suspend fun getOpenID4VCIBackend(): OpenID4VCIBackend {
         lock.withLock {
             return getOpenID4VCIBackendUnlocked()
@@ -270,16 +285,25 @@ class WalletClient private constructor(
     }
 
     suspend fun getOpenID4VCIClientPreferences(): OpenID4VCIClientPreferences {
+        val locales = expandPreferredLocales(preferredLocales())
         lock.withLock {
-            _openID4VCIClientPreferences?.let { return it }
+            // Only rebuild when the locales change. The SDK caches issuer metadata keyed on the
+            // identity of this object, so returning a new instance on every call would make it
+            // fetch the metadata again.
+            _openID4VCIClientPreferences?.let {
+                if (it.locales == locales) {
+                    return it
+                }
+            }
             _openID4VCIClientPreferences = OpenID4VCIClientPreferences(
-                clientId = withContext(RpcAuthClientSession()) {
-                    getOpenID4VCIBackendUnlocked().getClientId()
-                },
+                clientId = _openID4VCIClientPreferences?.clientId
+                    ?: withContext(RpcAuthClientSession()) {
+                        getOpenID4VCIBackendUnlocked().getClientId()
+                    },
                 // Note: always uses `BuildConfig.BACKEND_URL` instead of `backendUrl` since this
                 // is what the AndroidManifest.xml file uses
                 redirectUrl = "${BuildConfig.BACKEND_URL}/redirect",
-                locales = listOf("en-US"),
+                locales = locales,
                 signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
             )
             return _openID4VCIClientPreferences!!
