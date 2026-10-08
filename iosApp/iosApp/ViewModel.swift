@@ -481,6 +481,83 @@ class ViewModel {
         self.presentmentSource = source
         return source
     }
+
+    /// URL schemes dispatched to uriSchemePresentment() in the Multipaz SDK.
+    ///
+    /// `openid4vp` is the de-facto scheme for OpenID4VP; `haip-vp` is the one the
+    /// OpenID4VC High Assurance Interoperability Profile names for invoking a wallet
+    /// when the Digital Credentials API is not available (HAIP 1.0, section 9.3.1.1).
+    /// `mdoc://` carries a reader engagement and the SDK routes it to
+    /// mdocUriSchemePresentment() itself.
+    ///
+    /// Matched with `mdoc://` and not `mdoc:` on purpose: the SDK only recognises the
+    /// former, and the latter is the shape this app *emits* for proximity QR
+    /// engagement (see ProximityPresentmentModel), which must not be fed back here.
+    ///
+    /// All three schemes are already declared in Info.plist.
+    static let uriSchemePresentmentPrefixes = [
+        "openid4vp://",
+        "haip-vp://",
+        "mdoc://"
+    ]
+
+    static func isUriSchemePresentment(_ urlString: String) -> Bool {
+        return uriSchemePresentmentPrefixes.contains { urlString.hasPrefix($0) }
+    }
+
+    /// Presents credentials in response to an OpenID4VP request delivered over a
+    /// custom URL scheme, the fallback for platforms where the Digital Credentials
+    /// API is unavailable.
+    ///
+    /// The consent prompt is driven by showConsentPromptFn() on the presentment
+    /// source, so no additional UI is needed here.
+    func startUriSchemePresentment(uri: String) async {
+        do {
+            let redirectUri = try await uriSchemePresentment(
+                source: getSource(),
+                uri: uri,
+                appId: nil,
+                // Nil, and the reason differs per scheme the SDK dispatches to.
+                //
+                // openid4vp / haip-vp: OpenID4VP 1.0 leaves origin out of the
+                // redirect handover -- OpenID4VPHandoverInfo is [clientId, nonce,
+                // jwkThumbprint, responseUri], and only the DC API handover takes
+                // one (B.2.6.1 vs B.2.6.2). The SDK reads this argument only to
+                // synthesise a `web-origin:` client id for unsigned requests, and
+                // uriSchemePresentment() requires a signed request object, so it
+                // goes unused here.
+                //
+                // mdoc: it does reach OriginInfo in the DeviceEngagement. A custom
+                // scheme launch carries no origin the wallet can trust, and passing
+                // nil is what ISO 18013-5 A.3.2 describes -- the SDK records
+                // domain="", meaning the mdoc did not receive a domain, or did not
+                // receive it from a trusted source.
+                origin: nil,
+                httpClientEngineFactory: Darwin(),
+                onDocumentsInFocus: { documents in
+                    Logger.shared.i(tag: "UriSchemePresentment",
+                                    msg: "documents in focus: \(documents.count)")
+                }
+            )
+            if let redirectUri = redirectUri, let url = URL(string: redirectUri) {
+                await UIApplication.shared.open(url)
+            }
+        } catch {
+            logUriSchemePresentmentFailure(error)
+        }
+    }
+
+    /// The SDK reports verifier-side rejections as a bare `check(...)` failure, so
+    /// the response body never reaches us (openwallet-foundation/multipaz#1949).
+    /// Log everything available to make the failure point identifiable.
+    private func logUriSchemePresentmentFailure(_ error: Error) {
+        let nsError = error as NSError
+        let kotlinException = nsError.userInfo["KotlinException"]
+        let detail = kotlinException.map { String(describing: $0) } ?? String(describing: error)
+        Logger.shared.e(tag: "UriSchemePresentment", msg: "presentment failed: \(detail)")
+        print("UriSchemePresentment failed: \(detail)")
+        print("  nsError: \(nsError), userInfo: \(nsError.userInfo)")
+    }
 }
 
 private func getIosClientDevice() -> String {

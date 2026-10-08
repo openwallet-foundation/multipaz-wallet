@@ -138,6 +138,10 @@ struct ContentView: View {
                     Task {
                         try? await viewModel.walletClient.processAppLinkInvocation(url: urlString)
                     }
+                } else if ViewModel.isUriSchemePresentment(urlString) {
+                    Task {
+                        await viewModel.startUriSchemePresentment(uri: urlString)
+                    }
                 } else {
                     print("Unhandled URL: \(urlString)")
                 }
