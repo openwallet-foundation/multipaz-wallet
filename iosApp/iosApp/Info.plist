@@ -73,6 +73,32 @@
 	<string>$(MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING)</string>
 	<key>CFBundleName</key>
 	<string>$(MULTIPAZ_WALLET_APP_NAME_BUILD_SETTING)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ar</string>
+		<string>cs</string>
+		<string>da</string>
+		<string>de</string>
+		<string>el</string>
+		<string>en</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>he</string>
+		<string>hi</string>
+		<string>id</string>
+		<string>it</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>nl</string>
+		<string>pl</string>
+		<string>pt</string>
+		<string>ru</string>
+		<string>th</string>
+		<string>tr</string>
+		<string>uk</string>
+		<string>vi</string>
+		<string>zh-Hans</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera permission is needed to scan QR codes for credential offers.</string>
 	<key>CFBundleDocumentTypes</key>
