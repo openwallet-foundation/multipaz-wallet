@@ -106,6 +106,9 @@ import org.multipaz.eventlogger.EventVerificationIso18013Proximity
 import org.multipaz.eventlogger.SimpleEventLogger
 import org.multipaz.eventlogger.toDataItem
 import org.multipaz.mdoc.engagement.EngagementType
+import org.multipaz.mdoc.transport.MdocTransportStats
+import org.multipaz.mdoc.transport.MdocTransportType
+import org.multipaz.presentment.PresentmentOutcome
 import org.multipaz.prompt.PromptModel
 import org.multipaz.verification.Iso18013PresentmentRecord
 import org.multipaz.verification.OpenID4VPPresentmentRecord
@@ -412,20 +415,22 @@ private fun EventViewerPresentment(
         is EventPresentmentIso18013Proximity -> stringResource(R.string.event_viewer_screen_protocol_18013_5_text)
     }
 
+    val presentmentData = event.presentmentData
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val imageSize = 80.dp
-        event.presentmentData.trustMetadata?.displayIcon?.let {
+        presentmentData?.trustMetadata?.displayIcon?.let {
             val bitmap = remember { decodeImage(it.toByteArray()) }
             Image(
                 modifier = Modifier.size(imageSize),
                 bitmap = bitmap,
                 contentDescription = null
             )
-        } ?: event.presentmentData.trustMetadata?.displayIconUrl?.let {
+        } ?: presentmentData?.trustMetadata?.displayIconUrl?.let {
             AsyncImage(
                 modifier = Modifier.size(imageSize),
                 model = it,
@@ -436,7 +441,7 @@ private fun EventViewerPresentment(
         }
 
         Text(
-            text = event.presentmentData.requesterName ?: stringResource(R.string.event_viewer_screen_unknown_requester_text),
+            text = presentmentData?.requesterName ?: stringResource(R.string.event_viewer_screen_unknown_requester_text),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
@@ -523,83 +528,125 @@ private fun EventViewerPresentment(
                     OriginAndAppIdItem(event.origin, event.appId)
                 }
                 is EventPresentmentIso18013Proximity -> {
-                    val handover = event.sessionTranscript.asArray[2]
+                    val handover = event.sessionTranscript?.asArray?.getOrNull(2)
                     val sharedInPerson = stringResource(R.string.event_viewer_screen_shared_in_person_text)
-                    if (handover == Simple.NULL) {
+                    if (handover != null) {
+                        if (handover == Simple.NULL) {
+                            FloatingItemHeadingAndText(
+                                heading = sharedInPerson,
+                                text = stringResource(R.string.event_viewer_screen_using_qr_code_text)
+                            )
+                        } else {
+                            FloatingItemHeadingAndText(
+                                heading = sharedInPerson,
+                                text = stringResource(R.string.event_viewer_screen_using_nfc_text)
+                            )
+                        }
+                    } else if (event.telemetry?.engagementType != null) {
                         FloatingItemHeadingAndText(
                             heading = sharedInPerson,
-                            text = stringResource(R.string.event_viewer_screen_using_qr_code_text)
-                        )
-                    } else {
-                        FloatingItemHeadingAndText(
-                            heading = sharedInPerson,
-                            text = stringResource(R.string.event_viewer_screen_using_nfc_text)
+                            text = if (event.telemetry!!.engagementType == EngagementType.QR_CODE) {
+                                stringResource(R.string.event_viewer_screen_using_qr_code_text)
+                            } else {
+                                stringResource(R.string.event_viewer_screen_using_nfc_text)
+                            }
                         )
                     }
-                    val sessionTranscriptBytes = Cbor.encode(event.sessionTranscript)
-                    val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
-                        { onViewCbor("Session transcript", sessionTranscriptBytes) }
-                    } else null
-                    FloatingItemHeadingAndText(
-                        heading = "Session transcript",
-                        text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
-                        showChevron = onTranscriptClick != null,
-                        modifier = if (onTranscriptClick != null) Modifier.clickable { onTranscriptClick() } else Modifier
-                    )
+                    event.sessionTranscript?.let { sessionTranscript ->
+                        val sessionTranscriptBytes = Cbor.encode(sessionTranscript)
+                        val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
+                            { onViewCbor("Session transcript", sessionTranscriptBytes) }
+                        } else null
+                        FloatingItemHeadingAndText(
+                            heading = "Session transcript",
+                            text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
+                            showChevron = onTranscriptClick != null,
+                            modifier = if (onTranscriptClick != null) Modifier.clickable { onTranscriptClick() } else Modifier
+                        )
+                    }
                 }
             }
 
             FloatingItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_screen_presentment_protocol_text),
-                text =  protocol
+                text = protocol
             )
 
-            val requesterTrusted = stringResource(R.string.event_viewer_screen_requester_trusted_text)
-            if (event.presentmentData.trustMetadata != null) {
+            event.telemetry?.let { telemetry ->
                 FloatingItemHeadingAndText(
-                    heading = requesterTrusted,
-                    text =  stringResource(R.string.event_viewer_screen_requester_in_trust_list_text)
-                )
-            } else {
-                FloatingItemHeadingAndText(
-                    heading = requesterTrusted,
-                    text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
-                            append(stringResource(R.string.event_viewer_screen_requester_not_in_trust_list_text))
+                    heading = "Outcome",
+                    text = if (telemetry.outcome == PresentmentOutcome.SUCCESS) {
+                        AnnotatedString(telemetry.outcome.name)
+                    } else {
+                        buildAnnotatedString {
+                            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                                append(telemetry.outcome.name)
+                            }
                         }
                     }
                 )
-            }
-
-            val requesterCertificate = stringResource(R.string.event_viewer_screen_requester_certificate_text)
-            event.presentmentData.requesterCertChain?.let {
-                FloatingItemHeadingAndText(
-                    showChevron = true,
-                    heading = requesterCertificate,
-                    text = stringResource(R.string.event_viewer_screen_certificate_click_to_view_text),
-                    modifier = Modifier.clickable {
-                        onViewCertificateChain(it)
-                    }
-                )
-            } ?: run {
-                FloatingItemHeadingAndText(
-                    heading = requesterCertificate,
-                    text = stringResource(R.string.event_viewer_screen_certificate_not_available_text),
-                )
-            }
-
-            event.presentmentData.trustMetadata?.privacyPolicyUrl?.let {
-                FloatingItemHeadingAndText(
-                    heading = stringResource(R.string.event_viewer_screen_requester_privacy_policy_text),
-                    text = AnnotatedString.fromMarkdown(
-                        markdownString = "[$it]($it)"
+                telemetry.durationTotal?.let {
+                    FloatingItemHeadingAndText(
+                        heading = "Total duration",
+                        text = it.formatDuration()
                     )
-                )
+                }
+                if (telemetry.warnings.isNotEmpty()) {
+                    FloatingItemHeadingAndText(
+                        heading = "Warnings",
+                        text = telemetry.warnings.joinToString("\n") { it.code.name }
+                    )
+                }
+            }
+
+            if (presentmentData != null) {
+                val requesterTrusted = stringResource(R.string.event_viewer_screen_requester_trusted_text)
+                if (presentmentData.trustMetadata != null) {
+                    FloatingItemHeadingAndText(
+                        heading = requesterTrusted,
+                        text = stringResource(R.string.event_viewer_screen_requester_in_trust_list_text)
+                    )
+                } else {
+                    FloatingItemHeadingAndText(
+                        heading = requesterTrusted,
+                        text = buildAnnotatedString {
+                            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
+                                append(stringResource(R.string.event_viewer_screen_requester_not_in_trust_list_text))
+                            }
+                        }
+                    )
+                }
+
+                val requesterCertificate = stringResource(R.string.event_viewer_screen_requester_certificate_text)
+                presentmentData.requesterCertChain?.let {
+                    FloatingItemHeadingAndText(
+                        showChevron = true,
+                        heading = requesterCertificate,
+                        text = stringResource(R.string.event_viewer_screen_certificate_click_to_view_text),
+                        modifier = Modifier.clickable {
+                            onViewCertificateChain(it)
+                        }
+                    )
+                } ?: run {
+                    FloatingItemHeadingAndText(
+                        heading = requesterCertificate,
+                        text = stringResource(R.string.event_viewer_screen_certificate_not_available_text),
+                    )
+                }
+
+                presentmentData.trustMetadata?.privacyPolicyUrl?.let {
+                    FloatingItemHeadingAndText(
+                        heading = stringResource(R.string.event_viewer_screen_requester_privacy_policy_text),
+                        text = AnnotatedString.fromMarkdown(
+                            markdownString = "[$it]($it)"
+                        )
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.size(20.dp))
 
-        event.presentmentData.requestedDocuments.forEach { requestedDocument ->
+        presentmentData?.requestedDocuments?.forEach { requestedDocument ->
             val info = documentModel.documentInfos.collectAsState().value.find {
                 it.document.identifier == requestedDocument.documentId
             }
@@ -645,29 +692,77 @@ private fun EventViewerPresentment(
                 modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = "Developer extras"
             ) {
+                event.telemetry?.let { telemetry ->
+                    telemetry.durationEngagementToConnected?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Engagement to connected",
+                            text = it.formatDuration()
+                        )
+                    }
+                    telemetry.durationConnectedToRequestReceived?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Connected to request received",
+                            text = it.formatDuration()
+                        )
+                    }
+                    telemetry.durationUserConsentAndAuth?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "User consent and auth",
+                            text = it.formatDuration()
+                        )
+                    }
+                    telemetry.durationResponseGeneration?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Response generation",
+                            text = it.formatDuration()
+                        )
+                    }
+                    telemetry.durationResponseTransmission?.let {
+                        FloatingItemHeadingAndText(
+                            heading = "Response transmission",
+                            text = it.formatDuration()
+                        )
+                    }
+                    if (telemetry.numNfcReTaps > 0) {
+                        FloatingItemHeadingAndText(
+                            heading = "NFC re-taps",
+                            text = "${telemetry.numNfcReTaps}"
+                        )
+                    }
+                    telemetry.transportStats?.let { stats ->
+                        FloatingItemHeadingAndText(
+                            heading = "Transport stats",
+                            text = stats.formatTransportStats()
+                        )
+                    }
+                }
                 when (event) {
                     is EventPresentmentIso18013Proximity -> {
-                        val requestBytes = Cbor.encode(event.request)
-                        val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Device request", requestBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Device request",
-                            text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
-                            showChevron = onRequestClick != null,
-                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
-                        )
+                        event.request?.let { request ->
+                            val requestBytes = Cbor.encode(request)
+                            val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Device request", requestBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Device request",
+                                text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
+                                showChevron = onRequestClick != null,
+                                modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                            )
+                        }
 
-                        val responseBytes = Cbor.encode(event.response)
-                        val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Device response", responseBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Device response",
-                            text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
-                            showChevron = onResponseClick != null,
-                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
-                        )
+                        event.response?.let { response ->
+                            val responseBytes = Cbor.encode(response)
+                            val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Device response", responseBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Device response",
+                                text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
+                                showChevron = onResponseClick != null,
+                                modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                            )
+                        }
                     }
                     is EventPresentmentDigitalCredentialsMdocApi -> {
                         val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
@@ -680,26 +775,30 @@ private fun EventViewerPresentment(
                             modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
                         )
 
-                        val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
-                            { onViewJson("W3C DC Response", event.responseJson) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "W3C DC Response",
-                            text = "${"%,d".format(event.responseJson.length)} chars of JSON",
-                            showChevron = onResponseClick != null,
-                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
-                        )
+                        event.responseJson?.let { responseJson ->
+                            val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
+                                { onViewJson("W3C DC Response", responseJson) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "W3C DC Response",
+                                text = "${"%,d".format(responseJson.length)} chars of JSON",
+                                showChevron = onResponseClick != null,
+                                modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                            )
+                        }
 
-                        val deviceResponseBytes = Cbor.encode(event.deviceResponse)
-                        val onDeviceResponseClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Device response", deviceResponseBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Device response",
-                            text = "${"%,d".format(deviceResponseBytes.size)} bytes of CBOR",
-                            showChevron = onDeviceResponseClick != null,
-                            modifier = if (onDeviceResponseClick != null) Modifier.clickable { onDeviceResponseClick() } else Modifier
-                        )
+                        event.deviceResponse?.let { deviceResponse ->
+                            val deviceResponseBytes = Cbor.encode(deviceResponse)
+                            val onDeviceResponseClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Device response", deviceResponseBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Device response",
+                                text = "${"%,d".format(deviceResponseBytes.size)} bytes of CBOR",
+                                showChevron = onDeviceResponseClick != null,
+                                modifier = if (onDeviceResponseClick != null) Modifier.clickable { onDeviceResponseClick() } else Modifier
+                            )
+                        }
                     }
                     is EventPresentmentDigitalCredentialsOpenID4VP -> {
                         val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
@@ -712,96 +811,134 @@ private fun EventViewerPresentment(
                             modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
                         )
 
-                        val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
-                            { onViewJson("W3C DC Response", event.responseJson) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "W3C DC Response",
-                            text = "${"%,d".format(event.responseJson.length)} chars of JSON",
-                            showChevron = onResponseClick != null,
-                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
-                        )
+                        event.responseJson?.let { responseJson ->
+                            val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
+                                { onViewJson("W3C DC Response", responseJson) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "W3C DC Response",
+                                text = "${"%,d".format(responseJson.length)} chars of JSON",
+                                showChevron = onResponseClick != null,
+                                modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                            )
+                        }
 
-                        val vpToken = event.vpToken
-                        val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
-                            { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "VP Token",
-                            text = formatVpTokenSummary(vpToken),
-                            showChevron = onVpTokenClick != null,
-                            modifier = if (onVpTokenClick != null) Modifier.clickable { onVpTokenClick() } else Modifier
-                        )
+                        event.vpToken?.let { vpToken ->
+                            val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
+                                { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "VP Token",
+                                text = formatVpTokenSummary(vpToken),
+                                showChevron = onVpTokenClick != null,
+                                modifier = if (onVpTokenClick != null) Modifier.clickable { onVpTokenClick() } else Modifier
+                            )
+                        }
                     }
                     is EventPresentmentUriSchemeOpenID4VP -> {
-                        val onRequestClick: (() -> Unit)? = if (onViewJwt != null) {
-                            { onViewJwt("Authorization Request", event.requestJwt) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Authorization Request",
-                            text = "${"%,d".format(event.requestJwt.length)} chars (JWT)",
-                            showChevron = onRequestClick != null,
-                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
-                        )
+                        event.requestJwt?.let { requestJwt ->
+                            val onRequestClick: (() -> Unit)? = if (onViewJwt != null) {
+                                { onViewJwt("Authorization Request", requestJwt) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Authorization Request",
+                                text = "${"%,d".format(requestJwt.length)} chars (JWT)",
+                                showChevron = onRequestClick != null,
+                                modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                            )
+                        }
 
-                        val vpToken = event.vpToken
-                        val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
-                            { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "VP Token",
-                            text = formatVpTokenSummary(vpToken),
-                            showChevron = onVpTokenClick != null,
-                            modifier = if (onVpTokenClick != null) Modifier.clickable { onVpTokenClick() } else Modifier
-                        )
+                        event.vpToken?.let { vpToken ->
+                            val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
+                                { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "VP Token",
+                                text = formatVpTokenSummary(vpToken),
+                                showChevron = onVpTokenClick != null,
+                                modifier = if (onVpTokenClick != null) Modifier.clickable { onVpTokenClick() } else Modifier
+                            )
+                        }
                     }
                     is EventPresentmentIso18013AnnexA -> {
-                        val sessionTranscriptBytes = Cbor.encode(event.sessionTranscript)
-                        val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Session transcript", sessionTranscriptBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Session transcript",
-                            text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
-                            showChevron = onTranscriptClick != null,
-                            modifier = if (onTranscriptClick != null) Modifier.clickable { onTranscriptClick() } else Modifier
-                        )
+                        event.sessionTranscript?.let { sessionTranscript ->
+                            val sessionTranscriptBytes = Cbor.encode(sessionTranscript)
+                            val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Session transcript", sessionTranscriptBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Session transcript",
+                                text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
+                                showChevron = onTranscriptClick != null,
+                                modifier = if (onTranscriptClick != null) Modifier.clickable { onTranscriptClick() } else Modifier
+                            )
+                        }
 
-                        val requestBytes = Cbor.encode(event.request)
-                        val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Device request", requestBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Device request",
-                            text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
-                            showChevron = onRequestClick != null,
-                            modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
-                        )
+                        event.request?.let { request ->
+                            val requestBytes = Cbor.encode(request)
+                            val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Device request", requestBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Device request",
+                                text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
+                                showChevron = onRequestClick != null,
+                                modifier = if (onRequestClick != null) Modifier.clickable { onRequestClick() } else Modifier
+                            )
+                        }
 
-                        val responseBytes = Cbor.encode(event.response)
-                        val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Device response", responseBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Device response",
-                            text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
-                            showChevron = onResponseClick != null,
-                            modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
-                        )
+                        event.response?.let { response ->
+                            val responseBytes = Cbor.encode(response)
+                            val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Device response", responseBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Device response",
+                                text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
+                                showChevron = onResponseClick != null,
+                                modifier = if (onResponseClick != null) Modifier.clickable { onResponseClick() } else Modifier
+                            )
+                        }
 
-                        val reBytes = Cbor.encode(event.readerEngagement)
-                        val onReClick: (() -> Unit)? = if (onViewCbor != null) {
-                            { onViewCbor("Reader engagement", reBytes) }
-                        } else null
-                        FloatingItemHeadingAndText(
-                            heading = "Reader engagement",
-                            text = "${"%,d".format(reBytes.size)} bytes of CBOR",
-                            showChevron = onReClick != null,
-                            modifier = if (onReClick != null) Modifier.clickable { onReClick() } else Modifier
-                        )
+                        event.readerEngagement?.let { readerEngagement ->
+                            val reBytes = Cbor.encode(readerEngagement)
+                            val onReClick: (() -> Unit)? = if (onViewCbor != null) {
+                                { onViewCbor("Reader engagement", reBytes) }
+                            } else null
+                            FloatingItemHeadingAndText(
+                                heading = "Reader engagement",
+                                text = "${"%,d".format(reBytes.size)} bytes of CBOR",
+                                showChevron = onReClick != null,
+                                modifier = if (onReClick != null) Modifier.clickable { onReClick() } else Modifier
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+private fun MdocTransportStats.formatTransportStats(): String {
+    val isNfcHybrid =
+        transportType == MdocTransportType.NFC_CCE_MDOC_CENTRAL_CLIENT_MODE ||
+            transportType == MdocTransportType.NFC_CCE_MDOC_PERIPHERAL_SERVER_MODE
+    return buildString {
+        append("Type: ${transportType.name}")
+        append("\nSent: $numMessagesSent ($bytesSent bytes)")
+        if (isNfcHybrid) {
+            append(" ($nfcHybridNumSentViaNfc NFC, $nfcHybridNumSentViaTransport transport)")
+        }
+        append("\nReceived: $numMessagesReceived ($bytesReceived bytes)")
+        if (isNfcHybrid) {
+            append(" ($nfcHybridNumReceivedFirstOnNfc NFC, $nfcHybridNumReceivedFirstOnTransport transport)")
+        }
+        bleNegotiatedMtu?.let {
+            append("\nBLE negotiated MTU: $it")
+            if (bleMtuInferredFromWrite) append(" (inferred)")
+        }
+        if (warnings.isNotEmpty()) {
+            append("\nWarnings: ${warnings.joinToString(", ") { it.code.name }}")
         }
     }
 }
@@ -1062,10 +1199,10 @@ private fun EventViewerVerification(
                             text = it.formatDuration()
                         )
                     }
-                    event.nfcHybridTransportStats?.let { stats ->
+                    event.transportStats?.let { stats ->
                         FloatingItemHeadingAndText(
-                            heading = "NFC hybrid transport stats",
-                            text = "Sent: ${stats.numSent} (${stats.numSentViaNfc} NFC, ${stats.numSentViaTransport} transport)\nReceived: ${stats.numReceived} (${stats.numReceivedFirstOnNfc} NFC, ${stats.numReceivedFirstOnTransport} transport)"
+                            heading = "Transport stats",
+                            text = stats.formatTransportStats()
                         )
                     }
                 }

@@ -240,14 +240,14 @@ private fun EventPresentmentForDocument(
         modifier = modifier,
         showChevron = true,
         image = {
-            event.presentmentData.trustMetadata?.displayIcon?.let {
+            event.presentmentData?.trustMetadata?.displayIcon?.let {
                 val bitmap = remember { decodeImage(it.toByteArray()) }
                 Image(
                     modifier = Modifier.size(imageSize),
                     bitmap = bitmap,
                     contentDescription = null
                 )
-            } ?: event.presentmentData.trustMetadata?.displayIconUrl?.let {
+            } ?: event.presentmentData?.trustMetadata?.displayIconUrl?.let {
                 AsyncImage(
                     modifier = Modifier.size(imageSize),
                     model = it,
@@ -261,7 +261,7 @@ private fun EventPresentmentForDocument(
                 contentDescription = null
             )
         },
-        heading = event.presentmentData.trustMetadata?.displayName ?: stringResource(R.string.document_event_list_screen_unknown_requester_text),
+        heading = event.presentmentData?.trustMetadata?.displayName ?: stringResource(R.string.document_event_list_screen_unknown_requester_text),
         text = text,
     )
 }

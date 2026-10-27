@@ -247,7 +247,7 @@ private fun EventItemPresentment(
 ) {
     val sharingType = event.getSharingType()
 
-    val firstDoc = event.presentmentData.requestedDocuments.firstOrNull()
+    val firstDoc = event.presentmentData?.requestedDocuments?.firstOrNull()
     val firstDocInfo = firstDoc?.let { requestedDocument ->
         documentModel.documentInfos.collectAsState().value.find {
             it.document.identifier == requestedDocument.documentId
@@ -256,6 +256,10 @@ private fun EventItemPresentment(
 
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = stringResource(R.string.event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
+    val heading = firstDocInfo?.document?.displayName
+        ?: firstDoc?.documentName
+        ?: event.telemetry?.let { "Presentment (${it.outcome.name})" }
+        ?: stringResource(R.string.event_list_screen_unknown_document_text)
     FloatingItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
@@ -268,7 +272,7 @@ private fun EventItemPresentment(
                 )
             } ?: Spacer(modifier = Modifier.size(imageSize))
         },
-        heading = firstDocInfo?.document?.displayName ?: firstDoc?.documentName ?: stringResource(R.string.event_list_screen_unknown_document_text),
+        heading = heading,
         text = text,
     )
 }

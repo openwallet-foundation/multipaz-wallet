@@ -58,8 +58,10 @@ import org.multipaz.document.DocumentStore
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.engagement.Capability
+import org.multipaz.mdoc.engagement.EngagementType
 import org.multipaz.mdoc.engagement.buildDeviceEngagement
 import org.multipaz.mdoc.role.MdocRole
+import org.multipaz.mdoc.transport.MdocTransport
 import org.multipaz.mdoc.transport.MdocTransportFactory
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.transport.advertise
@@ -67,11 +69,15 @@ import org.multipaz.mdoc.transport.waitForConnection
 import org.multipaz.presentment.Iso18013Presentment
 import org.multipaz.presentment.PresentmentCanceledException
 import org.multipaz.presentment.PresentmentModel
+import org.multipaz.presentment.PresentmentProtocol
 import org.multipaz.presentment.PresentmentSource
+import org.multipaz.presentment.PresentmentTelemetry
+import org.multipaz.presentment.classifyPresentmentException
 import org.multipaz.util.Logger
 import org.multipaz.util.UUID
 import org.multipaz.util.toBase64Url
 import org.multipaz.wallet.android.App
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "DocumentQrPresentmentDialog"
@@ -195,6 +201,11 @@ private fun proximityPresentment(
     var listenForCancellationFromUiJob: Job? = null
     var transactionJob: Job? = null
     transactionJob = (scope + PresentmentActivity.promptModel).launch {
+        val timeStarted = Clock.System.now()
+        var advertisedTransports: List<MdocTransport>? = null
+        var connectedTransport: MdocTransport? = null
+        var enteredPresentment = false
+        var lastTelemetry: PresentmentTelemetry? = null
         try {
             val eDeviceKeyCurve = EcCurve.P256
             val transportFactory = MdocTransportFactory.Default
@@ -213,13 +224,14 @@ private fun proximityPresentment(
                 )
             )
             val eDeviceKey = Crypto.createEcPrivateKey(eDeviceKeyCurve)
-            val advertisedTransports = connectionMethods.advertise(
+            val transports = connectionMethods.advertise(
                 role = MdocRole.MDOC,
                 transportFactory = transportFactory,
                 options = transportOptions
             )
+            advertisedTransports = transports
             val deviceEngagement = buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey) {
-                advertisedTransports.forEach { addConnectionMethod(it.connectionMethod) }
+                transports.forEach { addConnectionMethod(it.connectionMethod) }
                 addCapability(Capability.READER_AUTH_ALL_SUPPORT, true.toDataItem())
                 addCapability(Capability.EXTENDED_REQUEST_SUPPORT, true.toDataItem())
             }.toDataItem()
@@ -227,9 +239,11 @@ private fun proximityPresentment(
             val qrCode = "mdoc:" + encodedDeviceEngagement.toByteArray().toBase64Url()
             qrCodeReady(qrCode)
 
-            val transport = advertisedTransports.waitForConnection(
+            val transport = transports.waitForConnection(
                 eSenderKey = eDeviceKey.publicKey,
             )
+            connectedTransport = transport
+            advertisedTransports = null
 
             onTransactionUnderway()
 
@@ -258,6 +272,7 @@ private fun proximityPresentment(
                 }
             }
 
+            enteredPresentment = true
             Iso18013Presentment(
                 transport = transport,
                 eDeviceKey = eDeviceKey,
@@ -271,21 +286,30 @@ private fun proximityPresentment(
                 onDocumentsInFocus = { documents ->
                     PresentmentActivity.presentmentModel.setDocumentsSelected(selectedDocuments = documents)
                 },
-                onSendingResponse = { PresentmentActivity.presentmentModel.setSending() }
+                onSendingResponse = { PresentmentActivity.presentmentModel.setSending() },
+                onTelemetry = { lastTelemetry = it }
             )
 
-            PresentmentActivity.presentmentModel.setCompleted(null)
+            PresentmentActivity.presentmentModel.setCompleted(null, lastTelemetry)
             Logger.i(TAG, "Transaction complete")
         } catch (e: Exception) {
             Logger.w(TAG, "Transaction failed", e)
+            val resolvedTelemetry = lastTelemetry ?: PresentmentTelemetry(
+                protocol = PresentmentProtocol.ISO_18013_5_PROXIMITY,
+                engagementType = EngagementType.QR_CODE,
+                outcome = classifyPresentmentException(e, waitingForConnection = !enteredPresentment),
+                durationTotal = Clock.System.now() - timeStarted,
+                transportStats = (connectedTransport ?: advertisedTransports?.firstOrNull())?.stats,
+            )
             if (e is CancellationException) {
                 PresentmentActivity.presentmentModel.setCompleted(
                     PresentmentCanceledException(
                         applicationContext.getString(R.string.qr_presentment_cancelled_error)
-                    )
+                    ),
+                    resolvedTelemetry
                 )
             } else {
-                PresentmentActivity.presentmentModel.setCompleted(e)
+                PresentmentActivity.presentmentModel.setCompleted(e, resolvedTelemetry)
             }
         } finally {
             transactionJob = null

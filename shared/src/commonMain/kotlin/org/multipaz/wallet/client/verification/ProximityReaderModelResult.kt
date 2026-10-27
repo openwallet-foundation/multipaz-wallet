@@ -6,7 +6,7 @@ import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
 import org.multipaz.mdoc.nfc.MdocHandoverType
 import org.multipaz.mdoc.request.DeviceRequest
 import org.multipaz.mdoc.response.DeviceResponse
-import org.multipaz.mdoc.transport.NfcHybridTransportStats
+import org.multipaz.mdoc.transport.MdocTransportStats
 import kotlin.time.Duration
 
 /**
@@ -25,7 +25,7 @@ import kotlin.time.Duration
  * @property durationRequestSentToResponseReceived Time elapsed from sending the device request until receiving the response.
  * @property durationScanningTime Time spent scanning for holder transport connections, if applicable.
  * @property connectionMethod The [MdocConnectionMethod] negotiated and used for data transfer.
- * @property nfcHybridTransportStats Statistics and diagnostics for NFC hybrid transport, if used.
+ * @property transportStats Statistics and diagnostics for the mdoc transport.
  */
 data class ProximityReaderModelResult(
     val status: Long?,
@@ -41,5 +41,5 @@ data class ProximityReaderModelResult(
     val durationRequestSentToResponseReceived: Duration,
     val durationScanningTime: Duration?,
     val connectionMethod: MdocConnectionMethod,
-    val nfcHybridTransportStats: NfcHybridTransportStats?
+    val transportStats: MdocTransportStats?
 )

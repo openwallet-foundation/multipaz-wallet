@@ -55,8 +55,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import org.multipaz.compose.rememberUiBoundCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -168,7 +168,7 @@ fun RequestVerificationScreen(
     onVerificationHistoryClicked: () -> Unit,
     showToast: (message: String) -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope { promptModel }
+    val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
     val context = LocalContext.current
     val isInPerson = settingsModel.verificationIsInPerson.collectAsState().value
     val devMode = settingsModel.devMode.collectAsState().value

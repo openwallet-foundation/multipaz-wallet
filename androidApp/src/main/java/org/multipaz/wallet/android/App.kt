@@ -512,15 +512,17 @@ class App private constructor() {
             pendingPreconsentNotification?.let { details ->
                 val detailsToPost = details
                 pendingPreconsentNotification = null
-                CoroutineScope(Dispatchers.Default).launch {
-                    delay(5.seconds)
-                    postPreconsentNotification(
-                        context = applicationContext,
-                        documentNames = detailsToPost.documentNames,
-                        verifierName = detailsToPost.verifierName,
-                        eventId = event.identifier,
-                        cardArtBytes = detailsToPost.cardArtBytes
-                    )
+                if (event.presentmentData != null) {
+                    CoroutineScope(Dispatchers.Default).launch {
+                        delay(5.seconds)
+                        postPreconsentNotification(
+                            context = applicationContext,
+                            documentNames = detailsToPost.documentNames,
+                            verifierName = detailsToPost.verifierName,
+                            eventId = event.identifier,
+                            cardArtBytes = detailsToPost.cardArtBytes
+                        )
+                    }
                 }
             }
         }

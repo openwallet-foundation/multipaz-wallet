@@ -6,7 +6,7 @@ import org.multipaz.eventlogger.EventVerificationDigitalCredentials
 import org.multipaz.eventlogger.EventVerificationIso18013Proximity
 import org.multipaz.mdoc.engagement.EngagementType
 import org.multipaz.mdoc.engagement.toEngagementType
-import org.multipaz.mdoc.transport.NfcHybridTransportStats
+import org.multipaz.mdoc.transport.MdocTransportStats
 import kotlin.time.Duration
 
 /**
@@ -28,7 +28,7 @@ data class ProximityVerificationTelemetry(
     val durationEngagementReceivedToRequestSent: Duration? = null,
     override val durationRequestSentToResponseReceived: Duration? = null,
     val durationScanningTime: Duration? = null,
-    val nfcHybridTransportStats: NfcHybridTransportStats? = null,
+    val transportStats: MdocTransportStats? = null,
 ) : VerificationTelemetry()
 
 /**
@@ -60,7 +60,7 @@ fun EventVerification.toTelemetry(): VerificationTelemetry? {
             durationEngagementReceivedToRequestSent = durationEngagementReceivedToRequestSent,
             durationRequestSentToResponseReceived = durationRequestSentToResponseReceived,
             durationScanningTime = durationScanningTime,
-            nfcHybridTransportStats = nfcHybridTransportStats,
+            transportStats = transportStats,
         )
         is EventVerificationDigitalCredentials -> DigitalCredentialsVerificationTelemetry(
             requestJson = requestJson,
@@ -85,7 +85,7 @@ fun ProximityReaderModelResult.toTelemetry(): ProximityVerificationTelemetry {
         durationEngagementReceivedToRequestSent = durationEngagementReceivedToRequestSent,
         durationRequestSentToResponseReceived = durationRequestSentToResponseReceived,
         durationScanningTime = durationScanningTime,
-        nfcHybridTransportStats = nfcHybridTransportStats,
+        transportStats = transportStats,
     )
 }
 

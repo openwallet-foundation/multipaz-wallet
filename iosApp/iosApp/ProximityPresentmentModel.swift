@@ -119,7 +119,8 @@ class ProximityPresentmentModel {
                         Task { @MainActor in
                             self.state = .sendingResponse
                         }
-                    }
+                    },
+                    onTelemetry: { _ in }
                 )
 
                 if !Task.isCancelled {

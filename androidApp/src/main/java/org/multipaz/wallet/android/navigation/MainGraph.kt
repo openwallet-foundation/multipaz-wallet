@@ -2057,7 +2057,7 @@ fun mainGraph(
                             durationEngagementReceivedToRequestSent = result.durationEngagementReceivedToRequestSent,
                             durationRequestSentToResponseReceived = result.durationRequestSentToResponseReceived,
                             durationScanningTime = result.durationScanningTime,
-                            nfcHybridTransportStats = result.nfcHybridTransportStats,
+                            transportStats = result.transportStats,
                         )
                         val telemetry = result.toTelemetry()
                         coroutineScope.launch {

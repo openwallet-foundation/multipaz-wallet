@@ -5,7 +5,11 @@ import org.multipaz.eventlogger.EventVerificationDefault
 import org.multipaz.eventlogger.EventVerificationDigitalCredentials
 import org.multipaz.eventlogger.EventVerificationIso18013Proximity
 import org.multipaz.mdoc.engagement.EngagementType
-import org.multipaz.mdoc.transport.NfcHybridTransportStats
+import org.multipaz.mdoc.role.MdocRole
+import org.multipaz.mdoc.transport.MdocTransportStats
+import org.multipaz.mdoc.transport.MdocTransportType
+import org.multipaz.mdoc.transport.TransportWarning
+import org.multipaz.mdoc.transport.TransportWarningCode
 import org.multipaz.verification.Iso18013PresentmentRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,13 +34,22 @@ class VerificationTelemetryTest {
 
     @Test
     fun testProximityTelemetryFromEventAndCborRoundtrip() {
-        val stats = NfcHybridTransportStats(
-            numSent = 10,
-            numSentViaNfc = 8,
-            numSentViaTransport = 2,
-            numReceived = 12,
-            numReceivedFirstOnNfc = 11,
-            numReceivedFirstOnTransport = 1,
+        val stats = MdocTransportStats(
+            transportType = MdocTransportType.NFC_CCE_MDOC_CENTRAL_CLIENT_MODE,
+            role = MdocRole.MDOC_READER,
+            scanningTime = 80.milliseconds,
+            connectingTime = 40.milliseconds,
+            bytesSent = 512,
+            bytesReceived = 2048,
+            numMessagesSent = 10,
+            numMessagesReceived = 12,
+            warnings = listOf(TransportWarning(TransportWarningCode.NFC_DISCONNECTED_WAITING_FOR_RETAP)),
+            bleUsingL2cap = true,
+            bleNegotiatedMtu = 517,
+            nfcHybridNumSentViaNfc = 8,
+            nfcHybridNumSentViaTransport = 2,
+            nfcHybridNumReceivedFirstOnNfc = 11,
+            nfcHybridNumReceivedFirstOnTransport = 1,
             nfcDisconnectedDuringTransaction = false
         )
         val event = EventVerificationIso18013Proximity(
@@ -48,7 +61,7 @@ class VerificationTelemetryTest {
             durationEngagementReceivedToRequestSent = 45.milliseconds,
             durationRequestSentToResponseReceived = 300.milliseconds,
             durationScanningTime = 80.milliseconds,
-            nfcHybridTransportStats = stats
+            transportStats = stats
         )
 
         val telemetry = event.toTelemetry()
@@ -59,7 +72,7 @@ class VerificationTelemetryTest {
         assertEquals(45.milliseconds, telemetry.durationEngagementReceivedToRequestSent)
         assertEquals(300.milliseconds, telemetry.durationRequestSentToResponseReceived)
         assertEquals(80.milliseconds, telemetry.durationScanningTime)
-        assertEquals(stats, telemetry.nfcHybridTransportStats)
+        assertEquals(stats, telemetry.transportStats)
 
         val cbor = telemetry.toCbor()
         val decoded = VerificationTelemetry.fromCbor(cbor)

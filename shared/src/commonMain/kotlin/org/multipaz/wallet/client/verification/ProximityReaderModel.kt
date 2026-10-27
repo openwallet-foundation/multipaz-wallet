@@ -23,7 +23,6 @@ import org.multipaz.mdoc.sessionencryption.SessionEncryption
 import org.multipaz.mdoc.transport.MdocTransport
 import org.multipaz.mdoc.transport.MdocTransportFactory
 import org.multipaz.mdoc.transport.MdocTransportOptions
-import org.multipaz.mdoc.transport.NfcHybridTransportMdocReader
 import org.multipaz.util.Constants
 import org.multipaz.util.Logger
 import kotlin.time.Clock
@@ -371,7 +370,7 @@ class ProximityReaderModel {
                     durationRequestSentToResponseReceived = timeOfFirstResponseReceived - timeOfFirstMessageSent,
                     durationScanningTime = transport.scanningTime,
                     connectionMethod = connectionMethod,
-                    nfcHybridTransportStats = if (transport is NfcHybridTransportMdocReader) { transport.stats } else { null }
+                    transportStats = transport.stats
                 )
             }
 
@@ -401,7 +400,7 @@ class ProximityReaderModel {
                 durationRequestSentToResponseReceived = timeOfFirstResponseReceived - timeOfFirstMessageSent,
                 durationScanningTime = transport.scanningTime,
                 connectionMethod = connectionMethod,
-                nfcHybridTransportStats = if (transport is NfcHybridTransportMdocReader) { transport.stats } else { null }
+                transportStats = transport.stats
             )
         } finally {
             /*

@@ -20,7 +20,7 @@ import org.multipaz.verification.OpenID4VPPresentmentRecord
 fun Event.isForDocumentId(documentId: String): Boolean {
     when (this) {
         is EventPresentment -> {
-            presentmentData.requestedDocuments.forEach {
+            presentmentData?.requestedDocuments?.forEach {
                 if (it.documentId == documentId) {
                     return true
                 }

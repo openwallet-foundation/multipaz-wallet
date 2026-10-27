@@ -95,6 +95,7 @@ import org.multipaz.wallet.client.verification.DigitalCredentialsVerificationTel
 import org.multipaz.wallet.client.verification.GenericVerificationTelemetry
 import org.multipaz.wallet.client.verification.formatDuration
 import org.multipaz.mdoc.engagement.EngagementType
+import org.multipaz.mdoc.transport.MdocTransportType
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.ProximityReaderModel
@@ -699,9 +700,29 @@ private fun createProtocolDetailsSection(
             telemetry.durationScanningTime?.let {
                 lines.add(Line("Transport scanning time", ValueDuration(it)))
             }
-            telemetry.nfcHybridTransportStats?.let { stats ->
-                val text = "Sent: ${stats.numSent} (${stats.numSentViaNfc} NFC, ${stats.numSentViaTransport} transport)\nReceived: ${stats.numReceived} (${stats.numReceivedFirstOnNfc} NFC, ${stats.numReceivedFirstOnTransport} transport)"
-                lines.add(Line("NFC hybrid transport stats", ValueText(text)))
+            telemetry.transportStats?.let { stats ->
+                val isNfcHybrid =
+                    stats.transportType == MdocTransportType.NFC_CCE_MDOC_CENTRAL_CLIENT_MODE ||
+                        stats.transportType == MdocTransportType.NFC_CCE_MDOC_PERIPHERAL_SERVER_MODE
+                val text = buildString {
+                    append("Type: ${stats.transportType.name}")
+                    append("\nSent: ${stats.numMessagesSent} (${stats.bytesSent} bytes)")
+                    if (isNfcHybrid) {
+                        append(" (${stats.nfcHybridNumSentViaNfc} NFC, ${stats.nfcHybridNumSentViaTransport} transport)")
+                    }
+                    append("\nReceived: ${stats.numMessagesReceived} (${stats.bytesReceived} bytes)")
+                    if (isNfcHybrid) {
+                        append(" (${stats.nfcHybridNumReceivedFirstOnNfc} NFC, ${stats.nfcHybridNumReceivedFirstOnTransport} transport)")
+                    }
+                }
+                lines.add(Line("Transport stats", ValueText(text)))
+                stats.bleNegotiatedMtu?.let { mtu ->
+                    val mtuText = if (stats.bleMtuInferredFromWrite) "$mtu (inferred from write)" else "$mtu"
+                    lines.add(Line("BLE negotiated MTU", ValueText(mtuText)))
+                }
+                if (stats.warnings.isNotEmpty()) {
+                    lines.add(Line("Transport warnings", ValueText(stats.warnings.joinToString("\n") { it.code.name })))
+                }
             }
         }
         is DigitalCredentialsVerificationTelemetry -> {

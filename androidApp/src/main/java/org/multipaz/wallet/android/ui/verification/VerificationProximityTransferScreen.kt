@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
@@ -74,6 +75,8 @@ import org.multipaz.compose.camera.CameraCaptureResolution
 import org.multipaz.compose.camera.CameraSelection
 import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.compose.qrcode.QrCodeScanner
+import org.multipaz.compose.rememberUiBoundCoroutineScope
+import org.multipaz.context.AndroidUiContext
 import org.multipaz.crypto.AsymmetricKey
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.nfc.MdocReaderNfcHandoverOptions
@@ -120,7 +123,8 @@ fun VerificationProximityTransferScreen(
     ) -> Unit,
     onTransferError: (error: Throwable) -> Unit,
 ) {
-    val coroutineScope = rememberCoroutineScope { promptModel }
+    val coroutineScope = rememberUiBoundCoroutineScope { promptModel }
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val isDarkTheme = isSystemInDarkTheme()
 
@@ -260,7 +264,7 @@ fun VerificationProximityTransferScreen(
     LaunchedEffect(initialScanMode, nfcTagReader, nfcOnly, useNfcV2) {
         if (proximityReaderModel.state.value == ProximityReaderModel.State.IDLE && initialScanMode == ProximityScanMode.NFC && onNfcHandover != null) {
             if (nfcTagReader != null && !nfcTagReader.dialogAlwaysShown) {
-                withContext(promptModel) {
+                withContext(promptModel + AndroidUiContext(context)) {
                     while (isActive) {
                         try {
                             val scanResult = nfcTagReader.scanMdocReader(

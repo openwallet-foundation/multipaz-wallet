@@ -560,7 +560,8 @@ class ViewModel {
                 onDocumentsInFocus: { documents in
                     Logger.shared.i(tag: "UriSchemePresentment",
                                     msg: "documents in focus: \(documents.count)")
-                }
+                },
+                onTelemetry: { _ in }
             )
             if let redirectUri = redirectUri, let url = URL(string: redirectUri) {
                 await UIApplication.shared.open(url)

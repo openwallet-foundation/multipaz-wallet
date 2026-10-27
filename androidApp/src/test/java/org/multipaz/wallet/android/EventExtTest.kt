@@ -6,13 +6,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.multipaz.cbor.Simple
 import org.multipaz.eventlogger.Event
+import org.multipaz.eventlogger.EventPresentmentIso18013Proximity
 import org.multipaz.eventlogger.fromCbor
 import org.multipaz.eventlogger.toCbor
 import org.multipaz.eventlogger.EventVerificationDefault
 import org.multipaz.eventlogger.EventVerificationDigitalCredentials
 import org.multipaz.eventlogger.EventVerificationIso18013Proximity
 import org.multipaz.mdoc.engagement.EngagementType
-import org.multipaz.mdoc.transport.NfcHybridTransportStats
+import org.multipaz.mdoc.role.MdocRole
+import org.multipaz.mdoc.transport.MdocTransportStats
+import org.multipaz.mdoc.transport.MdocTransportType
 import org.multipaz.verification.Iso18013PresentmentRecord
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -41,7 +44,7 @@ class EventExtTest {
             durationEngagementReceivedToRequestSent = 100.milliseconds,
             durationRequestSentToResponseReceived = 200.milliseconds,
             durationScanningTime = 50.milliseconds,
-            nfcHybridTransportStats = null
+            transportStats = null
         )
         val cbor = event.toCbor()
         val decoded = Event.fromCbor(cbor) as EventVerificationIso18013Proximity
@@ -83,7 +86,7 @@ class EventExtTest {
             durationEngagementReceivedToRequestSent = 100.milliseconds,
             durationRequestSentToResponseReceived = 200.milliseconds,
             durationScanningTime = 50.milliseconds,
-            nfcHybridTransportStats = null
+            transportStats = null
         )
         assertTrue(event.isProximityPresentment())
         assertEquals(EngagementType.QR_CODE, event.engagementType)
@@ -128,14 +131,16 @@ class EventExtTest {
     }
 
     @Test
-    fun testIso18013Proximity_withNfcHybridStats() {
-        val stats = NfcHybridTransportStats(
-            numSent = 5,
-            numSentViaNfc = 4,
-            numSentViaTransport = 1,
-            numReceived = 6,
-            numReceivedFirstOnNfc = 5,
-            numReceivedFirstOnTransport = 1,
+    fun testIso18013Proximity_withTransportStats() {
+        val stats = MdocTransportStats(
+            transportType = MdocTransportType.NFC_CCE_MDOC_CENTRAL_CLIENT_MODE,
+            role = MdocRole.MDOC_READER,
+            numMessagesSent = 5,
+            nfcHybridNumSentViaNfc = 4,
+            nfcHybridNumSentViaTransport = 1,
+            numMessagesReceived = 6,
+            nfcHybridNumReceivedFirstOnNfc = 5,
+            nfcHybridNumReceivedFirstOnTransport = 1,
             nfcDisconnectedDuringTransaction = false
         )
         val event = EventVerificationIso18013Proximity(
@@ -147,12 +152,25 @@ class EventExtTest {
             durationEngagementReceivedToRequestSent = 40.milliseconds,
             durationRequestSentToResponseReceived = 250.milliseconds,
             durationScanningTime = 80.milliseconds,
-            nfcHybridTransportStats = stats
+            transportStats = stats
         )
         assertTrue(event.isProximityPresentment())
         assertEquals(EngagementType.NFC_CONCURRENT_CHANNEL_ENGAGEMENT, event.engagementType)
         assertEquals(120.milliseconds, event.durationNfcTapToEngagement)
-        assertEquals(5, event.nfcHybridTransportStats?.numSent)
-        assertEquals(6, event.nfcHybridTransportStats?.numReceived)
+        assertEquals(5, event.transportStats?.numMessagesSent)
+        assertEquals(6, event.transportStats?.numMessagesReceived)
+    }
+
+    @Test
+    fun testIsForDocumentId_nullPresentmentData() {
+        val event = EventPresentmentIso18013Proximity(
+            identifier = "evt-failed-pres",
+            timestamp = Instant.fromEpochMilliseconds(6000),
+            presentmentData = null,
+            request = null,
+            response = null,
+            sessionTranscript = null
+        )
+        assertFalse(event.isForDocumentId("doc-1"))
     }
 }
