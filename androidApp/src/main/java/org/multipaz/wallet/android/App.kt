@@ -370,11 +370,11 @@ class App private constructor() {
             httpClientEngineFactory = Android,
             numReaderKeys = 10,
             clientDevice = getAndroidClientDevice(),
-            clientPlatform = getAndroidClientPlatform()
+            clientPlatform = getAndroidClientPlatform(),
+            preferredLocales = {
+                LocaleList.getDefault().toLanguageTags().split(',')
+            }
         )
-        walletClient.preferredLocales = {
-            LocaleList.getDefault().toLanguageTags().split(',')
-        }
 
         userIssuerTrustManager = TrustManager(
             storage = storage,
