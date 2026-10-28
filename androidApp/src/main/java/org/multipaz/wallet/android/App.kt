@@ -2,6 +2,7 @@ package org.multipaz.wallet.android
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.LocaleList
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -346,7 +347,10 @@ class App private constructor() {
             httpClientEngineFactory = Android,
             numReaderKeys = 10,
             clientDevice = getAndroidClientDevice(),
-            clientPlatform = getAndroidClientPlatform()
+            clientPlatform = getAndroidClientPlatform(),
+            preferredLocales = {
+                LocaleList.getDefault().toLanguageTags().split(',')
+            }
         )
 
         userIssuerTrustManager = TrustManager(

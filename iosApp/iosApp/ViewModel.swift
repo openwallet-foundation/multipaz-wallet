@@ -130,7 +130,10 @@ class ViewModel {
             httpClientEngineFactory: Darwin(),
             numReaderKeys: 10,
             clientDevice: getIosClientDevice(),
-            clientPlatform: getIosClientPlatform()
+            clientPlatform: getIosClientPlatform(),
+            // Locale.preferredLanguages is the user's ordered list of languages. Locale.current is
+            // not used since it is limited to the languages this app bundle is localized into.
+            preferredLocales: { Locale.preferredLanguages }
         )
         
         softwareSecureArea = try! await SoftwareSecureArea.companion.create(storage: storage)
