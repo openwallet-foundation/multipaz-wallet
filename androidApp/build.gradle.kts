@@ -85,6 +85,10 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+    lint {
+        // A string added without its translations is shown in English until they are added.
+        warning += "MissingTranslation"
+    }
 }
 
 configurations.all {
