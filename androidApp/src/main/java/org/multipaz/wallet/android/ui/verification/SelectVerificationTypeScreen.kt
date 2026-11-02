@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -28,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -53,6 +55,7 @@ fun SelectVerificationTypeScreen(
     settingsModel: SettingsModel,
     onCustomAgeClicked: () -> Unit,
     onUserDefinedClicked: (index: Int?) -> Unit,
+    onImportUserDefinedClicked: () -> Unit,
     onBackClicked: () -> Unit,
 ) {
     val hazeState = remember { HazeState() }
@@ -178,7 +181,16 @@ fun SelectVerificationTypeScreen(
                         )
                     }
                     AddUserDefinedOption(
+                        icon = Icons.Default.Add,
+                        title = stringResource(R.string.select_verification_type_add_user_defined),
+                        description = stringResource(R.string.reader_query_user_defined_description_default),
                         onClick = { onUserDefinedClicked(null) }
+                    )
+                    AddUserDefinedOption(
+                        icon = Icons.Default.Download,
+                        title = stringResource(R.string.select_verification_type_import_user_defined),
+                        description = stringResource(R.string.select_verification_type_import_user_defined_description),
+                        onClick = onImportUserDefinedClicked
                     )
                 }
             }
@@ -187,7 +199,12 @@ fun SelectVerificationTypeScreen(
 }
 
 @Composable
-private fun AddUserDefinedOption(onClick: () -> Unit) {
+private fun AddUserDefinedOption(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
     SegmentedItemContainer(
         modifier = Modifier.clickable(onClick = onClick)
     ) {
@@ -196,20 +213,20 @@ private fun AddUserDefinedOption(onClick: () -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Icon(
-                imageVector = Icons.Default.Add,
+                imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 2.dp, end = 16.dp)
             )
             Column {
                 Text(
-                    text = stringResource(R.string.select_verification_type_add_user_defined),
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.reader_query_user_defined_description_default),
+                    text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

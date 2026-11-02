@@ -25,6 +25,7 @@ import org.multipaz.mdoc.engagement.EngagementType
 import org.multipaz.mdoc.engagement.toEngagementType
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.zkp.ZkSystemRepository
+import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.securearea.SecureArea
 import org.multipaz.trustmanagement.CompositeTrustManager
 import org.multipaz.eventlogger.SimpleEventLogger
@@ -62,6 +63,7 @@ fun mdocUrlVerificationGraph(
     secureArea: SecureArea,
     documentModel: DocumentModel,
     settingsModel: SettingsModel,
+    provisioningModel: ProvisioningModel,
     externalNfcReaderStore: ExternalNfcReaderStore,
     documentTypeRepository: DocumentTypeRepository,
     zkSystemRepository: ZkSystemRepository,
@@ -113,6 +115,9 @@ fun mdocUrlVerificationGraph(
                     onUserDefinedClicked = { index ->
                         backStack.add(SelectUserDefinedQueryDestination(index))
                     },
+                    onImportUserDefinedClicked = {
+                        backStack.add(ImportUserDefinedQueryUrlDestination)
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
@@ -131,7 +136,7 @@ fun mdocUrlVerificationGraph(
             is SelectUserDefinedQueryDestination -> NavEntry(key) {
                 val userDefinedQueries by settingsModel.userDefinedQueries.collectAsState()
                 org.multipaz.wallet.android.ui.verification.SelectUserDefinedQueryScreen(
-                    initialQuery = key.index?.let { userDefinedQueries.getOrNull(it) },
+                    initialQuery = key.index?.let { userDefinedQueries.getOrNull(it) } ?: key.importedQuery,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     onSaved = { userDefinedQuery ->
                         settingsModel.saveUserDefinedQuery(key.index, userDefinedQuery)
@@ -307,7 +312,13 @@ fun mdocUrlVerificationGraph(
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                 )
             }
-            else -> null
+            else -> importUserDefinedQueryEntry(
+                key = key,
+                backStack = backStack,
+                settingsModel = settingsModel,
+                provisioningModel = provisioningModel,
+                walletClient = walletClient
+            )
         }
     }
 }
