@@ -622,6 +622,8 @@
     <string name="select_user_defined_query_dialog_data_element">Data element name</string>
     <string name="select_verification_type_edit_user_defined">Edit query</string>
     <string name="select_verification_type_add_user_defined">Add user defined query</string>
+    <string name="select_verification_type_import_user_defined">Import from issuer metadata</string>
+    <string name="select_verification_type_import_user_defined_description">Pick the document type and data elements from the OpenID4VCI metadata of an issuer</string>
     <string name="select_user_defined_query_dialog_name">Name</string>
     <string name="select_user_defined_query_dialog_name_description">Shown in the list of verification types</string>
     <string name="select_user_defined_query_error_doc_type">Enter a document type</string>
@@ -629,6 +631,20 @@
     <string name="select_user_defined_query_save">Save</string>
     <string name="select_user_defined_query_delete">Delete query</string>
     <string name="select_user_defined_query_note">This developer-mode feature allows requesting a document given the ISO mdoc document type, namespace names, and data element names.</string>
+    <string name="import_user_defined_query_url_title">Import from issuer metadata</string>
+    <string name="import_user_defined_query_url_text">Enter the URL of an OpenID4VCI issuer to pick a user defined query from the ISO mdoc credentials it supports.</string>
+    <string name="import_user_defined_query_loading">Getting the metadata of %1$s…</string>
+    <string name="import_user_defined_query_failed">Could not get the metadata of %1$s.</string>
+    <string name="import_user_defined_query_credential_title">Select document type</string>
+    <string name="import_user_defined_query_credential_text">Credentials offered by %1$s. Only ISO mdoc credentials can be requested in proximity.</string>
+    <string name="import_user_defined_query_not_mdoc">SD-JWT VC %1$s, not supported for proximity verification</string>
+    <string name="import_user_defined_query_credential_missing">The issuer no longer offers an ISO mdoc credential %1$s.</string>
+    <string name="import_user_defined_query_data_elements_title">Select data elements</string>
+    <string name="import_user_defined_query_data_elements_text">Data elements of %1$s listed by the issuer. A document is only returned if it has all requested data elements.</string>
+    <string name="import_user_defined_query_no_data_elements">The issuer doesn\'t list the data elements of %1$s. The document type is imported and the data elements can be entered next.</string>
+    <string name="import_user_defined_query_select_all">Select all</string>
+    <string name="import_user_defined_query_deselect_all">Deselect all</string>
+    <string name="import_user_defined_query_use">Continue</string>
 
 
 

@@ -1987,6 +1987,9 @@ fun mainGraph(
                     onUserDefinedClicked = { index ->
                         backStack.add(SelectUserDefinedQueryDestination(index))
                     },
+                    onImportUserDefinedClicked = {
+                        backStack.add(ImportUserDefinedQueryUrlDestination)
+                    },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
             }
@@ -2012,7 +2015,7 @@ fun mainGraph(
             is SelectUserDefinedQueryDestination -> NavEntry(key) {
                 val userDefinedQueries by settingsModel.userDefinedQueries.collectAsState()
                 org.multipaz.wallet.android.ui.verification.SelectUserDefinedQueryScreen(
-                    initialQuery = key.index?.let { userDefinedQueries.getOrNull(it) },
+                    initialQuery = key.index?.let { userDefinedQueries.getOrNull(it) } ?: key.importedQuery,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
                     onSaved = { userDefinedQuery ->
                         settingsModel.saveUserDefinedQuery(key.index, userDefinedQuery)
@@ -2173,7 +2176,13 @@ fun mainGraph(
                     }
                 )
             }
-            else -> null
+            else -> importUserDefinedQueryEntry(
+                key = key,
+                backStack = backStack,
+                settingsModel = settingsModel,
+                provisioningModel = provisioningModel,
+                walletClient = walletClient
+            )
         }
     }
 }
