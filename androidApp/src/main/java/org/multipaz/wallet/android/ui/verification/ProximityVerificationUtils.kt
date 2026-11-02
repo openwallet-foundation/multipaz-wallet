@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodNfcV2
+import org.multipaz.mdoc.nfc.MdocHandoverType
 import org.multipaz.mdoc.nfc.ScanMdocReaderResult
 import org.multipaz.mdoc.transport.MdocTransportClosedException
 import org.multipaz.mdoc.transport.MdocTransportException
@@ -72,10 +72,12 @@ suspend fun handleNfcHandover(
             handover = scanResult.handover,
             existingTransport = scanResult.transport,
             nfcHandoverType = scanResult.type,
-            durationNfcTapToEngagement = scanResult.processingDuration
+            durationNfcTapToEngagement = scanResult.processingDuration,
+            existingEReaderKey = scanResult.eReaderKey
         )
 
-        val isNfcOnly = scanResult.transport.connectionMethod is MdocConnectionMethodNfcV2
+        val isNfcOnly = scanResult.type == MdocHandoverType.CCE_HANDOVER &&
+            scanResult.transport.connectionMethod == null
         if (isNfcOnly) {
             proximityReaderModel.state.first { it == ProximityReaderModel.State.COMPLETED || it == ProximityReaderModel.State.IDLE }
             if (proximityReaderModel.state.value == ProximityReaderModel.State.COMPLETED) {

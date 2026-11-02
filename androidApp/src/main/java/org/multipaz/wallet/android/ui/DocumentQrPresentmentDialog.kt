@@ -231,7 +231,7 @@ private fun proximityPresentment(
             )
             advertisedTransports = transports
             val deviceEngagement = buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey) {
-                transports.forEach { addConnectionMethod(it.connectionMethod) }
+                transports.forEach { addConnectionMethod(it.connectionMethod!!) }
                 addCapability(Capability.READER_AUTH_ALL_SUPPORT, true.toDataItem())
                 addCapability(Capability.EXTENDED_REQUEST_SUPPORT, true.toDataItem())
             }.toDataItem()

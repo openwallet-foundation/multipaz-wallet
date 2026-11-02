@@ -2,14 +2,14 @@ package org.multipaz.wallet.android
 
 import org.multipaz.compose.prompt.PresentmentActivity
 import org.multipaz.crypto.EcCurve
-import org.multipaz.mdoc.nfc.MdocNfcV2Service
+import org.multipaz.mdoc.nfc.MdocNfcCceService
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.util.Logger
 import kotlin.time.Clock
 
-private const val TAG = "WalletMdocNfcV2Service"
+private const val TAG = "WalletMdocNfcCceService"
 
-class WalletMdocNfcV2Service : MdocNfcV2Service() {
+class WalletMdocNfcCceService : MdocNfcCceService() {
 
     override suspend fun getSettings(): Settings {
         // TODO: optimize initialization of App so we can just get settingsModel and presentmentSource() out

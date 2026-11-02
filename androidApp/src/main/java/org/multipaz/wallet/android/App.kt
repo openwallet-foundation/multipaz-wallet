@@ -59,9 +59,8 @@ import org.multipaz.facenet.FaceNetFaceMatcher
 import org.multipaz.facenet.FaceNetModelConfig
 import org.multipaz.mdoc.zkp.ZkSystemRepository
 import org.multipaz.mdoc.zkp.longfellow.LongfellowZkSystem
-import org.multipaz.presentment.ConsentData
-import org.multipaz.presentment.CredentialQueryResult
-import org.multipaz.presentment.CredentialSelection
+import org.multipaz.presentment.PresentmentData
+import org.multipaz.presentment.PresentmentSelection
 import org.multipaz.presentment.PresentmentSource
 import org.multipaz.presentment.SimplePresentmentSource
 import org.multipaz.prompt.promptModelRequestConsent
@@ -411,7 +410,7 @@ class App private constructor() {
      * Preconsent is only processed for proximity readers ([Requester.isProximityReader]). Additionally, preconsent is
      * allowed only if:
      * - [preselectedDocuments] is empty (e.g. the user is outside the app when tapping), OR
-     * - at least one of the option sets in [ConsentData.credentialQueryResult] contains a document from [preselectedDocuments].
+     * - at least one of the option sets in [presentmentData] contains a document from [preselectedDocuments].
      *
      * If preselected documents are present and match the query result, only candidate selections containing those
      * preselected documents are evaluated for preconsent. If preconsent is not approved for the preselected documents,
@@ -423,10 +422,10 @@ class App private constructor() {
     private suspend fun showConsentPromptFn(
         requester: Requester,
         trustedRequesterIdentity: TrustedRequesterIdentity?,
-        consentData: ConsentData,
+        presentmentData: PresentmentData,
         preselectedDocuments: List<Document>,
         onDocumentsInFocus: (documents: List<Document>) -> Unit
-    ): CredentialSelection? {
+    ): PresentmentSelection? {
         Logger.i(TAG, "showConsentPromptFn: preselectedDocuments: ${preselectedDocuments.map {
             it.identifier + ": " + it.displayName
         }}")
@@ -434,7 +433,7 @@ class App private constructor() {
         // or if at least one candidate selection contains a preselected document.
         val allowPreconsent = requester.isProximityReader && (
             preselectedDocuments.isEmpty() ||
-                consentData.credentialQueryResult.containsPreselectedDocuments(preselectedDocuments)
+                presentmentData.containsPreselectedDocuments(preselectedDocuments)
         )
         if (allowPreconsent) {
             val documentsToCheck = if (preselectedDocuments.isNotEmpty()) {
@@ -443,7 +442,7 @@ class App private constructor() {
                 documentModel.documentInfos.value.map { it.document }
             }
 
-            consentData.credentialQueryResult.checkPreconsent(
+            presentmentData.checkPreconsent(
                 requester = requester,
                 preselectedDocuments = documentsToCheck,
                 domainRewriter = { domain ->
@@ -474,7 +473,7 @@ class App private constructor() {
         return promptModelRequestConsent(
             requester = requester,
             trustedRequesterIdentity = trustedRequesterIdentity,
-            consentData = consentData,
+            presentmentData = presentmentData,
             preselectedDocuments = preselectedDocuments,
             onDocumentsInFocus = onDocumentsInFocus
         )

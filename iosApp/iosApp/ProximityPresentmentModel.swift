@@ -69,7 +69,9 @@ class ProximityPresentmentModel {
                     version: nil
                 ) { builder in
                     advertisedTransports.forEach {
-                        builder.addConnectionMethod(connectionMethod: $0.connectionMethod)
+                        if let connectionMethod = $0.connectionMethod {
+                            builder.addConnectionMethod(connectionMethod: connectionMethod)
+                        }
                     }
                     builder.addCapability(capability: Capability.readerAuthAllSupport, value: true.toDataItem())
                     builder.addCapability(capability: Capability.extendedRequestSupport, value: true.toDataItem())

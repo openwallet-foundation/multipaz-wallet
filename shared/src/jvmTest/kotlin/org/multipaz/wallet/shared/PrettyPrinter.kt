@@ -2,12 +2,12 @@ package org.multipaz.wallet.shared
 
 import org.multipaz.claim.JsonClaim
 import org.multipaz.claim.MdocClaim
-import org.multipaz.presentment.CredentialQueryResult
-import org.multipaz.presentment.CredentialSelection
-import org.multipaz.presentment.CredentialPresentmentSet
-import org.multipaz.presentment.CredentialPresentmentSetOption
-import org.multipaz.presentment.CredentialPresentmentSetOptionMember
-import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
+import org.multipaz.presentment.PresentmentCredentialMatch
+import org.multipaz.presentment.PresentmentData
+import org.multipaz.presentment.PresentmentPurposeHintIso18013
+import org.multipaz.presentment.PresentmentSelection
+import org.multipaz.presentment.PresentmentUseCase
+import org.multipaz.presentment.PresentmentUseCaseSolution
 
 internal class PrettyPrinter() {
     private val sb = StringBuilder()
@@ -33,7 +33,7 @@ internal class PrettyPrinter() {
     override fun toString(): String = sb.toString()
 }
 
-internal fun CredentialPresentmentSetOptionMemberMatch.print(pp: PrettyPrinter) {
+internal fun PresentmentCredentialMatch.print(pp: PrettyPrinter) {
     pp.append("match:")
     pp.pushIndent()
     pp.append("credential:")
@@ -42,7 +42,7 @@ internal fun CredentialPresentmentSetOptionMemberMatch.print(pp: PrettyPrinter) 
     pp.append("docId: ${credential.document.displayName}")
     pp.append("claims:")
     pp.pushIndent()
-    for ((requestedClaim, claim) in claims) {
+    for ((_, claim) in claims) {
         pp.append("claim:")
         pp.pushIndent()
         when (claim) {
@@ -63,74 +63,10 @@ internal fun CredentialPresentmentSetOptionMemberMatch.print(pp: PrettyPrinter) 
     pp.popIndent()
 }
 
-internal fun CredentialPresentmentSetOptionMember.print(pp: PrettyPrinter) {
-    pp.append("member:")
-    pp.pushIndent()
+internal fun PresentmentSelection.print(pp: PrettyPrinter): String {
     pp.append("matches:")
     pp.pushIndent()
-    if (matches.size == 0) {
-        pp.append("<empty>")
-    } else {
-        for (match in matches) {
-            match.print(pp)
-        }
-    }
-    pp.popIndent()
-    pp.popIndent()
-}
-
-internal fun CredentialPresentmentSetOption.print(pp: PrettyPrinter) {
-    pp.append("option:")
-    pp.pushIndent()
-    pp.append("members:")
-    pp.pushIndent()
-    if (members.size == 0) {
-        pp.append("<empty>")
-    } else {
-        for (member in members) {
-            member.print(pp)
-        }
-    }
-    pp.popIndent()
-    pp.popIndent()
-}
-
-internal fun CredentialPresentmentSet.print(pp: PrettyPrinter) {
-    pp.append("credentialSet:")
-    pp.pushIndent()
-    pp.append("optional: $optional")
-    pp.append("options:")
-    pp.pushIndent()
-    if (options.size == 0) {
-        pp.append("<empty>")
-    } else {
-        for (option in options) {
-            option.print(pp)
-        }
-    }
-    pp.popIndent()
-    pp.popIndent()
-}
-
-internal fun CredentialQueryResult.prettyPrint(): String {
-    val pp = PrettyPrinter()
-    pp.append("credentialSets:")
-    pp.pushIndent()
-    if (credentialSets.size == 0) {
-        pp.append("<empty>")
-    } else {
-        for (credentialSet in credentialSets) {
-            credentialSet.print(pp)
-        }
-    }
-    pp.popIndent()
-    return pp.toString()
-}
-
-internal fun CredentialSelection.print(pp: PrettyPrinter): String {
-    pp.append("matches:")
-    pp.pushIndent()
-    if (matches.size == 0) {
+    if (matches.isEmpty()) {
         pp.append("<empty>")
     } else {
         for (match in matches) {
@@ -140,20 +76,89 @@ internal fun CredentialSelection.print(pp: PrettyPrinter): String {
     pp.popIndent()
     return pp.toString()
 }
-internal fun CredentialSelection.prettyPrint(): String {
+
+internal fun PresentmentSelection.prettyPrint(): String {
     val pp = PrettyPrinter()
     return print(pp)
 }
 
-internal fun List<CredentialSelection>.prettyPrint(): String {
+internal fun List<PresentmentSelection>.prettyPrint(): String {
     val pp = PrettyPrinter()
     pp.append("selections:")
     pp.pushIndent()
-    if (this.size == 0) {
+    if (this.isEmpty()) {
         pp.append("<empty>")
     } else {
         for (element in this) {
             element.print(pp)
+        }
+    }
+    pp.popIndent()
+    return pp.toString()
+}
+
+internal fun PresentmentCredentialMatch.printPresentmentCredential(pp: PrettyPrinter) {
+    pp.append("credential:")
+    pp.pushIndent()
+    pp.append("encryptionRequested: $encryptionRequested")
+    pp.append("encryptionTargetTrustMetadata:")
+    pp.pushIndent()
+    pp.append("displayName: ${encryptionTargetTrustMetadata?.displayName}")
+    pp.popIndent()
+    print(pp)
+    pp.popIndent()
+}
+
+internal fun PresentmentUseCaseSolution.print(pp: PrettyPrinter) {
+    pp.append("solution:")
+    pp.pushIndent()
+    if (matches.isEmpty()) {
+        pp.append("<empty>")
+    } else {
+        for (match in matches) {
+            match.printPresentmentCredential(pp)
+        }
+    }
+    pp.popIndent()
+}
+
+internal fun PresentmentUseCase.print(pp: PrettyPrinter) {
+    pp.append("useCase:")
+    pp.pushIndent()
+    pp.append("optional: $optional")
+    if (purposeHints.isNotEmpty()) {
+        pp.append("purposeHints:")
+        pp.pushIndent()
+        for (purposeHint in purposeHints) {
+            when (purposeHint) {
+                is PresentmentPurposeHintIso18013 -> {
+                    pp.append("iso18013: ${purposeHint.controllerId} -> ${purposeHint.purposeHintCode}")
+                }
+            }
+        }
+        pp.popIndent()
+    }
+    pp.pushIndent()
+    if (solutions.isEmpty()) {
+        pp.append("<empty>")
+    } else {
+        for (solution in solutions) {
+            solution.print(pp)
+        }
+    }
+    pp.popIndent()
+    pp.popIndent()
+}
+
+internal fun PresentmentData.prettyPrint(): String {
+    val pp = PrettyPrinter()
+    pp.append("useCases:")
+    pp.pushIndent()
+    if (useCases.isEmpty()) {
+        pp.append("<empty>")
+    } else {
+        for (useCase in useCases) {
+            useCase.print(pp)
         }
     }
     pp.popIndent()

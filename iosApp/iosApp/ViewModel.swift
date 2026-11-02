@@ -481,11 +481,11 @@ class ViewModel {
                 }
                 return nil
             },
-            showConsentPromptFn: { requester, trustedRequesterIdentity, consentData, preselectedDocuments, onDocumentsInFocus in
+            showConsentPromptFn: { requester, trustedRequesterIdentity, presentmentData, preselectedDocuments, onDocumentsInFocus in
                 return try! await promptModelRequestConsent(
                     requester: requester,
                     trustedRequesterIdentity: trustedRequesterIdentity,
-                    consentData: consentData,
+                    presentmentData: presentmentData,
                     preselectedDocuments: preselectedDocuments,
                     onDocumentsInFocus: { documents in
                         onDocumentsInFocus(documents)

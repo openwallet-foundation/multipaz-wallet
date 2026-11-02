@@ -148,6 +148,7 @@ class ProximityReaderModel {
         deviceEngagement = null
         _eReaderKey?.close()
         _eReaderKey = null
+        existingEReaderKeyMatched = false
         mdocTransportOptions = null
         query = null
         deviceRequest = null
@@ -157,6 +158,7 @@ class ProximityReaderModel {
         _state.value = State.IDLE
     }
 
+    private var existingEReaderKeyMatched: Boolean = false
     private var mdocTransportOptions: MdocTransportOptions? = null
     private var query: Query? = null
     private var deviceRequest: DeviceRequest? = null
@@ -185,6 +187,7 @@ class ProximityReaderModel {
      * @param existingTransport Optional pre-established [MdocTransport], if available.
      * @param nfcHandoverType Optional NFC handover type if NFC engagement was used.
      * @param durationNfcTapToEngagement Optional measured duration from NFC tap to engagement.
+     * @param existingEReaderKey Optional ephemeral reader key already sent in `ReaderEngagement` during CCE handover.
      * @throws IllegalStateException If the current state is not [State.IDLE].
      */
     @Throws(IllegalStateException::class)
@@ -194,6 +197,7 @@ class ProximityReaderModel {
         existingTransport: MdocTransport? = null,
         nfcHandoverType: MdocHandoverType? = null,
         durationNfcTapToEngagement: Duration? = null,
+        existingEReaderKey: EcPrivateKey? = null,
     ) {
         check(_state.value == State.IDLE)
         this._deviceEngagement = deviceEngagement
@@ -205,7 +209,15 @@ class ProximityReaderModel {
         this.deviceEngagement = DeviceEngagement.fromDataItem(
             this._deviceEngagement!!
         )
-        _eReaderKey = Crypto.createEcPrivateKey(this.deviceEngagement!!.eDeviceKey.curve)
+        val eDeviceKeyCurve = this.deviceEngagement!!.eDeviceKey.curve
+        if (existingEReaderKey != null && existingEReaderKey.curve == eDeviceKeyCurve) {
+            _eReaderKey = existingEReaderKey
+            existingEReaderKeyMatched = true
+        } else {
+            existingEReaderKey?.close()
+            _eReaderKey = Crypto.createEcPrivateKey(eDeviceKeyCurve)
+            existingEReaderKeyMatched = false
+        }
         val encodedEReaderKey = Cbor.encode(_eReaderKey!!.publicKey.toCoseKey().toDataItem())
         _sessionTranscript = buildCborArray {
             add(Tagged(24, Bstr(Cbor.encode(deviceEngagement))))
@@ -280,6 +292,7 @@ class ProximityReaderModel {
                         deviceEngagement = null
                         _eReaderKey?.close()
                         _eReaderKey = null
+                        existingEReaderKeyMatched = false
                         query = null
                         deviceRequest = null
                         _deviceEngagement = null
@@ -333,13 +346,18 @@ class ProximityReaderModel {
 
         Logger.dCbor(TAG, "handover", Cbor.encode(handover))
 
+        val insertSequenceNumbers = nfcHandoverType == MdocHandoverType.CCE_HANDOVER
         val sessionEncryption = SessionEncryption(
             role = MdocRole.MDOC_READER,
             eSelfKey = eReaderKey,
             remotePublicKey = deviceEngagement.eDeviceKey,
             encodedSessionTranscript = Cbor.encode(sessionTranscript),
-            insertSequenceNumbers = nfcHandoverType == MdocHandoverType.V2_HANDOVER
-        )
+            insertSequenceNumbers = insertSequenceNumbers
+        ).apply {
+            if (existingEReaderKeyMatched) {
+                setSendSessionEstablishment(false)
+            }
+        }
 
         Logger.i(TAG, "OK, with transport: $transport")
         val connectionMethod = transport.connectionMethod
@@ -363,7 +381,7 @@ class ProximityReaderModel {
                     deviceRequest = deviceRequest,
                     deviceResponse = null,
                     sessionTranscript = sessionTranscript,
-                    eReaderKey = eReaderKey,
+                    eReaderKey = eReaderKey.duplicate(),
                     nfcHandoverType = nfcHandoverType,
                     durationNfcTapToEngagement = durationNfcTapToEngagement,
                     durationEngagementReceivedToRequestSent = timeOfFirstMessageSent - timeOfEngagementReceived,
@@ -384,7 +402,12 @@ class ProximityReaderModel {
                 Logger.i(TAG, "Holder did not indicate they are closing the connection. " +
                             "Auto-close is enabled, so sending termination message, closing, and " +
                             "ending reader loop")
-                transport.sendMessage(SessionEncryption.encodeStatus(Constants.SESSION_DATA_STATUS_SESSION_TERMINATION))
+                transport.sendMessage(
+                    SessionEncryption.encodeStatus(
+                        statusCode = Constants.SESSION_DATA_STATUS_SESSION_TERMINATION,
+                        sequenceNumber = if (insertSequenceNumbers) sessionEncryption.nextSequenceNumber else null
+                    )
+                )
             }
             return ProximityReaderModelResult(
                 status = status,

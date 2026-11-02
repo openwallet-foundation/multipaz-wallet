@@ -274,7 +274,7 @@ fun VerificationProximityTransferScreen(
                                     bleUseL2CAPInEngagement = true
                                 ),
                                 handoverOptions = MdocReaderNfcHandoverOptions(
-                                    useNfcV2 = useNfcV2
+                                    useCce = useNfcV2
                                 ),
                                 transportFactory = MdocTransportFactory.Default,
                                 selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
