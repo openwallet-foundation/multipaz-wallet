@@ -79,9 +79,9 @@ import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
 import org.multipaz.compose.getOutlinedImageVector
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.rememberUiBoundCoroutineScope
 import org.multipaz.compose.sharemanager.ShareManager
 import org.multipaz.compose.text.fromMarkdown
@@ -346,26 +346,26 @@ private fun EventViewerProvisioning(
             timeStyle = FormatStyle.LONG
         )
 
-        FloatingItemList(
+        SegmentedItemList(
             modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
         ) {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_date_time),
                 text = eventDateTimeString
             )
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_issuer),
                 text = event.issuerData.display.text
             )
             when (event.issuerData) {
                 is EventProvisioningIssuerDataOpenID4VCI -> {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = stringResource(R.string.event_viewer_openid4vci_server),
                         text = (event.issuerData as EventProvisioningIssuerDataOpenID4VCI).url
                     )
                 }
             }
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_type),
                 text = if (event.initialProvisioning) {
                     stringResource(R.string.event_provisioning_type_initial)
@@ -375,7 +375,7 @@ private fun EventViewerProvisioning(
             )
             var numCredentials = 0
             event.credentialsFetched.forEach { (domain, credentials) -> numCredentials += credentials.size }
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_credentials_heading),
                 text = if (numCredentials == 1) {
                     stringResource(R.string.event_viewer_credentials_singular)
@@ -449,8 +449,8 @@ private fun EventViewerPresentment(
 
         Spacer(modifier = Modifier.size(16.dp))
 
-        FloatingItemList(title = null) {
-            FloatingItemHeadingAndText(
+        SegmentedItemList(title = null) {
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_screen_date_and_time_text),
                 text = eventDateTimeString
             )
@@ -468,7 +468,7 @@ private fun EventViewerPresentment(
                     isLoadingAddress = false
                 }
 
-                FloatingItemContainer {
+                SegmentedItemContainer {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -532,18 +532,18 @@ private fun EventViewerPresentment(
                     val sharedInPerson = stringResource(R.string.event_viewer_screen_shared_in_person_text)
                     if (handover != null) {
                         if (handover == Simple.NULL) {
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = sharedInPerson,
                                 text = stringResource(R.string.event_viewer_screen_using_qr_code_text)
                             )
                         } else {
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = sharedInPerson,
                                 text = stringResource(R.string.event_viewer_screen_using_nfc_text)
                             )
                         }
                     } else if (event.telemetry?.engagementType != null) {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = sharedInPerson,
                             text = if (event.telemetry!!.engagementType == EngagementType.QR_CODE) {
                                 stringResource(R.string.event_viewer_screen_using_qr_code_text)
@@ -557,7 +557,7 @@ private fun EventViewerPresentment(
                         val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
                             { onViewCbor("Session transcript", sessionTranscriptBytes) }
                         } else null
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Session transcript",
                             text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
                             showChevron = onTranscriptClick != null,
@@ -567,13 +567,13 @@ private fun EventViewerPresentment(
                 }
             }
 
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_screen_presentment_protocol_text),
                 text = protocol
             )
 
             event.telemetry?.let { telemetry ->
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = "Outcome",
                     text = if (telemetry.outcome == PresentmentOutcome.SUCCESS) {
                         AnnotatedString(telemetry.outcome.name)
@@ -586,13 +586,13 @@ private fun EventViewerPresentment(
                     }
                 )
                 telemetry.durationTotal?.let {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Total duration",
                         text = it.formatDuration()
                     )
                 }
                 if (telemetry.warnings.isNotEmpty()) {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Warnings",
                         text = telemetry.warnings.joinToString("\n") { it.code.name }
                     )
@@ -602,12 +602,12 @@ private fun EventViewerPresentment(
             if (presentmentData != null) {
                 val requesterTrusted = stringResource(R.string.event_viewer_screen_requester_trusted_text)
                 if (presentmentData.trustMetadata != null) {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = requesterTrusted,
                         text = stringResource(R.string.event_viewer_screen_requester_in_trust_list_text)
                     )
                 } else {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = requesterTrusted,
                         text = buildAnnotatedString {
                             withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
@@ -619,7 +619,7 @@ private fun EventViewerPresentment(
 
                 val requesterCertificate = stringResource(R.string.event_viewer_screen_requester_certificate_text)
                 presentmentData.requesterCertChain?.let {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         showChevron = true,
                         heading = requesterCertificate,
                         text = stringResource(R.string.event_viewer_screen_certificate_click_to_view_text),
@@ -628,14 +628,14 @@ private fun EventViewerPresentment(
                         }
                     )
                 } ?: run {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = requesterCertificate,
                         text = stringResource(R.string.event_viewer_screen_certificate_not_available_text),
                     )
                 }
 
                 presentmentData.trustMetadata?.privacyPolicyUrl?.let {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = stringResource(R.string.event_viewer_screen_requester_privacy_policy_text),
                         text = AnnotatedString.fromMarkdown(
                             markdownString = "[$it]($it)"
@@ -669,7 +669,7 @@ private fun EventViewerPresentment(
             }
             if (sharedClaims.isNotEmpty()) {
                 Spacer(modifier = Modifier.size(16.dp))
-                FloatingItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_text)) {
+                SegmentedItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_text)) {
                     ExtractClaimsItems(sharedClaims, documentTypeRepository)
                 }
                 Spacer(modifier = Modifier.size(20.dp))
@@ -680,7 +680,7 @@ private fun EventViewerPresentment(
             }
             if (sharedAndStoredClaims.isNotEmpty()) {
                 Spacer(modifier = Modifier.size(16.dp))
-                FloatingItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_and_stored_text)) {
+                SegmentedItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_and_stored_text)) {
                     ExtractClaimsItems(sharedAndStoredClaims, documentTypeRepository)
                 }
                 Spacer(modifier = Modifier.size(20.dp))
@@ -688,49 +688,49 @@ private fun EventViewerPresentment(
         }
 
         if (devModeEnabled) {
-            FloatingItemList(
+            SegmentedItemList(
                 modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = "Developer extras"
             ) {
                 event.telemetry?.let { telemetry ->
                     telemetry.durationEngagementToConnected?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Engagement to connected",
                             text = it.formatDuration()
                         )
                     }
                     telemetry.durationConnectedToRequestReceived?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Connected to request received",
                             text = it.formatDuration()
                         )
                     }
                     telemetry.durationUserConsentAndAuth?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "User consent and auth",
                             text = it.formatDuration()
                         )
                     }
                     telemetry.durationResponseGeneration?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Response generation",
                             text = it.formatDuration()
                         )
                     }
                     telemetry.durationResponseTransmission?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Response transmission",
                             text = it.formatDuration()
                         )
                     }
                     if (telemetry.numNfcReTaps > 0) {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "NFC re-taps",
                             text = "${telemetry.numNfcReTaps}"
                         )
                     }
                     telemetry.transportStats?.let { stats ->
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Transport stats",
                             text = stats.formatTransportStats()
                         )
@@ -743,7 +743,7 @@ private fun EventViewerPresentment(
                             val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Device request", requestBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Device request",
                                 text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
                                 showChevron = onRequestClick != null,
@@ -756,7 +756,7 @@ private fun EventViewerPresentment(
                             val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Device response", responseBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Device response",
                                 text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
                                 showChevron = onResponseClick != null,
@@ -768,7 +768,7 @@ private fun EventViewerPresentment(
                         val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
                             { onViewJson("W3C DC Request", event.requestJson) }
                         } else null
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "W3C DC Request",
                             text = "${"%,d".format(event.requestJson.length)} chars of JSON",
                             showChevron = onRequestClick != null,
@@ -779,7 +779,7 @@ private fun EventViewerPresentment(
                             val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
                                 { onViewJson("W3C DC Response", responseJson) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "W3C DC Response",
                                 text = "${"%,d".format(responseJson.length)} chars of JSON",
                                 showChevron = onResponseClick != null,
@@ -792,7 +792,7 @@ private fun EventViewerPresentment(
                             val onDeviceResponseClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Device response", deviceResponseBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Device response",
                                 text = "${"%,d".format(deviceResponseBytes.size)} bytes of CBOR",
                                 showChevron = onDeviceResponseClick != null,
@@ -804,7 +804,7 @@ private fun EventViewerPresentment(
                         val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
                             { onViewJson("W3C DC Request", event.requestJson) }
                         } else null
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "W3C DC Request",
                             text = "${"%,d".format(event.requestJson.length)} chars of JSON",
                             showChevron = onRequestClick != null,
@@ -815,7 +815,7 @@ private fun EventViewerPresentment(
                             val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
                                 { onViewJson("W3C DC Response", responseJson) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "W3C DC Response",
                                 text = "${"%,d".format(responseJson.length)} chars of JSON",
                                 showChevron = onResponseClick != null,
@@ -827,7 +827,7 @@ private fun EventViewerPresentment(
                             val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
                                 { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "VP Token",
                                 text = formatVpTokenSummary(vpToken),
                                 showChevron = onVpTokenClick != null,
@@ -840,7 +840,7 @@ private fun EventViewerPresentment(
                             val onRequestClick: (() -> Unit)? = if (onViewJwt != null) {
                                 { onViewJwt("Authorization Request", requestJwt) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Authorization Request",
                                 text = "${"%,d".format(requestJwt.length)} chars (JWT)",
                                 showChevron = onRequestClick != null,
@@ -852,7 +852,7 @@ private fun EventViewerPresentment(
                             val onVpTokenClick: (() -> Unit)? = if (onViewJwt != null || onViewJson != null || onViewCbor != null) {
                                 { viewVpToken(vpToken, onViewJwt, onViewJson, onViewCbor) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "VP Token",
                                 text = formatVpTokenSummary(vpToken),
                                 showChevron = onVpTokenClick != null,
@@ -866,7 +866,7 @@ private fun EventViewerPresentment(
                             val onTranscriptClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Session transcript", sessionTranscriptBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Session transcript",
                                 text = "${"%,d".format(sessionTranscriptBytes.size)} bytes of CBOR",
                                 showChevron = onTranscriptClick != null,
@@ -879,7 +879,7 @@ private fun EventViewerPresentment(
                             val onRequestClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Device request", requestBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Device request",
                                 text = "${"%,d".format(requestBytes.size)} bytes of CBOR",
                                 showChevron = onRequestClick != null,
@@ -892,7 +892,7 @@ private fun EventViewerPresentment(
                             val onResponseClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Device response", responseBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Device response",
                                 text = "${"%,d".format(responseBytes.size)} bytes of CBOR",
                                 showChevron = onResponseClick != null,
@@ -905,7 +905,7 @@ private fun EventViewerPresentment(
                             val onReClick: (() -> Unit)? = if (onViewCbor != null) {
                                 { onViewCbor("Reader engagement", reBytes) }
                             } else null
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = "Reader engagement",
                                 text = "${"%,d".format(reBytes.size)} bytes of CBOR",
                                 showChevron = onReClick != null,
@@ -981,25 +981,25 @@ private fun OriginAndAppIdItem(
     val sharedWithWebsite = stringResource(R.string.event_viewer_screen_shared_with_website_text)
     val sharedWithApp = stringResource(R.string.event_viewer_screen_shared_with_app_text)
     if (origin != null && origin.isNotEmpty() && (origin.startsWith("http://") || origin.startsWith("https://"))) {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = sharedWithWebsite,
             text = AnnotatedString.fromMarkdown("[$origin]($origin)")
         )
     } else if (origin != null && origin.isNotEmpty()) {
         if (appId != null) {
             // TODO: look up details about the application
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = sharedWithApp,
                 text = appId
             )
         } else {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = sharedWithApp,
                 text = stringResource(R.string.event_viewer_screen_unknown_app_text)
             )
         }
     } else {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = sharedWithWebsite,
             text = stringResource(R.string.event_viewer_screen_unknown_website_text)
         )
@@ -1017,7 +1017,7 @@ private fun ExtractClaimsItems(
             dataItem = claim.toDataItem(),
             documentTypeRepository = documentTypeRepository
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = claim.displayName,
             text = claim.render(),
             image = {
@@ -1120,10 +1120,10 @@ private fun EventViewerVerification(
             modifier = if (onDevExtras != null) Modifier.clickable { onDevExtras() } else Modifier
         )
 
-        FloatingItemList(
+        SegmentedItemList(
             modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
         ) {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = "Date and time",
                 text = eventDateTimeString
             )
@@ -1131,12 +1131,12 @@ private fun EventViewerVerification(
             when (event) {
                 is EventVerificationDigitalCredentials -> {
                     OriginAndAppIdItem(event.origin, event.appId)
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Presentment protocol",
                         text = protocol
                     )
                     event.durationRequestSentToResponseReceived?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Request sent to response received",
                             text = it.formatDuration()
                         )
@@ -1144,7 +1144,7 @@ private fun EventViewerVerification(
                     val onRequestClick: (() -> Unit)? = if (onViewJson != null) {
                         { onViewJson("W3C DC Request", event.requestJson) }
                     } else null
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Request JSON",
                         text = "${"%,d".format(event.requestJson.length)} chars of JSON",
                         showChevron = onRequestClick != null,
@@ -1153,7 +1153,7 @@ private fun EventViewerVerification(
                     val onResponseClick: (() -> Unit)? = if (onViewJson != null) {
                         { onViewJson("W3C DC Response", event.responseJson) }
                     } else null
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Response JSON",
                         text = "${"%,d".format(event.responseJson.length)} chars of JSON",
                         showChevron = onResponseClick != null,
@@ -1167,52 +1167,52 @@ private fun EventViewerVerification(
                         EngagementType.NFC_NEGOTIATED_HANDOVER -> "NFC negotiated handover"
                         EngagementType.NFC_CONCURRENT_CHANNEL_ENGAGEMENT -> "NFC concurrent channel engagement"
                     }
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Engagement channel",
                         text = engagementText
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Presentment protocol",
                         text = protocol
                     )
                     event.durationNfcTapToEngagement?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "NFC tap to engagement",
                             text = it.formatDuration()
                         )
                     }
                     event.durationEngagementReceivedToRequestSent?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Engagement to request sent",
                             text = it.formatDuration()
                         )
                     }
                     event.durationRequestSentToResponseReceived?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Request sent to response received",
                             text = it.formatDuration()
                         )
                     }
                     event.durationScanningTime?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Transport scanning time",
                             text = it.formatDuration()
                         )
                     }
                     event.transportStats?.let { stats ->
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Transport stats",
                             text = stats.formatTransportStats()
                         )
                     }
                 }
                 else -> {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Presentment protocol",
                         text = protocol
                     )
                     event.durationRequestSentToResponseReceived?.let {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Request sent to response received",
                             text = it.formatDuration()
                         )
@@ -1221,7 +1221,7 @@ private fun EventViewerVerification(
             }
 
             if (onDevExtras != null) {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = "Developer extras",
                     text = "View raw requests, responses, and transcripts",
                     showChevron = true,
@@ -1230,7 +1230,7 @@ private fun EventViewerVerification(
             }
 
             if (verificationError != null) {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = "Verification status",
                     text = buildAnnotatedString {
                         withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
@@ -1239,12 +1239,12 @@ private fun EventViewerVerification(
                     }
                 )
             } else if (verifiedPresentationsResult == null) {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = "Verification status",
                     text = "Verifying..."
                 )
             } else {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = "Verification status",
                     text = "Verified successfully"
                 )
@@ -1263,7 +1263,7 @@ private fun EventViewerVerification(
                     isLoadingAddress = false
                 }
 
-                FloatingItemContainer {
+                SegmentedItemContainer {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -1320,12 +1320,12 @@ private fun EventViewerVerification(
                 is MdocVerifiedPresentation -> "Document ${index + 1}: ${vp.docType} ($formatText)"
                 is JsonVerifiedPresentation -> "Document ${index + 1}: ${vp.vct} ($formatText)"
             }
-            FloatingItemList(
+            SegmentedItemList(
                 modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = titleText
             ) {
                 vp.documentSignerCertChain?.let { certChain ->
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         showChevron = true,
                         heading = "Issuer certificate chain",
                         text = "Click to view",
@@ -1337,12 +1337,12 @@ private fun EventViewerVerification(
                     val trustResult = result.trustResult
                     if (trustResult != null && trustResult.isTrusted) {
                         val tpName = " (${trustResult.trustPoints.first().metadata.displayName})"
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Issuer Trusted",
                             text = "Yes$tpName"
                         )
                     } else {
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = "Issuer Trusted",
                             text = buildAnnotatedString {
                                 withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.error)) {
@@ -1354,7 +1354,7 @@ private fun EventViewerVerification(
                 }
 
                 if (vp.zkpUsed) {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "ZK proof",
                         text = "Successfully verified 🪄"
                     )
@@ -1372,7 +1372,7 @@ private fun EventViewerVerification(
                             documentTypeRepository = documentTypeRepository
                         )
                         val textValue = typedClaim.render()
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = typedClaim.displayName + suffix,
                             text = textValue,
                             image = {
@@ -1436,10 +1436,10 @@ private fun EventViewerSimple(
             )
         }
 
-        FloatingItemList(
+        SegmentedItemList(
             modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
         ) {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_date_time),
                 text = eventDateTimeString
             )
@@ -1451,11 +1451,11 @@ private fun EventViewerSimple(
                     "developer_settings" -> stringResource(R.string.event_viewer_refresh_trigger_developer_settings)
                     else -> stringResource(R.string.event_viewer_refresh_trigger_unknown)
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_refresh_trigger),
                     text = triggerText
                 )
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_refresh_status),
                     text = if (details.success) {
                         stringResource(R.string.event_viewer_refresh_status_success)
@@ -1470,7 +1470,7 @@ private fun EventViewerSimple(
                 } else {
                     stringResource(R.string.event_viewer_no)
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_public_data_refreshed),
                     text = publicDataText
                 )
@@ -1481,7 +1481,7 @@ private fun EventViewerSimple(
                 } else {
                     stringResource(R.string.event_viewer_no)
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_shared_data_refreshed),
                     text = sharedDataText
                 )
@@ -1490,7 +1490,7 @@ private fun EventViewerSimple(
                 } else {
                     details.refreshedCredentialsCount.toString()
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_refreshed_credentials_count),
                     text = credsText
                 )
@@ -1501,24 +1501,24 @@ private fun EventViewerSimple(
                 } else {
                     stringResource(R.string.event_viewer_no)
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_reader_keys_refreshed),
                     text = readerKeysText
                 )
                 if (details.trustManagersChecked.isNotEmpty() || details.updatedTrustEntriesCount > 0) {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = stringResource(R.string.event_viewer_trust_entries_updated),
                         text = details.updatedTrustEntriesCount.toString()
                     )
                 }
                 val allErrors = details.credentialRefreshErrors + details.trustManagerErrors
                 if (allErrors.isNotEmpty()) {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = stringResource(R.string.event_viewer_errors),
                         text = allErrors.joinToString("\n")
                     )
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = stringResource(R.string.event_viewer_runtime_duration),
                     text = stringResource(R.string.event_viewer_runtime_duration_seconds, details.runtimeDurationMs / 1000.0)
                 )

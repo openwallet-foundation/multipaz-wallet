@@ -36,8 +36,8 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemList
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.provisioning.CredentialFormat
 import org.multipaz.provisioning.ProvisioningMetadata
 import org.multipaz.wallet.android.R
@@ -95,9 +95,9 @@ fun CredentialSelectionScreen(
                 )
             )
 
-            FloatingItemList {
+            SegmentedItemList {
                 metadata.credentials.forEach { (id, credential) ->
-                    FloatingItemText(
+                    SegmentedItemText(
                         modifier = Modifier.clickable {
                             onCredentialSelected(id)
                         },

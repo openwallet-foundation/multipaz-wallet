@@ -67,9 +67,9 @@ import org.multipaz.claim.organizeByNamespace
 import org.multipaz.compose.datetime.formattedDateTime
 import org.multipaz.compose.document.CredentialInfo
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.cose.Cose
 import org.multipaz.cose.CoseNumberLabel
 import org.multipaz.credential.Credential
@@ -195,7 +195,7 @@ fun CredentialInfoScreen(
                 markdownString = stringResource(R.string.credential_info_note)
             )
             if (credentialInfo != null) {
-                FloatingItemList() {
+                SegmentedItemList() {
                     CredentialInfoSection(
                         credentialInfo = credentialInfo,
                         revocationChecker = revocationChecker,
@@ -210,8 +210,8 @@ fun CredentialInfoScreen(
                     CredentialClaimsSection(credentialInfo)
                 }
             } else {
-                FloatingItemList {
-                    FloatingItemCenteredText(stringResource(R.string.credential_info_empty))
+                SegmentedItemList {
+                    SegmentedItemCenteredText(stringResource(R.string.credential_info_empty))
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
@@ -231,16 +231,16 @@ private fun CredentialInfoSection(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    FloatingItemHeadingAndText(stringResource(R.string.credential_info_type), credentialInfo.credential.credentialType)
-    FloatingItemHeadingAndText(stringResource(R.string.credential_info_identifier), credentialInfo.credential.identifier)
-    FloatingItemHeadingAndText(stringResource(R.string.credential_info_domain), credentialInfo.credential.domain)
-    FloatingItemHeadingAndText(stringResource(R.string.credential_info_certified), if (credentialInfo.credential.isCertified) stringResource(R.string.credential_info_yes) else stringResource(R.string.credential_info_no))
+    SegmentedItemHeadingAndText(stringResource(R.string.credential_info_type), credentialInfo.credential.credentialType)
+    SegmentedItemHeadingAndText(stringResource(R.string.credential_info_identifier), credentialInfo.credential.identifier)
+    SegmentedItemHeadingAndText(stringResource(R.string.credential_info_domain), credentialInfo.credential.domain)
+    SegmentedItemHeadingAndText(stringResource(R.string.credential_info_certified), if (credentialInfo.credential.isCertified) stringResource(R.string.credential_info_yes) else stringResource(R.string.credential_info_no))
     if (credentialInfo.credential.isCertified) {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             stringResource(R.string.credential_info_valid_from),
             formattedDateTime(credentialInfo.credential.validFrom)
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             stringResource(R.string.credential_info_valid_until),
             formattedDateTime(credentialInfo.credential.validUntil)
         )
@@ -272,7 +272,7 @@ private fun CredentialInfoSection(
                 null
             )
         }
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = "Issuer provided data",
             text = issuerDataText,
             showChevron = onIssuerDataClicked != null,
@@ -282,7 +282,7 @@ private fun CredentialInfoSection(
                 Modifier
             }
         )
-        FloatingItemHeadingAndText("Usage Count", credentialInfo.credential.usageCount.toString())
+        SegmentedItemHeadingAndText("Usage Count", credentialInfo.credential.usageCount.toString())
         RevocationStatusSection(
             revocationChecker = revocationChecker,
             issuerTrustManager = issuerTrustManager,
@@ -298,7 +298,7 @@ private fun CredentialInfoSection(
                     issuerAuth.payload
                 }
                 if (msoBytes != null) {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Mobile Security Object (MSO)",
                         text = "${"%,d".format(msoBytes.size)} bytes of CBOR",
                         showChevron = onViewCbor != null,
@@ -311,11 +311,11 @@ private fun CredentialInfoSection(
                         }
                     )
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     "ISO mdoc DocType",
                     (credentialInfo.credential as MdocCredential).docType
                 )
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     showChevron = true,
                     heading = "ISO mdoc DS Key Certificate",
                     text = buildAnnotatedString {
@@ -336,7 +336,7 @@ private fun CredentialInfoSection(
             }
 
             is SdJwtVcCredential -> {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     "Verifiable Credential Type",
                     (credentialInfo.credential as SdJwtVcCredential).vct
                 )
@@ -349,26 +349,26 @@ private fun CredentialInfoSection(
 
     if (credentialInfo.credential is SecureAreaBoundCredential) {
         val keyInfo = credentialInfo.keyInfo
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             "Secure Area",
             (credentialInfo.credential as SecureAreaBoundCredential).secureArea.displayName
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             "Secure Area Identifier",
             (credentialInfo.credential as SecureAreaBoundCredential).secureArea.identifier
         )
         if (keyInfo != null) {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 "Device Key Algorithm",
                 keyInfo.algorithm.description
             )
             when (keyInfo) {
                 is AndroidKeystoreKeyInfo -> {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         "Device Key in StrongBox",
                         if (keyInfo.isStrongBoxBacked) "Yes" else "No"
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         "Device Key User Auth Required",
                         if (keyInfo.isUserAuthenticationRequired) "Yes" else "No"
                     )
@@ -378,30 +378,30 @@ private fun CredentialInfoSection(
                         } else {
                             "${keyInfo.userAuthenticationTimeout.inWholeSeconds} s"
                         }
-                        FloatingItemHeadingAndText("Device Key User Auth Timeout", timeoutText)
+                        SegmentedItemHeadingAndText("Device Key User Auth Timeout", timeoutText)
                         val typesText = if (keyInfo.userAuthenticationTypes.isEmpty()) {
                             "None"
                         } else {
                             keyInfo.userAuthenticationTypes.joinToString(", ") { it.name }
                         }
-                        FloatingItemHeadingAndText("Device Key User Auth Types", typesText)
+                        SegmentedItemHeadingAndText("Device Key User Auth Types", typesText)
                     }
                     if (keyInfo.attestKeyAlias != null) {
-                        FloatingItemHeadingAndText("Device Key Attest Key Alias", keyInfo.attestKeyAlias!!)
+                        SegmentedItemHeadingAndText("Device Key Attest Key Alias", keyInfo.attestKeyAlias!!)
                     }
                     if (keyInfo.validFrom != null) {
-                        FloatingItemHeadingAndText("Device Key Valid From", formattedDateTime(keyInfo.validFrom!!))
+                        SegmentedItemHeadingAndText("Device Key Valid From", formattedDateTime(keyInfo.validFrom!!))
                     }
                     if (keyInfo.validUntil != null) {
-                        FloatingItemHeadingAndText("Device Key Valid Until", formattedDateTime(keyInfo.validUntil!!))
+                        SegmentedItemHeadingAndText("Device Key Valid Until", formattedDateTime(keyInfo.validUntil!!))
                     }
                 }
                 is SoftwareKeyInfo -> {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         "Device Key Passphrase Protected",
                         if (keyInfo.isPassphraseProtected) "Yes" else "No"
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         "Device Key User Auth Required",
                         if (keyInfo.isUserAuthenticationRequired) "Yes" else "No"
                     )
@@ -411,15 +411,15 @@ private fun CredentialInfoSection(
                         } else {
                             keyInfo.userAuthenticationTypes.joinToString(", ") { it.name }
                         }
-                        FloatingItemHeadingAndText("Device Key User Auth Types", typesText)
+                        SegmentedItemHeadingAndText("Device Key User Auth Types", typesText)
                     }
                 }
                 is CloudKeyInfo -> {
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         "Device Key Passphrase Required",
                         if (keyInfo.isPassphraseRequired) "Yes" else "No"
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         "Device Key User Auth Required",
                         if (keyInfo.isUserAuthenticationRequired) "Yes" else "No"
                     )
@@ -429,18 +429,18 @@ private fun CredentialInfoSection(
                         } else {
                             keyInfo.userAuthenticationTypes.joinToString(", ") { it.name }
                         }
-                        FloatingItemHeadingAndText("Device Key User Auth Types", typesText)
+                        SegmentedItemHeadingAndText("Device Key User Auth Types", typesText)
                     }
                     if (keyInfo.validFrom != null) {
-                        FloatingItemHeadingAndText("Device Key Valid From", formattedDateTime(keyInfo.validFrom!!))
+                        SegmentedItemHeadingAndText("Device Key Valid From", formattedDateTime(keyInfo.validFrom!!))
                     }
                     if (keyInfo.validUntil != null) {
-                        FloatingItemHeadingAndText("Device Key Valid Until", formattedDateTime(keyInfo.validUntil!!))
+                        SegmentedItemHeadingAndText("Device Key Valid Until", formattedDateTime(keyInfo.validUntil!!))
                     }
                 }
             }
         }
-        FloatingItemHeadingAndText("Device Key Invalidated",
+        SegmentedItemHeadingAndText("Device Key Invalidated",
             buildAnnotatedString {
                 if (credentialInfo.keyInvalidated) {
                     withStyle(style = SpanStyle(
@@ -453,7 +453,7 @@ private fun CredentialInfoSection(
                     append("No")
                 }
             })
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             showChevron = true,
             heading = "Device Key Attestation",
             text = buildAnnotatedString {
@@ -503,13 +503,13 @@ private fun CredentialInfoSection(
                 Logger.w(TAG, "Error getting MSO key authorizations", e)
                 AnnotatedString("Error parsing MSO")
             }
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = "Device Key Authorizations",
                 text = keyAuthorizationsText
             )
         }
     } else {
-        FloatingItemHeadingAndText("Secure Area", "N/A")
+        SegmentedItemHeadingAndText("Secure Area", "N/A")
     }
 }
 
@@ -519,9 +519,9 @@ private fun CredentialClaimsSection(credentialInfo: CredentialInfo) {
         is MdocCredential -> {
             val mdocClaimsByNamespace = (credentialInfo.claims as List<MdocClaim>).organizeByNamespace()
             for ((namespace, claims) in mdocClaimsByNamespace) {
-                FloatingItemList(title = "Namespace $namespace") {
+                SegmentedItemList(title = "Namespace $namespace") {
                     claims.forEach { claim ->
-                        FloatingItemListClaim(
+                        SegmentedItemListClaim(
                             claim = claim,
                             heading = claim.dataElementName
                         )
@@ -530,14 +530,14 @@ private fun CredentialClaimsSection(credentialInfo: CredentialInfo) {
             }
         }
         else -> {
-            FloatingItemList(title = "Claims") {
+            SegmentedItemList(title = "Claims") {
                 credentialInfo.claims.forEach { claim ->
                     val claimName = if (claim is JsonClaim) {
                         claim.claimPath.map { it.jsonPrimitive.content }.joinToString(".")
                     } else {
                         claim.displayName
                     }
-                    FloatingItemListClaim(
+                    SegmentedItemListClaim(
                         claim = claim,
                         heading = claimName
                     )
@@ -565,7 +565,7 @@ private fun RevocationStatusSection(
     if (value != null) {
         RevocationCheckSection(revocationChecker, value)
     } else {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = "Revocation info",
             text = "Not found"
         )
@@ -619,7 +619,7 @@ private fun RevocationCheckSection(
                 }
             }
     ) {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = heading,
             text = "$detailsText\n${statusText.value}"
         )

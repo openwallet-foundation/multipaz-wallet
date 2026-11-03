@@ -50,10 +50,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.time.Instant
 import org.multipaz.compose.datetime.durationFromNowText
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -163,10 +163,10 @@ fun DeviceSessionsScreen(
             val accountIdentifier = signedInData?.id ?: stringResource(R.string.device_sessions_screen_your_account)
             Note(stringResource(R.string.device_sessions_screen_blurb, accountIdentifier))
 
-            FloatingItemList {
+            SegmentedItemList {
                 val sessionList = sessions.value
                 if (isLoading.value && sessionList == null) {
-                    FloatingItemContainer {
+                    SegmentedItemContainer {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.CenterHorizontally),
@@ -186,7 +186,7 @@ fun DeviceSessionsScreen(
                     }
                 } else if (sessionList != null) {
                     if (sessionList.isEmpty()) {
-                        FloatingItemCenteredText(
+                        SegmentedItemCenteredText(
                             text = stringResource(R.string.device_sessions_screen_no_sessions)
                         )
                     } else {
@@ -222,7 +222,7 @@ fun DeviceSessionsScreen(
                             }
                             val secondaryText = secondaryTextParts.joinToString(" • ")
 
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading = deviceName,
                                 text = secondaryText,
                                 image = {

@@ -30,8 +30,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.nfc.ExternalNfcReaderState
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.R
@@ -84,10 +84,10 @@ fun SelectExternalNfcReaderScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.select_external_nfc_reader_note))
             Spacer(modifier = Modifier.height(10.dp))
-            FloatingItemList {
+            SegmentedItemList {
                 // Built-in NFC reader option
                 val isInternalSelected = selectedReaderId == null || readers.none { it.id == selectedReaderId }
-                FloatingItemContainer(
+                SegmentedItemContainer(
                     modifier = Modifier.clickable {
                         settingsModel.selectedExternalNfcReaderId.value = null
                     }
@@ -130,7 +130,7 @@ fun SelectExternalNfcReaderScreen(
                         stringResource(R.string.external_nfc_reader_status_not_connected)
                     }
 
-                    FloatingItemContainer(
+                    SegmentedItemContainer(
                         modifier = Modifier.clickable {
                             settingsModel.selectedExternalNfcReaderId.value = reader.id
                         }

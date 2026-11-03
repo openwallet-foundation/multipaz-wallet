@@ -44,15 +44,15 @@ platforms while maintaining consistent structural patterns:
     experiences.
 
 * **List Items & Navigation Conventions:**
-  * For structured lists across mobile apps, we use `FloatingItemList` from the
+  * For structured lists across mobile apps, we use `SegmentedItemList` from the
     Multipaz SDK (available for both Compose and SwiftUI).
-  * **`FloatingItemText` vs. `FloatingItemHeadingAndText`:**
-    * Use **`FloatingItemText`** for action rows, navigation items, settings
+  * **`SegmentedItemText` vs. `SegmentedItemHeadingAndText`:**
+    * Use **`SegmentedItemText`** for action rows, navigation items, settings
       toggles, and interactive entries where the item itself represents an
       action, screen, or control (e.g., "Developer Settings", "Add to Wallet",
       "Clear Data"). The primary label (`text`) is shown prominently with an
       optional `secondary` description text below.
-    * Use **`FloatingItemHeadingAndText`** for structured data, metadata,
+    * Use **`SegmentedItemHeadingAndText`** for structured data, metadata,
       key-value pairs, credential claims, certificate details, and event log
       entries where a labeled property is displayed (e.g., Heading: "Given
       Name", Text: "Erika"; Heading: "Domain", Text: "example.com"; Heading:

@@ -40,8 +40,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
 import org.multipaz.wallet.android.ui.AppMediumTopAppBar
@@ -145,9 +145,9 @@ fun SelectUserDefinedQueryScreen(
                 markdownString = stringResource(R.string.select_user_defined_query_note)
             )
 
-            // Document Type floating item list
-            FloatingItemList(title = stringResource(R.string.select_user_defined_query_dialog_doc_type)) {
-                FloatingItemContainer {
+            // Document Type segmented item list
+            SegmentedItemList(title = stringResource(R.string.select_user_defined_query_dialog_doc_type)) {
+                SegmentedItemContainer {
                     OutlinedTextField(
                         value = docType,
                         onValueChange = { docType = it },
@@ -158,13 +158,13 @@ fun SelectUserDefinedQueryScreen(
                 }
             }
 
-            // FloatingItemList for each namespace
+            // SegmentedItemList for each namespace
             namespaceEntries.forEachIndexed { nsIndex, nsState ->
-                FloatingItemList(
+                SegmentedItemList(
                     title = if (nsState.name.isNotBlank()) nsState.name else stringResource(R.string.select_user_defined_query_dialog_namespace)
                 ) {
                     // Namespace name input container
-                    FloatingItemContainer {
+                    SegmentedItemContainer {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -189,7 +189,7 @@ fun SelectUserDefinedQueryScreen(
 
                     // Data element containers
                     nsState.elements.forEachIndexed { elemIndex, elemValue ->
-                        FloatingItemContainer {
+                        SegmentedItemContainer {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -214,7 +214,7 @@ fun SelectUserDefinedQueryScreen(
                     }
 
                     // Add data element container
-                    FloatingItemContainer(
+                    SegmentedItemContainer(
                         modifier = Modifier.clickable { nsState.elements.add("") }
                     ) {
                         Row(

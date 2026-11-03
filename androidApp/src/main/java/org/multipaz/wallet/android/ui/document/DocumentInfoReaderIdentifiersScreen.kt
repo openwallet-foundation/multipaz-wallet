@@ -42,9 +42,9 @@ import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509Cert
@@ -218,9 +218,9 @@ fun DocumentInfoReaderIdentifiersScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.document_info_reader_identifiers_note))
 
-            FloatingItemList(title = stringResource(R.string.document_info_reader_identifiers_screen_title)) {
+            SegmentedItemList(title = stringResource(R.string.document_info_reader_identifiers_screen_title)) {
                 if (readerIdentifiers.isEmpty()) {
-                    FloatingItemCenteredText(
+                    SegmentedItemCenteredText(
                         text = stringResource(R.string.document_info_no_reader_identifiers_set)
                     )
                 } else {
@@ -237,7 +237,7 @@ fun DocumentInfoReaderIdentifiersScreen(
                         } else {
                             getSecondaryText(info)
                         }
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             image = {
                                 RenderItemImage(
                                     trustPoint = trustPoint,
@@ -273,9 +273,9 @@ fun DocumentInfoReaderIdentifiersScreen(
                 }
             }
 
-            FloatingItemList(title = stringResource(R.string.document_info_available_trusted_verifiers)) {
+            SegmentedItemList(title = stringResource(R.string.document_info_available_trusted_verifiers)) {
                 if (availablePoints.isEmpty()) {
-                    FloatingItemCenteredText(
+                    SegmentedItemCenteredText(
                         text = stringResource(R.string.document_info_no_available_trusted_verifiers)
                     )
                 } else {
@@ -284,7 +284,7 @@ fun DocumentInfoReaderIdentifiersScreen(
                         val name = point.metadata.displayName ?: point.certificate.subject.toString()
                         val secondaryText = getSecondaryText(info)
                         val ski = point.certificate.subjectKeyIdentifier?.let { ByteString(it) }
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             modifier = Modifier.clickable {
                                 if (ski != null) {
                                     val doc = documentInfo?.document

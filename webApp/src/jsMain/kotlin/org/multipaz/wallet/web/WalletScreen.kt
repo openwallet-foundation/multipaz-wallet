@@ -138,9 +138,9 @@ val DocumentList = FC<DocumentListProps> { props ->
     if (documentInfos.isEmpty()) {
         EmptyPassesPlaceholder()
     } else {
-        FloatingItemList {
+        SegmentedItemList {
             documentInfos.forEach { documentInfo ->
-                FloatingItemCard {
+                SegmentedItemCard {
                     key = documentInfo.document.identifier
                     title = documentInfo.document.displayName ?: "Untitled Pass"
                     subtitle = documentInfo.document.typeDisplayName ?: "Pass"
@@ -235,14 +235,14 @@ val WalletAvatarMenu = FC<WalletAvatarMenuProps> { props ->
                 }
 
                 // Actions (White floating list)
-                FloatingItemList {
-                    FloatingItemText {
+                SegmentedItemList {
+                    SegmentedItemText {
                         icon = DevicesIcon
                         title = "Device sessions"
                         onClick = { window.location.hash = "devices" }
                     }
 
-                    FloatingItemText {
+                    SegmentedItemText {
                         icon = KeyIcon
                         title = "Public keys & certificates"
                         onClick = {
@@ -251,7 +251,7 @@ val WalletAvatarMenu = FC<WalletAvatarMenuProps> { props ->
                         }
                     }
 
-                    FloatingItemText {
+                    SegmentedItemText {
                         icon = UserIcon
                         title = "Privacy policy & terms"
                         onClick = {
@@ -260,7 +260,7 @@ val WalletAvatarMenu = FC<WalletAvatarMenuProps> { props ->
                         }
                     }
 
-                    FloatingItemText {
+                    SegmentedItemText {
                         icon = LogoutIcon
                         title = "Sign out"
                         onClick = { props.onSignOut() }

@@ -32,8 +32,8 @@ import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.cards.InfoCard
 import org.multipaz.compose.certificateviewer.X509CertViewer
 import org.multipaz.compose.datetime.formattedDateTime
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509CertChain
@@ -119,11 +119,11 @@ fun TrustEntryViewer(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
         ) {
-            FloatingItemList(
+            SegmentedItemList(
                 modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = null
             ) {
-                FloatingItemHeadingAndText(stringResource(R.string.trust_entry_viewer_test_only_heading),
+                SegmentedItemHeadingAndText(stringResource(R.string.trust_entry_viewer_test_only_heading),
                     if (entry.metadata.testOnly) {
                         stringResource(R.string.trust_entry_viewer_yes)
                     } else {
@@ -167,43 +167,43 @@ private fun VicalDetails(
     onViewCertificateChain: (certificateChain: X509CertChain) -> Unit,
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
-    FloatingItemList(
+    SegmentedItemList(
         modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_vical_data_heading)
     ) {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_version),
             text = signedVical.vical.version
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_provider),
             text = signedVical.vical.vicalProvider
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_issue),
             text = signedVical.vical.vicalIssueID.toString()
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_issued_at),
             text = formattedDateTime(signedVical.vical.date)
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_next_update),
             text = signedVical.vical.nextUpdate?.let {
                 formattedDateTime(it)
             } ?: AnnotatedString("-")
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_valid_until),
             text = signedVical.vical.notAfter?.let {
                 formattedDateTime(it)
             } ?: AnnotatedString("-")
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_update_url),
             text = signedVical.vical.vicalUrl ?: "-"
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             stringResource(R.string.trust_entry_viewer_signer),
             stringResource(R.string.trust_entry_viewer_click_to_view_chain),
             modifier = Modifier.clickable {
@@ -220,12 +220,12 @@ private fun VicalDetails(
         }
     }
 
-    FloatingItemList(
+    SegmentedItemList(
         modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_certificates)
     ) {
         signedVical.vical.certificateInfos.forEachIndexed { n, certificateInfo ->
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 modifier = Modifier.clickable { onViewVicalEntry(n) },
                 showChevron = true,
                 image = { certificateInfo.RenderIconWithFallback() },
@@ -244,47 +244,47 @@ private fun RicalDetails(
     onViewCertificateChain: (certificateChain: X509CertChain) -> Unit,
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
-    FloatingItemList(
+    SegmentedItemList(
         modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_rical_data_heading)
     ) {
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_type),
             text = signedRical.rical.type
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_version),
             text = signedRical.rical.version
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_provider),
             text = signedRical.rical.provider
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_id),
             text = signedRical.rical.id?.toString() ?: "-"
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_issued_at),
             text = formattedDateTime(signedRical.rical.date)
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_next_update),
             text = signedRical.rical.nextUpdate?.let {
                 formattedDateTime(it)
             } ?: AnnotatedString("-")
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_valid_until),
             text = signedRical.rical.notAfter?.let {
                 formattedDateTime(it)
             } ?: AnnotatedString("-")
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.trust_entry_viewer_url),
             text = signedRical.rical.latestRicalUrl ?: "-"
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             stringResource(R.string.trust_entry_viewer_signer),
             stringResource(R.string.trust_entry_viewer_click_to_view_chain),
             modifier = Modifier.clickable {
@@ -301,12 +301,12 @@ private fun RicalDetails(
         }
     }
 
-    FloatingItemList(
+    SegmentedItemList(
         modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_certificates)
     ) {
         signedRical.rical.certificateInfos.forEachIndexed { n, certificateInfo ->
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 modifier = Modifier.clickable { onViewRicalEntry(n) },
                 showChevron = true,
                 image = { certificateInfo.RenderIconWithFallback() },
@@ -340,7 +340,7 @@ internal fun ItemWithExtensions(
         sb.append("$key: $valueStr\n")
     }
     val isClickable = onViewCbor != null && extensions.isNotEmpty()
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         heading = heading,
         text = sb.toString(),
         showChevron = isClickable,

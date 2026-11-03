@@ -40,8 +40,8 @@ struct TrustEntryRicalEntryScreen: View {
                     }
                     .padding(.vertical, 8)
                     
-                    FloatingItemList(title: "RICAL entry") {
-                        FloatingItemHeadingAndText(
+                    SegmentedItemList(title: "RICAL entry") {
+                        SegmentedItemHeadingAndText(
                             heading: "Trust anchor",
                             text: certInfo.isTrustAnchor ? "Yes" : "No"
                         )
@@ -49,7 +49,7 @@ struct TrustEntryRicalEntryScreen: View {
                             let extensionsStr = certInfo.extensions.map { key, value in
                                 "\(key): \(Cbor.shared.toDiagnostics(item: value, options: [.prettyPrint]))"
                             }.joined(separator: "\n")
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Extensions",
                                 text: extensionsStr
                             )
@@ -65,6 +65,7 @@ struct TrustEntryRicalEntryScreen: View {
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("RICAL entry")
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -49,8 +49,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.LazyFloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.LazySegmentedItemList
 import org.multipaz.compose.pickers.FilePicker
 import org.multipaz.compose.pickers.rememberFilePicker
 import org.multipaz.compose.trustmanagement.TrustManagerModel
@@ -317,7 +317,7 @@ fun TrustManagerScreen(
             )
         },
     ) { innerPadding ->
-        LazyFloatingItemList(
+        LazySegmentedItemList(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState),
@@ -340,8 +340,8 @@ fun TrustManagerScreen(
                 trustEntryInfos = builtInInfos,
                 title = builtInTitle,
                 imageLoader = imageLoader,
-                loading = { FloatingItemCenteredText(text = builtInLoading) },
-                noItems = { FloatingItemCenteredText(text = builtInNoItems) },
+                loading = { SegmentedItemCenteredText(text = builtInLoading) },
+                noItems = { SegmentedItemCenteredText(text = builtInNoItems) },
                 onTrustEntryClicked = { trustEntry ->
                     onTrustEntryClicked(builtIn.trustManager.identifier, trustEntry.identifier)
                 }
@@ -353,8 +353,8 @@ fun TrustManagerScreen(
                 trustEntryInfos = userInfos,
                 title = userTitle,
                 imageLoader = imageLoader,
-                loading = { FloatingItemCenteredText(text = builtInLoading) },
-                noItems = { FloatingItemCenteredText(text = userNoItems) },
+                loading = { SegmentedItemCenteredText(text = builtInLoading) },
+                noItems = { SegmentedItemCenteredText(text = userNoItems) },
                 onTrustEntryClicked = { trustEntry ->
                     onTrustEntryClicked(user.trustManager.identifier, trustEntry.identifier)
                 }

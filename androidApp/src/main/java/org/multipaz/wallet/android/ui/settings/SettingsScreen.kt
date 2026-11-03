@@ -46,10 +46,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -118,14 +118,14 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-            FloatingItemList(title = stringResource(R.string.settings_screen_account_title)) {
+            SegmentedItemList(title = stringResource(R.string.settings_screen_account_title)) {
                 if (signedInData != null) {
                     if (isSigningOut.value) {
-                        FloatingItemCenteredText(
+                        SegmentedItemCenteredText(
                             text = stringResource(R.string.settings_screen_signing_out),
                         )
                     } else {
-                        FloatingItemText(
+                        SegmentedItemText(
                             modifier = Modifier.clickable {
                                 onSignedInUserClicked()
                             },
@@ -136,7 +136,7 @@ fun SettingsScreen(
                                 signedInData.ProfilePicture(size = 24.dp)
                             }
                         )
-                        FloatingItemText(
+                        SegmentedItemText(
                             modifier = Modifier.clickable {
                                 onUseWithoutGoogleAccountClicked()
                             },
@@ -148,7 +148,7 @@ fun SettingsScreen(
                     }
                 } else {
                     if (isSigningIn.value) {
-                        FloatingItemContainer {
+                        SegmentedItemContainer {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.CenterHorizontally),
@@ -167,7 +167,7 @@ fun SettingsScreen(
                             }
                         }
                     } else {
-                        FloatingItemText(
+                        SegmentedItemText(
                             modifier = Modifier.clickable {
                                 onSignInToGoogleClicked()
                             },
@@ -187,8 +187,8 @@ fun SettingsScreen(
             InfoNote(markdownString = markdownString)
 
             Spacer(modifier = Modifier.height(10.dp))
-            FloatingItemList {
-                FloatingItemText(
+            SegmentedItemList {
+                SegmentedItemText(
                     modifier = Modifier.clickable {
                         onTrustedIssuersClicked()
                     },
@@ -198,7 +198,7 @@ fun SettingsScreen(
                         Icon(Icons.Outlined.AccountBalance, contentDescription = null)
                     }
                 )
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable {
                         onTrustedReadersClicked()
                     },
@@ -208,7 +208,7 @@ fun SettingsScreen(
                         Icon(Icons.Outlined.Business, contentDescription = null)
                     }
                 )
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable {
                         onExternalNfcReadersClicked()
                     },
@@ -218,7 +218,7 @@ fun SettingsScreen(
                         Icon(Icons.Outlined.Nfc, contentDescription = null)
                     }
                 )
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable { onActivityLoggingClicked() },
                     showChevron = true,
                     text = stringResource(R.string.settings_screen_activity_logging_button_text),
@@ -226,7 +226,7 @@ fun SettingsScreen(
                         Icon(Icons.Outlined.History, contentDescription = null)
                     },
                 )
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable { onPreconsentSettingsClicked() },
                     showChevron = true,
                     text = stringResource(R.string.settings_screen_preconsent_settings),
@@ -235,7 +235,7 @@ fun SettingsScreen(
                     },
                 )
                 if (settingsModel.devMode.collectAsState().value) {
-                    FloatingItemText(
+                    SegmentedItemText(
                         modifier = Modifier.clickable { onDeveloperSettingsClicked() },
                         showChevron = true,
                         text = stringResource(R.string.settings_screen_developer_settings),
@@ -244,7 +244,7 @@ fun SettingsScreen(
                         }
                     )
                 }
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable { onAboutClicked() },
                     showChevron = true,
                     text = stringResource(R.string.settings_screen_about, BuildConfig.APP_NAME),

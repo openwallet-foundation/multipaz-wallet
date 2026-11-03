@@ -31,8 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
@@ -91,7 +91,7 @@ fun SelectVerificationTypeScreen(
             Spacer(modifier = Modifier.height(10.dp))
             val selectedQuery = settingsModel.readerQuery.collectAsState().value
             val devMode = settingsModel.devMode.collectAsState().value
-            FloatingItemList {
+            SegmentedItemList {
                 val builtInAges = listOf(18, 21, 65).map { AgeOverQuery(it) }
                 RequestOption(
                     title = stringResource(R.string.select_verification_type_age_over_title),
@@ -197,7 +197,7 @@ private fun RequestOption(
     isDestructive: Boolean = false,
     extraContent: @Composable () -> Unit = {}
 ) {
-    FloatingItemContainer(
+    SegmentedItemContainer(
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Row(

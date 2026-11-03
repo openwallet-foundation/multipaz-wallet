@@ -37,8 +37,8 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.getDescription
 import org.multipaz.wallet.android.getDisplayName
@@ -89,9 +89,9 @@ fun RequestVerificationFromMdocUrlScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-            FloatingItemList(title = stringResource(R.string.request_verification_what_to_request)) {
+            SegmentedItemList(title = stringResource(R.string.request_verification_what_to_request)) {
                 val selectedQuery = settingsModel.readerQuery.collectAsState().value
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     modifier = Modifier.clickable { onSelectVerificationTypeClicked() },
                     showChevron = true,
                     heading = selectedQuery.getDisplayName(),
@@ -104,7 +104,7 @@ fun RequestVerificationFromMdocUrlScreen(
                     }
                 )
                 val storeResponse = settingsModel.verificationStoreResponse.collectAsState().value
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     heading = stringResource(R.string.request_verification_store_response),
                     content = {
                         Text(

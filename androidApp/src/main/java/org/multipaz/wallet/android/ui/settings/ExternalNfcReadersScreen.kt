@@ -23,9 +23,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.nfc.ExternalNfcReaderState
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.wallet.android.R
@@ -77,12 +77,12 @@ fun ExternalNfcReadersScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.external_nfc_readers_screen_info))
 
-            FloatingItemList(
+            SegmentedItemList(
                 modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = stringResource(R.string.external_nfc_readers_configured_heading)
             ) {
                 if (readers.isEmpty()) {
-                    FloatingItemCenteredText(
+                    SegmentedItemCenteredText(
                         text = stringResource(R.string.external_nfc_readers_screen_none),
                     )
                 } else {
@@ -94,7 +94,7 @@ fun ExternalNfcReadersScreen(
                         } else {
                             stringResource(R.string.external_nfc_reader_status_not_connected)
                         }
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             modifier = Modifier.clickable {
                                 onReaderClicked(reader.id)
                             },

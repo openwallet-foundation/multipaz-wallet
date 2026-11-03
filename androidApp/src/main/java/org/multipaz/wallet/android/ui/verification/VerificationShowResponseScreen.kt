@@ -81,9 +81,9 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.rememberUiBoundCoroutineScope
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
@@ -128,7 +128,7 @@ import org.multipaz.wallet.shared.fromDataItem
 import kotlin.time.Instant
 
 import androidx.compose.foundation.clickable
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.trustmanagement.TrustEntryRical
 import org.multipaz.trustmanagement.TrustEntryVical
@@ -610,12 +610,12 @@ private fun ShowSource(
 
     val canClickTrustAnchor = trustManagerId != null && trustEntryId != null && onTrustEntryClicked != null
 
-    FloatingItemList(title = stringResource(R.string.verification_show_response_source_title)) {
+    SegmentedItemList(title = stringResource(R.string.verification_show_response_source_title)) {
         if (result.documentType != null && result.issuingAuthority != null && result.issuingCountryCode != null) {
             val issuingCountry = Options.COUNTRY_ISO_3166_1_ALPHA_2.find {
                 it.value == result.issuingCountryCode
             }?.displayName ?: result.issuingCountryCode
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 image = {
                     if (trustPoint != null) {
                         trustPoint.RenderImage(
@@ -677,7 +677,7 @@ private fun ShowSource(
             )
         }
 
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             modifier = if (canClickTrustAnchor) {
                 Modifier.clickable {
                     onTrustEntryClicked(trustManagerId, trustEntryId)
@@ -745,7 +745,7 @@ private fun ShowSource(
             }
         }
 
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             image = {
                 if (isResolving) {
                     CircularProgressIndicator(
@@ -767,7 +767,7 @@ private fun ShowSource(
         )
 
         if (trustPoint?.metadata?.testOnly == true) {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 image = {
                     Icon(
                         imageVector = Icons.Outlined.Science,
@@ -855,17 +855,17 @@ fun ShowIdentificationResult(
     )
 
     Spacer(modifier = Modifier.height(20.dp))
-    FloatingItemList {
-        FloatingItemHeadingAndText(
+    SegmentedItemList {
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.verification_show_response_name_heading),
             text = result.name
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.verification_show_response_birth_date_heading),
             text = result.birthDate.formatLocalized(FormatStyle.LONG)
         )
         result.streetAddress?.let {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.verification_show_response_street_address_heading),
                 text = it
             )
@@ -911,12 +911,12 @@ fun ShowDrivingPrivilegesResult(
     )
 
     Spacer(modifier = Modifier.height(20.dp))
-    FloatingItemList {
-        FloatingItemHeadingAndText(
+    SegmentedItemList {
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.verification_show_response_name_heading),
             text = result.name
         )
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = stringResource(R.string.verification_show_response_birth_date_heading),
             text = result.birthDate.formatLocalized(FormatStyle.LONG)
         )
@@ -943,7 +943,7 @@ fun ShowDrivingPrivilegesResult(
 
 @Composable
 fun ShowDrivingPrivileges(privileges: List<DrivingPrivilege>) {
-    FloatingItemList(title = stringResource(R.string.verification_show_response_driving_privileges_heading)) {
+    SegmentedItemList(title = stringResource(R.string.verification_show_response_driving_privileges_heading)) {
         for (privilege in privileges) {
             val details = mutableListOf<String>()
             privilege.issueDate?.let {
@@ -962,7 +962,7 @@ fun ShowDrivingPrivileges(privileges: List<DrivingPrivilege>) {
                 }
                 details.add("Codes: $formattedCodes")
             }
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = "Category ${privilege.vehicleCategoryCode}",
                 text = if (details.isNotEmpty()) details.joinToString("\n") else "Valid"
             )
@@ -979,14 +979,14 @@ private fun ShowEventDetails(
 ) {
     if (verificationTime != null || verificationLocation != null) {
         Spacer(modifier = Modifier.height(20.dp))
-        FloatingItemList(title = stringResource(R.string.verification_show_response_verified_at)) {
+        SegmentedItemList(title = stringResource(R.string.verification_show_response_verified_at)) {
             if (verificationTime != null) {
                 val eventDateTime = verificationTime.toLocalDateTime(timeZone = TimeZone.currentSystemDefault())
                 val eventDateTimeString = eventDateTime.formatLocalized(
                     dateStyle = FormatStyle.LONG,
                     timeStyle = FormatStyle.LONG
                 )
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = "Time",
                     text = eventDateTimeString
                 )
@@ -1000,7 +1000,7 @@ private fun ShowEventDetails(
                     isLoadingAddress = false
                 }
                 val coordinates = "${verificationLocation.latitude}, ${verificationLocation.longitude}"
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     heading = "Location",
                     content = {
                         Column(
@@ -1075,17 +1075,17 @@ fun ShowUserDefinedResult(
     )
 
     Spacer(modifier = Modifier.height(20.dp))
-    FloatingItemList(
+    SegmentedItemList(
         title = stringResource(R.string.select_user_defined_query_dialog_doc_type)
     ) {
-        FloatingItemText(
+        SegmentedItemText(
             text = result.docType
         )
     }
 
     result.elements.forEach { (namespace, elements) ->
         Spacer(modifier = Modifier.height(20.dp))
-        FloatingItemList(
+        SegmentedItemList(
             title = stringResource(R.string.verification_show_response_developer_extras_namespace, namespace)
         ) {
             elements.forEach { (dataElement, value) ->
@@ -1109,7 +1109,7 @@ fun ShowUserDefinedResult(
                         value.toString()
                     }
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading = dataElement,
                     text = displayValue,
                     showChevron = onViewCbor != null,

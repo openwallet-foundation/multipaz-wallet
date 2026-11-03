@@ -15,8 +15,8 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.floatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.segmentedItemList
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.compose.trustmanagement.getDetails
@@ -27,13 +27,13 @@ import org.multipaz.trustmanagement.TrustEntryX509Cert
 /**
  * Adds a list of trust entries managed in a [TrustEntryBasedTrustManager] into a [LazyListScope].
  *
- * It uses [LazyListScope.floatingItemList] to display items lazily.
+ * It uses [LazyListScope.segmentedItemList] to display items lazily.
  *
  * @param trustEntryInfos The list of [TrustEntryInfo] to display, or `null` if loading.
  * @param title The title to display at the top of the list.
  * @param imageLoader a [ImageLoader].
- * @param loading A Composable to render when loading entries, normally a [FloatingItemCenteredText].
- * @param noItems A Composable to render when the trust manager is empty, normally a [FloatingItemCenteredText].
+ * @param loading A Composable to render when loading entries, normally a [SegmentedItemCenteredText].
+ * @param noItems A Composable to render when the trust manager is empty, normally a [SegmentedItemCenteredText].
  * @param onTrustEntryClicked Callback invoked when a specific trust entry in the list is clicked.
  */
 fun LazyListScope.trustEntryList(
@@ -45,20 +45,20 @@ fun LazyListScope.trustEntryList(
     onTrustEntryClicked: (trustEntry: TrustEntry) -> Unit,
 ) {
     if (trustEntryInfos == null) {
-        floatingItemList(count = 1, title = title) {
+        segmentedItemList(count = 1, title = title) {
             loading()
         }
     } else if (trustEntryInfos.isEmpty()) {
-        floatingItemList(count = 1, title = title) {
+        segmentedItemList(count = 1, title = title) {
             noItems()
         }
     } else {
-        floatingItemList(
+        segmentedItemList(
             items = trustEntryInfos,
             title = title,
             key = { it.entry.identifier }
         ) { trustEntryInfo ->
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 modifier = Modifier.clickable { onTrustEntryClicked(trustEntryInfo.entry) },
                 showChevron = true,
                 image = {

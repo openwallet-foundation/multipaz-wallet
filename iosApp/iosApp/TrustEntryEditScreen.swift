@@ -80,8 +80,8 @@ struct TrustEntryEditScreen: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                     
-                    FloatingItemList {
-                        FloatingItemContainer {
+                    SegmentedItemList {
+                        SegmentedItemContainer {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Display name")
                                     .font(.caption)
@@ -92,7 +92,7 @@ struct TrustEntryEditScreen: View {
                             .padding(.vertical, 4)
                         }
                         
-                        FloatingItemContainer {
+                        SegmentedItemContainer {
                             Toggle("Test-only \(entryTypeDescription)", isOn: $isTestOnly)
                         }
                     }
@@ -104,6 +104,7 @@ struct TrustEntryEditScreen: View {
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Edit trust entry")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(hasChanges)

@@ -39,10 +39,10 @@ import kotlinx.datetime.toLocalDateTime
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
 import org.multipaz.compose.getOutlinedImageVector
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.LazyFloatingItemList
-import org.multipaz.compose.items.floatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.LazySegmentedItemList
+import org.multipaz.compose.items.segmentedItemList
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
@@ -119,7 +119,7 @@ fun EventListScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LazyFloatingItemList(
+            LazySegmentedItemList(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState),
@@ -141,13 +141,13 @@ fun EventListScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 if (currentEvents.isEmpty()) {
-                    floatingItemList(count = 1) {
-                        FloatingItemCenteredText(
+                    segmentedItemList(count = 1) {
+                        SegmentedItemCenteredText(
                             text = stringResource(R.string.event_list_screen_no_events_text),
                         )
                     }
                 } else {
-                    floatingItemList(
+                    segmentedItemList(
                         items = currentEvents,
                         key = { it.identifier }
                     ) { event ->
@@ -219,7 +219,7 @@ private fun EventItemProvisioning(
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = "$eventDateTimeString • $eventType"
 
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -260,7 +260,7 @@ private fun EventItemPresentment(
         ?: firstDoc?.documentName
         ?: event.telemetry?.let { "Presentment (${it.outcome.name})" }
         ?: stringResource(R.string.event_list_screen_unknown_document_text)
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -292,7 +292,7 @@ private fun EventItemVerification(
     }
     val text = "$eventDateTimeString • $protocol"
 
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -354,7 +354,7 @@ private fun EventItemSimple(
         eventDateTimeString
     }
 
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {

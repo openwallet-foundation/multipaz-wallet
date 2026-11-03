@@ -39,8 +39,8 @@ import androidx.core.app.ActivityCompat
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemList
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.context.applicationContext
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
@@ -97,8 +97,8 @@ fun ActivityLoggingSettingsScreen(
             Note(
                 markdownString = stringResource(R.string.activity_logging_settings_screen_activity_log_info_text)
             )
-            FloatingItemList {
-                FloatingItemText(
+            SegmentedItemList {
+                SegmentedItemText(
                     text = stringResource(R.string.activity_logging_settings_screen_logging_enabled_text),
                     image = {
                         Icon(Icons.Outlined.History, contentDescription = null)
@@ -135,7 +135,7 @@ fun ActivityLoggingSettingsScreen(
                 } else {
                     null
                 }
-                FloatingItemText(
+                SegmentedItemText(
                     text = stringResource(R.string.activity_logging_settings_screen_logging_location_for_proximity_enabled_text),
                     secondary = locationPermissionType,
                     image = {
@@ -155,7 +155,7 @@ fun ActivityLoggingSettingsScreen(
                         )
                     }
                 )
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable { onActivityLogView() },
                     showChevron = true,
                     text = stringResource(R.string.activity_logging_settings_screen_view_and_manage_events_text),

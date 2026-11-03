@@ -25,7 +25,7 @@ struct DocumentInfoExtrasScreen: View {
                     } else {
                         ForEach(sortedDomains, id: \.self) { domain in
                             let creds = credentialsByDomain[domain] ?? []
-                            FloatingItemList(title: domain) {
+                            SegmentedItemList(title: domain) {
                                 ForEach(0..<creds.count, id: \.self) { index in
                                     let credential = creds[index]
                                     let isCertified = credential.isCertified
@@ -38,7 +38,7 @@ struct DocumentInfoExtrasScreen: View {
                                         "Valid from \(formatInstant(credential.validFrom)) until \(formatInstant(credential.validUntil))" :
                                         "Pending certification"
                                     
-                                    FloatingItemHeadingAndText(
+                                    SegmentedItemHeadingAndText(
                                         heading: heading,
                                         text: text,
                                         showChevron: true
@@ -56,6 +56,7 @@ struct DocumentInfoExtrasScreen: View {
                 .padding()
             }
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Credentials")
         .navigationBarTitleDisplayMode(.inline)
     }

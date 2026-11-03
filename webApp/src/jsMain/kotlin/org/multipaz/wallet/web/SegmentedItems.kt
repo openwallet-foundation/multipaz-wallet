@@ -17,7 +17,7 @@ import web.cssom.ClassName
 
 // --- Container ---
 
-val FloatingItemList = FC<PropsWithChildren> { props ->
+val SegmentedItemList = FC<PropsWithChildren> { props ->
     div {
         className = ClassName("bg-white dark:bg-slate-800 rounded-3xl shadow-balanced dark:shadow-balanced-dark border border-slate-100 dark:border-slate-700 overflow-hidden divide-y divide-slate-50 dark:divide-slate-700 transition-colors duration-300")
         +props.children
@@ -26,7 +26,7 @@ val FloatingItemList = FC<PropsWithChildren> { props ->
 
 // --- Items ---
 
-external interface FloatingItemProps : Props {
+external interface SegmentedItemProps : Props {
     var onClick: (() -> Unit)?
     var icon: FC<Props>?
     var title: String
@@ -36,9 +36,9 @@ external interface FloatingItemProps : Props {
 }
 
 /**
- * A generic floating list item that can have an icon, title, and subtitle.
+ * A generic segmented list item that can have an icon, title, and subtitle.
  */
-val FloatingItem = FC<FloatingItemProps> { props ->
+val SegmentedItem = FC<SegmentedItemProps> { props ->
     button {
         className = ClassName("w-full flex items-center px-6 py-4 text-left hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600 transition-colors group focus:outline-none")
         onClick = { props.onClick?.invoke() }
@@ -78,9 +78,9 @@ val FloatingItem = FC<FloatingItemProps> { props ->
     }
 }
 
-val FloatingItemText = FloatingItem
+val SegmentedItemText = SegmentedItem
 
-external interface FloatingItemCardProps : Props {
+external interface SegmentedItemCardProps : Props {
     var onClick: (() -> Unit)?
     var cardArt: ByteString?
     var title: String
@@ -90,7 +90,7 @@ external interface FloatingItemCardProps : Props {
 /**
  * Specifically for identity passes, using a credit card aspect ratio (1.586) for the art.
  */
-val FloatingItemCard = FC<FloatingItemCardProps> { props ->
+val SegmentedItemCard = FC<SegmentedItemCardProps> { props ->
     val cardArtUrl = useImageUri(props.cardArt)
     
     button {
@@ -136,7 +136,7 @@ val FloatingItemCard = FC<FloatingItemCardProps> { props ->
     }
 }
 
-external interface FloatingItemPictureProps : Props {
+external interface SegmentedItemPictureProps : Props {
     var title: String
     var picture: ByteString?
 }
@@ -145,7 +145,7 @@ external interface FloatingItemPictureProps : Props {
  * Specifically for displaying a picture claim (portrait, signature, etc.).
  * Handles arbitrary aspect ratios gracefully.
  */
-val FloatingItemPicture = FC<FloatingItemPictureProps> { props ->
+val SegmentedItemPicture = FC<SegmentedItemPictureProps> { props ->
     val imageUrl = useImageUri(props.picture)
     
     div {
@@ -174,11 +174,11 @@ val FloatingItemPicture = FC<FloatingItemPictureProps> { props ->
     }
 }
 
-external interface FloatingItemHeadingAndContentProps : PropsWithChildren {
+external interface SegmentedItemHeadingAndContentProps : PropsWithChildren {
     var heading: String
 }
 
-val FloatingItemHeadingAndContent = FC<FloatingItemHeadingAndContentProps> { props ->
+val SegmentedItemHeadingAndContent = FC<SegmentedItemHeadingAndContentProps> { props ->
     div {
         className = ClassName("w-full flex flex-col px-6 py-4 space-y-1 transition-colors duration-300")
         div {
@@ -192,25 +192,25 @@ val FloatingItemHeadingAndContent = FC<FloatingItemHeadingAndContentProps> { pro
     }
 }
 
-external interface FloatingItemHeadingAndTextProps : Props {
+external interface SegmentedItemHeadingAndTextProps : Props {
     var heading: String
     var text: String
 }
 
-val FloatingItemHeadingAndText = FC<FloatingItemHeadingAndTextProps> { props ->
-    FloatingItemHeadingAndContent {
+val SegmentedItemHeadingAndText = FC<SegmentedItemHeadingAndTextProps> { props ->
+    SegmentedItemHeadingAndContent {
         heading = props.heading
         +props.text
     }
 }
 
-external interface FloatingItemHeadingAndDateProps : Props {
+external interface SegmentedItemHeadingAndDateProps : Props {
     var heading: String
     var date: Instant?
 }
 
-val FloatingItemHeadingAndDate = FC<FloatingItemHeadingAndDateProps> { props ->
-    FloatingItemHeadingAndContent {
+val SegmentedItemHeadingAndDate = FC<SegmentedItemHeadingAndDateProps> { props ->
+    SegmentedItemHeadingAndContent {
         heading = props.heading
         val dateText = if (props.date != null) {
             val dateTime = props.date!!.toLocalDateTime(TimeZone.currentSystemDefault())

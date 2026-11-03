@@ -40,8 +40,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.documenttype.DocumentAttributeSensitivity
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -100,7 +100,7 @@ fun DocumentPreconsentSettingsScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.preconsent_screen_blurb))
             
-            FloatingItemList {
+            SegmentedItemList {
                 // 1. Always ask
                 SettingRow(
                     title = stringResource(R.string.preconsent_screen_always_ask_title),
@@ -209,7 +209,7 @@ private fun SettingRow(
     isDestructive: Boolean = false,
     extraContent: @Composable () -> Unit = {}
 ) {
-    FloatingItemContainer(
+    SegmentedItemContainer(
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Row(

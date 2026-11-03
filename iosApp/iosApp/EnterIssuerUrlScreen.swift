@@ -46,6 +46,7 @@ struct EnterIssuerUrlScreen: View {
             }
             .padding(.vertical)
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Enter issuer URL")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

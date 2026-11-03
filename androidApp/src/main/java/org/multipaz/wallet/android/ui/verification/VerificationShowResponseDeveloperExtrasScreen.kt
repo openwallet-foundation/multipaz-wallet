@@ -63,9 +63,9 @@ import org.multipaz.cbor.DataItem
 import org.multipaz.claim.organizeByNamespace
 import org.multipaz.compose.datetime.formattedDateTime
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.crypto.EcPublicKey
 import org.multipaz.crypto.MlDsaPublicKey
 import org.multipaz.crypto.MlKemPublicKey
@@ -346,11 +346,11 @@ fun VerificationShowResponseDeveloperExtrasScreen(
             } else if (verficationResult.value != null) {
                 for (section in verficationResult.value!!.sections) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    FloatingItemList(title = section.header) {
+                    SegmentedItemList(title = section.header) {
                         for (line in section.lines) {
                             when (line.value) {
                                 is ValueText -> {
-                                    FloatingItemHeadingAndText(
+                                    SegmentedItemHeadingAndText(
                                         modifier = if (line.onClick != null) Modifier.clickable { line.onClick.invoke() } else Modifier,
                                         showChevron = line.onClick != null && line.showChevron,
                                         heading = line.header,
@@ -359,14 +359,14 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                 }
 
                                 is ValueSize -> {
-                                    FloatingItemHeadingAndText(
+                                    SegmentedItemHeadingAndText(
                                         heading = line.header,
                                         text = stringResource(R.string.verification_show_response_developer_extras_bytes, line.value.size)
                                     )
                                 }
 
                                 is ValueImage -> {
-                                    FloatingItemHeadingAndContent(
+                                    SegmentedItemHeadingAndContent(
                                         heading = line.header,
                                         content = {
                                             line.value.text?.let {
@@ -383,7 +383,7 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                 }
 
                                 is ValueCertChain -> {
-                                    FloatingItemHeadingAndText(
+                                    SegmentedItemHeadingAndText(
                                         modifier = Modifier.clickable {
                                             wrappedOnViewCertChain?.let { it(line.value.certChain) }
                                         },
@@ -394,14 +394,14 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                                 }
 
                                 is ValueDuration -> {
-                                    FloatingItemHeadingAndText(
+                                    SegmentedItemHeadingAndText(
                                         heading = line.header,
                                         text = line.value.duration?.formatDuration() ?: "-"
                                     )
                                 }
 
                                 is ValueDateTime -> {
-                                    FloatingItemHeadingAndText(
+                                    SegmentedItemHeadingAndText(
                                         heading = line.header,
                                         text = line.value.dateTime?.let {
                                             formattedDateTime(instant = it)

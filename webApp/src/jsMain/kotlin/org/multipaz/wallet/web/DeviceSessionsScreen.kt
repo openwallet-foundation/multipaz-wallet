@@ -152,7 +152,7 @@ val DeviceSessionsScreen = FC<DeviceSessionsScreenProps> { props ->
                         compareByDescending<Session> { currentClientId != null && it.clientId == currentClientId }
                             .thenByDescending { it.lastSeenMillis }
                     )
-                    FloatingItemList {
+                    SegmentedItemList {
                         for (session in sortedSessions) {
                             val fallbackDeviceName = when (session.clientType) {
                                 ClientType.WEB -> "Web Client"

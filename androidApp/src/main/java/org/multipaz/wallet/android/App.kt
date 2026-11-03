@@ -3,6 +3,7 @@ package org.multipaz.wallet.android
 import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -169,6 +170,7 @@ class App private constructor() {
     private val credentialOffers = Channel<String>()
 
     private suspend fun initialize() {
+        Branding.setCurrent(WalletBranding)
         storage = Platform.nonBackedUpStorage
         secureArea = Platform.getSecureArea(storage)
         softwareSecureArea = SoftwareSecureArea.create(storage)
@@ -922,6 +924,24 @@ class App private constructor() {
         suspend fun getFaceMatcherRepository(): FaceMatcherRepository {
             val app = getInstance()
             return app.faceMatcherRepository
+        }
+    }
+}
+
+private object WalletBranding : Branding by Branding.Default {
+    override val theme: @Composable (content: @Composable () -> Unit) -> Unit = { content ->
+        Branding.Default.theme {
+            val containerBackground = if (isSystemInDarkTheme()) {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+            MaterialTheme(
+                colorScheme = MaterialTheme.colorScheme.copy(
+                    background = containerBackground
+                ),
+                content = content
+            )
         }
     }
 }

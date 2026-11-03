@@ -63,14 +63,14 @@ struct TrustManagerScreen: View {
                     .font(.footnote)
                     .padding(.horizontal)
                 
-                FloatingItemList(title: "Built-in trust anchors") {
+                SegmentedItemList(title: "Built-in trust anchors") {
                     if builtInModel.isLoading && builtInModel.entries == nil {
-                        FloatingItemCenteredText(text: "Loading…")
+                        SegmentedItemCenteredText(text: "Loading…")
                     } else if let entries = builtInModel.entries, entries.isEmpty {
-                        FloatingItemCenteredText(text: "No built-in trust anchors")
+                        SegmentedItemCenteredText(text: "No built-in trust anchors")
                     } else if let entries = builtInModel.entries {
                         ForEach(entries) { info in
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: info.displayName,
                                 showChevron: true,
                                 secondary: info.details,
@@ -87,14 +87,14 @@ struct TrustManagerScreen: View {
                 }
                 .padding(.horizontal)
                 
-                FloatingItemList(title: "Manually imported trust anchors") {
+                SegmentedItemList(title: "Manually imported trust anchors") {
                     if userModel.isLoading && userModel.entries == nil {
-                        FloatingItemCenteredText(text: "Loading…")
+                        SegmentedItemCenteredText(text: "Loading…")
                     } else if let entries = userModel.entries, entries.isEmpty {
-                        FloatingItemCenteredText(text: "Certificates and trust lists manually imported will appear in this list")
+                        SegmentedItemCenteredText(text: "Certificates and trust lists manually imported will appear in this list")
                     } else if let entries = userModel.entries {
                         ForEach(entries) { info in
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: info.displayName,
                                 showChevron: true,
                                 secondary: info.details,
@@ -113,6 +113,7 @@ struct TrustManagerScreen: View {
             }
             .padding(.vertical)
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(screenTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

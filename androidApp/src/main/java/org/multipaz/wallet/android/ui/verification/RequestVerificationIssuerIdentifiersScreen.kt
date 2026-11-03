@@ -39,9 +39,9 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.compose.branding.Branding
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.crypto.X509Cert
@@ -209,9 +209,9 @@ fun RequestVerificationIssuerIdentifiersScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.request_verification_issuer_identifiers_note))
 
-            FloatingItemList(title = stringResource(R.string.request_verification_issuer_identifiers_screen_title)) {
+            SegmentedItemList(title = stringResource(R.string.request_verification_issuer_identifiers_screen_title)) {
                 if (issuerIdentifiers.isEmpty()) {
-                    FloatingItemCenteredText(text = stringResource(R.string.request_verification_issuer_identifiers_no_identifiers))
+                    SegmentedItemCenteredText(text = stringResource(R.string.request_verification_issuer_identifiers_no_identifiers))
                 } else {
                     issuerIdentifiers.forEach { identifier ->
                         val trustPoint = allTrustPoints.find { point ->
@@ -226,7 +226,7 @@ fun RequestVerificationIssuerIdentifiersScreen(
                         } else {
                             getSecondaryText(info)
                         }
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             image = {
                                 RenderItemImage(
                                     trustPoint = trustPoint,
@@ -252,16 +252,16 @@ fun RequestVerificationIssuerIdentifiersScreen(
                 }
             }
 
-            FloatingItemList(title = stringResource(R.string.request_verification_available_trusted_issuers)) {
+            SegmentedItemList(title = stringResource(R.string.request_verification_available_trusted_issuers)) {
                 if (availablePoints.isEmpty()) {
-                    FloatingItemCenteredText(text = stringResource(R.string.request_verification_no_available_trusted_issuers))
+                    SegmentedItemCenteredText(text = stringResource(R.string.request_verification_no_available_trusted_issuers))
                 } else {
                     availablePoints.forEach { point ->
                         val info = findInfoForCertificate(point.certificate)
                         val name = point.metadata.displayName ?: point.certificate.subject.toString()
                         val secondaryText = getSecondaryText(info)
                         val ski = point.certificate.subjectKeyIdentifier?.let { ByteString(it) }
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             modifier = Modifier.clickable {
                                 if (ski != null) {
                                     settingsModel.verificationIssuerIdentifiers.value =

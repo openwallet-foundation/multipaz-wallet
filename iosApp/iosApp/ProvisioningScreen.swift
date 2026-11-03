@@ -76,6 +76,8 @@ struct ProvisioningScreen: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -396,11 +398,11 @@ struct CredentialSelectionView: View {
                 // Collect credential ids
                 let keys = Array(metadata.credentials.keys).compactMap { $0 as? String }
                 
-                FloatingItemList {
+                SegmentedItemList {
                     ForEach(keys, id: \.self) { id in
                         let credential = metadata.credentials[id]!
                         
-                        FloatingItemText(
+                        SegmentedItemText(
                             text: credential.display.text,
                             showChevron: true,
                             secondary: toHumanReadable(credential.format),
@@ -423,6 +425,7 @@ struct CredentialSelectionView: View {
             }
             .padding(.vertical)
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Select pass")
     }
     

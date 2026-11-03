@@ -33,8 +33,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemContainer
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -93,7 +93,7 @@ fun PreconsentSettingsScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.preconsent_defaults_screen_blurb))
 
-            FloatingItemList {
+            SegmentedItemList {
                 SettingRow(
                     title = stringResource(R.string.preconsent_defaults_option_enabled_title),
                     description = stringResource(R.string.preconsent_defaults_option_enabled_description),
@@ -127,7 +127,7 @@ private fun SettingRow(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    FloatingItemContainer(
+    SegmentedItemContainer(
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         Row(

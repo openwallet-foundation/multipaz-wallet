@@ -1,7 +1,7 @@
 import SwiftUI
 import Multipaz
 
-struct FloatingItemListClaim: View {
+struct SegmentedItemListClaim: View {
     let claim: Claim
     var heading: String? = nil
     var timeZone: Multipaz.TimeZone = Multipaz.TimeZone.Companion.shared.currentSystemDefault()
@@ -13,7 +13,7 @@ struct FloatingItemListClaim: View {
     var body: some View {
         if claim.attribute?.type is DocumentAttributeType.Picture {
             if let uiImage = decodeImage(claim: claim) {
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     heading: resolvedHeading,
                     content: {
                         Image(uiImage: uiImage)
@@ -23,13 +23,13 @@ struct FloatingItemListClaim: View {
                     }
                 )
             } else {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading: resolvedHeading,
                     text: "Error decoding image"
                 )
             }
         } else {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading: resolvedHeading,
                 text: claim.render(timeZone: timeZone)
             )

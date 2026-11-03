@@ -31,7 +31,7 @@ fun Modifier.hazeTopAppBar(hazeState: HazeState?): Modifier {
     return this.hazeEffect(
         state = hazeState,
         style = HazeMaterials.thin(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.background
         )
     ) {
         progressive = HazeProgressive.verticalGradient(

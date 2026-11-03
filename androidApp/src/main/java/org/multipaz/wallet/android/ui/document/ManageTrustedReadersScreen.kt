@@ -43,9 +43,9 @@ import kotlinx.coroutines.launch
 import org.multipaz.cbor.Cbor
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemList
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.crypto.X509Cert
 import org.multipaz.documenttype.DocumentAttributeSensitivity
 import org.multipaz.trustmanagement.CompositeTrustManager
@@ -121,9 +121,9 @@ fun ManageTrustedReadersScreen(
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             Note(stringResource(R.string.manage_trusted_readers_blurb))
 
-            FloatingItemList(title = stringResource(R.string.manage_trusted_readers_trusted_section)) {
+            SegmentedItemList(title = stringResource(R.string.manage_trusted_readers_trusted_section)) {
                 if (currentSetting.approvedReaders.isEmpty()) {
-                    FloatingItemCenteredText(text = stringResource(R.string.preconsent_trusted_readers_no_readers))
+                    SegmentedItemCenteredText(text = stringResource(R.string.preconsent_trusted_readers_no_readers))
                 } else {
                     currentSetting.approvedReaders.forEach { reader ->
                         val sensitivityText = when (reader.approvedSensitivity) {
@@ -134,7 +134,7 @@ fun ManageTrustedReadersScreen(
                             DocumentAttributeSensitivity.VALIDITY -> stringResource(R.string.preconsent_trusted_readers_sensitivity_validity)
                             DocumentAttributeSensitivity.ISSUER -> stringResource(R.string.preconsent_trusted_readers_sensitivity_issuer)
                         }
-                        FloatingItemText(
+                        SegmentedItemText(
                             modifier = Modifier.clickable { onViewCertificateClicked(reader.certificate) },
                             showChevron = true,
                             image = {
@@ -183,12 +183,12 @@ fun ManageTrustedReadersScreen(
 
             Note(stringResource(R.string.manage_trusted_readers_available_blurb))
 
-            FloatingItemList(title = stringResource(R.string.manage_trusted_readers_available_section)) {
+            SegmentedItemList(title = stringResource(R.string.manage_trusted_readers_available_section)) {
                 if (availablePoints.isEmpty()) {
-                    FloatingItemCenteredText(text = stringResource(R.string.manage_trusted_readers_no_available_readers))
+                    SegmentedItemCenteredText(text = stringResource(R.string.manage_trusted_readers_no_available_readers))
                 } else {
                     availablePoints.forEach { point ->
-                        FloatingItemText(
+                        SegmentedItemText(
                             modifier = Modifier.clickable {
                                 val certData = Cbor.encode(point.certificate.toDataItem()).toBase64Url()
                                 onAddReaderClicked(certData)

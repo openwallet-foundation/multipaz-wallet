@@ -14,13 +14,13 @@ import org.multipaz.claim.Claim
 import org.multipaz.claim.JsonClaim
 import org.multipaz.claim.MdocClaim
 import org.multipaz.compose.decodeImage
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.util.fromBase64Url
 
 /**
- * A composable item that displays a claim within a floating item list.
+ * A composable item that displays a claim within a segmented item list.
  *
  * If the claim is of type [DocumentAttributeType.Picture], it decodes the image bytes and renders
  * the image. Otherwise, it renders the claim value as text.
@@ -31,7 +31,7 @@ import org.multipaz.util.fromBase64Url
  * @param timeZone The time zone to use when rendering date/time values, defaulting to current system default.
  */
 @Composable
-fun FloatingItemListClaim(
+fun SegmentedItemListClaim(
     claim: Claim,
     heading: String = claim.displayName,
     modifier: Modifier = Modifier,
@@ -46,7 +46,7 @@ fun FloatingItemListClaim(
             decodeImage(bytes)
         } catch (err: Exception) {
             if (err is CancellationException) throw err
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = heading,
                 text = "Image decoding: $err",
                 modifier = modifier
@@ -54,7 +54,7 @@ fun FloatingItemListClaim(
             null
         }
         if (img != null) {
-            FloatingItemHeadingAndContent(
+            SegmentedItemHeadingAndContent(
                 heading = heading,
                 modifier = modifier,
                 content = {
@@ -69,7 +69,7 @@ fun FloatingItemListClaim(
         }
     } else {
         val str = claim.render(timeZone)
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading = heading,
             text = str,
             modifier = modifier

@@ -52,8 +52,8 @@ import com.google.android.gms.auth.api.identity.RevokeAccessRequest
 import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.context.applicationContext
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -124,8 +124,8 @@ fun DeveloperSettingsScreen(
             Note(
                 markdownString = stringResource(R.string.dev_settings_screen_warning),
             )
-            FloatingItemList {
-                FloatingItemHeadingAndText(
+            SegmentedItemList {
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         settingsModel.loggingDebugEnabled.value = !settingsModel.loggingDebugEnabled.value
                     },
@@ -147,7 +147,7 @@ fun DeveloperSettingsScreen(
                     }
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         settingsModel.disableNoUserAuth.value = !settingsModel.disableNoUserAuth.value
                     },
@@ -169,7 +169,7 @@ fun DeveloperSettingsScreen(
                     }
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onCorruptEncryptionKeyClicked()
                     },
@@ -183,7 +183,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_corrupt_key_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         val signedInData = walletClient.signedInUser.value
                         if (signedInData == null) {
@@ -220,7 +220,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_revoke_drive_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         settingsModel.explicitlySignedOut.value = false
                     },
@@ -240,7 +240,7 @@ fun DeveloperSettingsScreen(
                 } else {
                     stringResource(R.string.dev_settings_using_backend_custom, customWalletBackendUrl)
                 }
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onConfigureWalletBackendClicked()
                     },
@@ -255,7 +255,7 @@ fun DeveloperSettingsScreen(
                 )
 
                 val currentFaceMatcher = settingsModel.presentmentFaceMatcher.collectAsState().value
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onSelectFaceMatcherClicked()
                     },
@@ -269,7 +269,7 @@ fun DeveloperSettingsScreen(
                     text = currentFaceMatcher
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onRunFirstTimeSetupClicked()
                     },
@@ -284,7 +284,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_run_setup_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onClearAppDataClicked()
                     },
@@ -298,7 +298,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_delete_app_data_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onClearReaderKeys()
                     },
@@ -312,7 +312,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_refresh_reader_keys_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onClearRevocationCache()
                     },
@@ -326,7 +326,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_clear_revocation_cache_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onRunPeriodicBookkeeping()
                     },
@@ -340,7 +340,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_run_periodic_bookkeeping_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         onDeveloperModeDocumentationClicked()
                     },
@@ -355,7 +355,7 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_documentation_text)
                 )
 
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     modifier = Modifier.clickable {
                         settingsModel.devMode.value = false
                         onBackClicked()

@@ -40,8 +40,8 @@ struct TrustEntryVicalEntryScreen: View {
                     }
                     .padding(.vertical, 8)
                     
-                    FloatingItemList(title: "VICAL entry") {
-                        FloatingItemHeadingAndText(
+                    SegmentedItemList(title: "VICAL entry") {
+                        SegmentedItemHeadingAndText(
                             heading: "Document types",
                             text: certInfo.docTypes.joined(separator: "\n")
                         )
@@ -49,7 +49,7 @@ struct TrustEntryVicalEntryScreen: View {
                             let extensionsStr = certInfo.extensions.map { key, value in
                                 "\(key): \(Cbor.shared.toDiagnostics(item: value, options: [.prettyPrint]))"
                             }.joined(separator: "\n")
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Extensions",
                                 text: extensionsStr
                             )
@@ -65,6 +65,7 @@ struct TrustEntryVicalEntryScreen: View {
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("VICAL entry")
         .navigationBarTitleDisplayMode(.inline)
     }

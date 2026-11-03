@@ -32,9 +32,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import org.multipaz.claim.JsonClaim
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemHeadingAndDate
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndDate
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.isProximityPresentable
@@ -110,7 +110,7 @@ fun DocumentInfoScreen(
             //   for mDL and object claims in JSON based credentials. This should probably
             //   be done in the multipaz core library
 
-            FloatingItemList {
+            SegmentedItemList {
                 val jsonIgnoredClaims = setOf("iss", "vct", "iat", "nbf", "exp", "cnf", "status")
                 credentialInfo.claims.forEach { claim ->
                     if (claim is JsonClaim) {
@@ -120,13 +120,13 @@ fun DocumentInfoScreen(
                         }
                     }
 
-                    FloatingItemListClaim(claim = claim)
+                    SegmentedItemListClaim(claim = claim)
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            FloatingItemList(title = stringResource(R.string.doc_info_screen_cert_info_title)) {
+            SegmentedItemList(title = stringResource(R.string.doc_info_screen_cert_info_title)) {
                 var certSignedDate: Instant? = null
                 var certValidFrom: Instant? = null
                 var certValidUntil: Instant? = null
@@ -143,19 +143,19 @@ fun DocumentInfoScreen(
                     certValidFrom = claims.getInstant("nbf")
                     certValidUntil = claims.getInstant("exp")
                 }
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading = stringResource(R.string.doc_info_screen_cert_signed_at),
                     date = certSignedDate
                 )
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading = stringResource(R.string.doc_info_screen_cert_valid_from),
                     date = certValidFrom
                 )
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading = stringResource(R.string.doc_info_screen_cert_valid_until),
                     date = certValidUntil
                 )
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading = stringResource(R.string.doc_info_screen_cert_expected_update),
                     date = certExpectedUpdate
                 )

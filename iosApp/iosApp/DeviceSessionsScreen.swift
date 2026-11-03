@@ -43,6 +43,7 @@ struct DeviceSessionsScreen: View {
             }
             .padding(.vertical)
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Device sessions")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -93,9 +94,9 @@ struct DeviceSessionsScreen: View {
     
     @ViewBuilder
     private var sessionsList: some View {
-        FloatingItemList {
+        SegmentedItemList {
             if isLoading && sessions == nil {
-                FloatingItemContainer {
+                SegmentedItemContainer {
                     HStack(spacing: 16) {
                         Spacer()
                         ProgressView()
@@ -109,7 +110,7 @@ struct DeviceSessionsScreen: View {
                 }
             } else if let sessionList = sessions {
                 if sessionList.isEmpty {
-                    FloatingItemCenteredText(text: "No active device sessions found.")
+                    SegmentedItemCenteredText(text: "No active device sessions found.")
                 } else {
                     ForEach(sortedSessions) { session in
                         sessionRow(session: session)
@@ -127,7 +128,7 @@ struct DeviceSessionsScreen: View {
         let iconName = deviceIcon(for: session)
         let secondary = secondaryText(for: session, isCurrentDevice: isCurrentDevice)
         
-        FloatingItemHeadingAndText(
+        SegmentedItemHeadingAndText(
             heading: deviceName,
             text: secondary,
             image: {

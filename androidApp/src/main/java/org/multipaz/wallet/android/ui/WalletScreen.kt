@@ -141,8 +141,8 @@ import org.multipaz.compose.cards.VerticalCardListState
 import org.multipaz.compose.cards.WarningCard
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemList
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.compose.permissions.rememberBluetoothPermissionState
 import org.multipaz.compose.text.fromMarkdown
 import android.Manifest
@@ -864,7 +864,7 @@ private fun DocumentInfoContentReal(
         modifier = Modifier.verticalScroll(rememberScrollState())
     ) {
         Spacer(modifier = Modifier.height(12.dp))
-        FloatingItemList {
+        SegmentedItemList {
             val typeDisplayName = documentInfo.document.typeDisplayName
                 ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
             if (isSyncing) {
@@ -877,7 +877,7 @@ private fun DocumentInfoContentReal(
                     //   devices currently signed in
                     stringResource(R.string.wallet_screen_ready_to_use_on_this_device)
                 }
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.combinedClickable(
                         onClick = {
                             if (setupNeeded) {
@@ -910,7 +910,7 @@ private fun DocumentInfoContentReal(
                 )
             }
             if (!documentInfo.document.provisionedDocumentSetupNeeded) {
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable {
                         onDocumentInfoClicked(documentInfo)
                     },
@@ -933,7 +933,7 @@ private fun DocumentInfoContentReal(
                     } else {
                         stringResource(R.string.wallet_screen_logging_not_enabled)
                     }
-                FloatingItemText(
+                SegmentedItemText(
                     modifier = Modifier.clickable {
                         onDocumentActivityClicked(documentInfo)
                     },
@@ -950,7 +950,7 @@ private fun DocumentInfoContentReal(
                 )
                 if (documentInfo.isProximityPresentable) {
                     val preconsentSetting = documentInfo.document.preconsentSetting
-                    FloatingItemText(
+                    SegmentedItemText(
                         modifier = Modifier.clickable {
                             onDocumentPreconsentSettingsClicked(documentInfo)
                         },
@@ -972,8 +972,8 @@ private fun DocumentInfoContentReal(
         Spacer(modifier = Modifier.height(20.dp))
 
         // Make Remove stand out by having it in its own list
-        FloatingItemList {
-            FloatingItemText(
+        SegmentedItemList {
+            SegmentedItemText(
                 modifier = Modifier.clickable {
                     onDocumentRemoveClicked(documentInfo)
                 },

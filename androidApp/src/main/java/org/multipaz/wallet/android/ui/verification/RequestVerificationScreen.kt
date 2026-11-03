@@ -82,9 +82,9 @@ import kotlinx.serialization.json.jsonObject
 import org.multipaz.cbor.Cbor
 import org.multipaz.compose.datetime.durationFromNowText
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.permissions.rememberNotificationPermissionState
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.EventVerification
@@ -359,9 +359,9 @@ fun RequestVerificationScreen(
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
-            FloatingItemList(title = stringResource(R.string.request_verification_what_to_request)) {
+            SegmentedItemList(title = stringResource(R.string.request_verification_what_to_request)) {
                 val selectedQuery = settingsModel.readerQuery.collectAsState().value
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     modifier = Modifier.clickable { onSelectVerificationTypeClicked() },
                     showChevron = true,
                     heading = selectedQuery.getDisplayName(),
@@ -374,7 +374,7 @@ fun RequestVerificationScreen(
                     }
                 )
                 val storeResponse = settingsModel.verificationStoreResponse.collectAsState().value
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     heading = stringResource(R.string.request_verification_store_response),
                     content = {
                         Text(
@@ -426,9 +426,9 @@ fun RequestVerificationScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (pendingList.value.isNotEmpty()) {
-                    FloatingItemList(title = stringResource(R.string.request_verification_pending_heading)) {
+                    SegmentedItemList(title = stringResource(R.string.request_verification_pending_heading)) {
                         for (item in pendingList.value) {
-                            FloatingItemHeadingAndContent(
+                            SegmentedItemHeadingAndContent(
                                 modifier = Modifier.clickable {
                                     coroutineScope.launch {
                                         try {
@@ -479,14 +479,14 @@ fun RequestVerificationScreen(
                 }
 
                 if (completedUiStates.value.isNotEmpty()) {
-                    FloatingItemList(title = stringResource(R.string.request_verification_completed_heading)) {
+                    SegmentedItemList(title = stringResource(R.string.request_verification_completed_heading)) {
                         for (state in completedUiStates.value) {
                             val item = state.item
                             val timeText = durationFromNowText(Instant.fromEpochMilliseconds(item.responseReceivedAtMillis ?: item.creationTimeMillis))
                             val presentmentRecord = state.presentmentRecord
                             val isTrusted = state.isTrusted
 
-                            FloatingItemHeadingAndContent(
+                            SegmentedItemHeadingAndContent(
                                 modifier = Modifier.clickable {
                                     if (presentmentRecord != null) {
                                         completedList.value = completedList.value.filter { it.requestId != item.requestId }
@@ -611,8 +611,8 @@ fun RequestVerificationScreen(
                     stringResource(R.string.external_nfc_reader_type_external_status, statusText)
                 }
 
-                FloatingItemList(title = stringResource(R.string.request_verification_nfc_reader_heading)) {
-                    FloatingItemHeadingAndText(
+                SegmentedItemList(title = stringResource(R.string.request_verification_nfc_reader_heading)) {
+                    SegmentedItemHeadingAndText(
                         modifier = Modifier.clickable { onSelectNfcReaderClicked() },
                         showChevron = true,
                         heading = activeReaderDisplayName,

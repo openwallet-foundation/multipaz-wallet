@@ -27,8 +27,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -81,7 +81,7 @@ fun RequestVerificationAdvancedOptionsScreen(
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.request_verification_advanced_options_note))
-            FloatingItemList {
+            SegmentedItemList {
                 val contentText = if (issuerIdentifiers.isEmpty()) {
                     stringResource(R.string.request_verification_advanced_no_issuer_identifiers)
                 } else if (issuerIdentifiers.size == 1) {
@@ -92,7 +92,7 @@ fun RequestVerificationAdvancedOptionsScreen(
                         issuerIdentifiers.size
                     )
                 }
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     modifier = Modifier.clickable { onIssuerIdentifiersClicked() },
                     showChevron = true,
                     heading = stringResource(R.string.request_verification_advanced_issuer_identifiers_heading),
@@ -113,7 +113,7 @@ fun RequestVerificationAdvancedOptionsScreen(
                     val name = cn ?: leafCert.subject.name
                     stringResource(R.string.request_verification_advanced_custom_reader_auth_configured, name)
                 }
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     modifier = Modifier.clickable { onCustomReaderAuthenticationClicked() },
                     showChevron = true,
                     heading = stringResource(R.string.request_verification_advanced_custom_reader_auth_heading),
@@ -131,7 +131,7 @@ fun RequestVerificationAdvancedOptionsScreen(
                 } else {
                     stringResource(R.string.request_verification_advanced_use_nfc_v2_disabled)
                 }
-                FloatingItemHeadingAndContent(
+                SegmentedItemHeadingAndContent(
                     modifier = Modifier.clickable {
                         settingsModel.useNfcV2.value = !settingsModel.useNfcV2.value
                     },

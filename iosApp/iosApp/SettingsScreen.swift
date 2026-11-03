@@ -13,10 +13,10 @@ struct SettingsScreen: View {
         ZStack {
             ScrollView {
             VStack(spacing: 20) {
-                FloatingItemList(title: "Account") {
+                SegmentedItemList(title: "Account") {
                     if let signedInUser = viewModel.signedInUser {
                         if isSigningOut {
-                            FloatingItemContainer {
+                            SegmentedItemContainer {
                                 HStack(spacing: 16) {
                                     Spacer()
                                     ProgressView()
@@ -29,7 +29,7 @@ struct SettingsScreen: View {
                                 .padding(.vertical, 8)
                             }
                         } else {
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: signedInUser.displayName ?? "Google user",
                                 showChevron: true,
                                 secondary: signedInUser.id,
@@ -37,7 +37,7 @@ struct SettingsScreen: View {
                             ).onTapGesture {
                                 viewModel.push(.deviceSessions)
                             }
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: "Use without a Google Account",
                                 image: { Image(systemName: "person.badge.minus").frame(width: 24, height: 24) }
                             ).onTapGesture {
@@ -54,7 +54,7 @@ struct SettingsScreen: View {
                         }
                     } else {
                         if isSigningIn {
-                            FloatingItemContainer {
+                            SegmentedItemContainer {
                                 HStack(spacing: 16) {
                                     Spacer()
                                     ProgressView()
@@ -67,7 +67,7 @@ struct SettingsScreen: View {
                                 .padding(.vertical, 8)
                             }
                         } else {
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: "Sign in to your Google Account",
                                 image: { Image(systemName: "person.crop.circle").frame(width: 24, height: 24) }
                             ).onTapGesture {
@@ -110,15 +110,15 @@ struct SettingsScreen: View {
                         .font(.footnote)
                 }
                 
-                FloatingItemList {
-                    FloatingItemText(
+                SegmentedItemList {
+                    SegmentedItemText(
                         text: "Trusted issuers",
                         showChevron: true,
                         image: { Image(systemName: "building.columns").frame(width: 24, height: 24) }
                     ).onTapGesture {
                         viewModel.push(.trustedIssuers)
                     }
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "Trusted verifiers",
                         showChevron: true,
                         image: { Image(systemName: "building.2").frame(width: 24, height: 24) }
@@ -126,20 +126,20 @@ struct SettingsScreen: View {
                         viewModel.push(.trustedVerifiers)
                     }
                     // Note: "External NFC readers" is omitted on iOS because USB CCID devices are not supported.
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "Activity logging",
                         showChevron: true,
                         image: { Image(systemName: "timer").frame(width: 24, height: 24) }
                     ).onTapGesture {
                     }
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "Pre-consent settings",
                         showChevron: true,
                         image: { Image(systemName: "lock").frame(width: 24, height: 24) }
                     ).onTapGesture {
                     }
                     // TODO: Move presentation face matcher selector to Developer Settings once iOS gains Developer Settings capability.
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "Presentation face matcher",
                         showChevron: true,
                         secondary: viewModel.settings.presentmentFaceMatcher,
@@ -150,14 +150,14 @@ struct SettingsScreen: View {
                         }
                     }
                     if viewModel.settings.devMode {
-                        FloatingItemText(
+                        SegmentedItemText(
                             text: "Developer settings",
                             showChevron: true,
                             image: { Image(systemName: "flask").frame(width: 24, height: 24) }
                         ).onTapGesture {
                         }
                     }
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "About \(BuildConfig.shared.APP_NAME)",
                         showChevron: true,
                         image: { Image(systemName: "info.circle").frame(width: 24, height: 24) }
@@ -168,6 +168,7 @@ struct SettingsScreen: View {
             .padding([.leading, .trailing])
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(UIColor.systemGroupedBackground))
 
         if showFaceMatcherDialog {
             let matcherChoices = (viewModel.faceMatcherRepository?.all.map { $0.displayName } ?? []) + ["None"]

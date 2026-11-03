@@ -24,38 +24,38 @@ struct CredentialInfoScreen: View {
                 Text("This screen contains low-level technical details about a specific credential")
                     .font(.footnote)
                 if let credentialInfo = credentialInfo {
-                    FloatingItemList {
-                        FloatingItemHeadingAndText(
+                    SegmentedItemList {
+                        SegmentedItemHeadingAndText(
                             heading: "Type",
                             text: credentialInfo.credential.credentialType
                         )
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading: "Identifier",
                             text: credentialInfo.credential.identifier
                         )
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading: "Domain",
                             text: credentialInfo.credential.domain
                         )
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading: "Certified",
                             text: credentialInfo.credential.isCertified ? "Yes" : "No"
                         )
                         
                         if credentialInfo.credential.isCertified {
-                            FloatingItemHeadingAndDateTime(
+                            SegmentedItemHeadingAndDateTime(
                                 heading: "Valid From",
                                 dateTime: toSwiftDate(credentialInfo.credential.validFrom)
                             )
-                            FloatingItemHeadingAndDateTime(
+                            SegmentedItemHeadingAndDateTime(
                                 heading: "Valid Until",
                                 dateTime: toSwiftDate(credentialInfo.credential.validUntil)
                             )
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Issuer provided data",
                                 text: "\(credentialInfo.credential.issuerProvidedData.size) bytes"
                             )
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Usage Count",
                                 text: credentialInfo.credential.usageCount.description
                             )
@@ -65,11 +65,11 @@ struct CredentialInfoScreen: View {
                             
                             // Specific credential types: MdocCredential
                             if let mdoc = credentialInfo.credential as? MdocCredential {
-                                FloatingItemHeadingAndText(
+                                SegmentedItemHeadingAndText(
                                     heading: "ISO mdoc DocType",
                                     text: mdoc.docType
                                 )
-                                FloatingItemHeadingAndText(
+                                SegmentedItemHeadingAndText(
                                     heading: "ISO mdoc DS Key Certificate",
                                     text: "Click for details",
                                     showChevron: true
@@ -81,7 +81,7 @@ struct CredentialInfoScreen: View {
                             
                             // Specific credential types: SdJwtVcCredential
                             if let sdjwt = credentialInfo.credential as? SdJwtVcCredential {
-                                FloatingItemHeadingAndText(
+                                SegmentedItemHeadingAndText(
                                     heading: "Verifiable Credential Type",
                                     text: sdjwt.vct
                                 )
@@ -89,25 +89,25 @@ struct CredentialInfoScreen: View {
                         }
                         
                         if let secureAreaBound = credentialInfo.credential as? SecureAreaBoundCredential {
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Secure Area",
                                 text: secureAreaBound.secureArea.displayName
                             )
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Secure Area Identifier",
                                 text: secureAreaBound.secureArea.identifier
                             )
                             if let keyInfo = credentialInfo.keyInfo {
-                                FloatingItemHeadingAndText(
+                                SegmentedItemHeadingAndText(
                                     heading: "Device Key Algorithm",
                                     text: keyInfo.algorithm.description_
                                 )
                             }
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Device Key Invalidated",
                                 text: credentialInfo.keyInvalidated ? "YES" : "No"
                             )
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Device Key Attestation",
                                 text: "Click for details",
                                 showChevron: true
@@ -116,7 +116,7 @@ struct CredentialInfoScreen: View {
                                 showDeviceKeyAttestationDetails(credential: secureAreaBound)
                             }
                         } else {
-                            FloatingItemHeadingAndText(
+                            SegmentedItemHeadingAndText(
                                 heading: "Secure Area",
                                 text: "N/A"
                             )
@@ -127,13 +127,14 @@ struct CredentialInfoScreen: View {
                         CredentialClaimsSection(credentialInfo: credentialInfo)
                     }
                 } else {
-                    FloatingItemList {
-                        FloatingItemCenteredText(text: "No info for credential")
+                    SegmentedItemList {
+                        SegmentedItemCenteredText(text: "No info for credential")
                     }
                 }
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Credential info")
         .navigationBarTitleDisplayMode(.inline)
         .alert(isPresented: $showAlert) {
@@ -150,17 +151,17 @@ struct CredentialInfoScreen: View {
         if let mdoc = credential as? MdocCredential,
            let revocationStatus = mdoc.mso.revocationStatus {
             if let statusList = revocationStatus as? RevocationStatus.StatusList {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading: "Status List Revocation",
                     text: "Index: \(statusList.idx)\nUrl: \(statusList.uri)"
                 )
             } else if let idList = revocationStatus as? RevocationStatus.IdentifierList {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading: "Identifier List Revocation",
                     text: "Identifier: \(formatBytes(idList.id))\nUrl: \(idList.uri)"
                 )
             } else if revocationStatus is RevocationStatus.Unknown {
-                FloatingItemHeadingAndText(
+                SegmentedItemHeadingAndText(
                     heading: "Revocation info",
                     text: "Not parsed"
                 )
@@ -242,10 +243,10 @@ struct CredentialClaimsSection: View {
             let sortedNamespaces = grouped.keys.sorted()
             ForEach(sortedNamespaces, id: \.self) { namespace in
                 let claims = grouped[namespace] ?? []
-                FloatingItemList(title: "Namespace \(namespace)") {
+                SegmentedItemList(title: "Namespace \(namespace)") {
                     ForEach(0..<claims.count, id: \.self) { index in
                         let claim = claims[index]
-                        FloatingItemListClaim(
+                        SegmentedItemListClaim(
                             claim: claim,
                             heading: claim.dataElementName
                         )
@@ -254,11 +255,11 @@ struct CredentialClaimsSection: View {
             }
         } else {
             let claims = credentialInfo.claims
-            FloatingItemList(title: "Claims") {
+            SegmentedItemList(title: "Claims") {
                 ForEach(0..<claims.count, id: \.self) { index in
                     let claim = claims[index]
                     let claimName = getClaimName(claim)
-                    FloatingItemListClaim(
+                    SegmentedItemListClaim(
                         claim: claim,
                         heading: claimName
                     )

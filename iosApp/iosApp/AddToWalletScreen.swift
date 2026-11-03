@@ -20,18 +20,18 @@ struct AddToWalletScreen: View {
                     .foregroundColor(.gray)
                     .padding(.horizontal)
                 
-                FloatingItemList {
+                SegmentedItemList {
                     if let error = errorLoading {
-                        FloatingItemCenteredText(text: "Error loading issuers. Are you online?")
+                        SegmentedItemCenteredText(text: "Error loading issuers. Are you online?")
                     } else if credentialIssuers == nil {
-                        FloatingItemCenteredText(text: "Loading issuers")
+                        SegmentedItemCenteredText(text: "Loading issuers")
                     } else if credentialIssuers!.isEmpty {
-                        FloatingItemCenteredText(text: "No issuers available")
+                        SegmentedItemCenteredText(text: "No issuers available")
                     } else {
                         ForEach(0..<credentialIssuers!.count, id: \.self) { index in
                             let issuer = credentialIssuers![index]
                             let openIdIssuer = issuer as? CredentialIssuerOpenID4VCI
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: issuer.name,
                                 showChevron: true,
                                 image: {
@@ -53,8 +53,8 @@ struct AddToWalletScreen: View {
                 }
                 .padding(.horizontal)
                 
-                FloatingItemList {
-                    FloatingItemText(
+                SegmentedItemList {
+                    SegmentedItemText(
                         text: "Import pass from file",
                         showChevron: true,
                         image: { Image(systemName: "square.and.arrow.down").frame(width: 24, height: 24) }
@@ -62,7 +62,7 @@ struct AddToWalletScreen: View {
                         showFilePicker = true
                     }
                     
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "Scan credential offer",
                         showChevron: true,
                         image: { Image(systemName: "qrcode.viewfinder").frame(width: 24, height: 24) }
@@ -70,7 +70,7 @@ struct AddToWalletScreen: View {
                         viewModel.push(.scanCredentialOffer)
                     }
                     
-                    FloatingItemText(
+                    SegmentedItemText(
                         text: "Enter issuer URL",
                         showChevron: true,
                         image: { Image(systemName: "building.columns").frame(width: 24, height: 24) }
@@ -82,6 +82,7 @@ struct AddToWalletScreen: View {
             }
             .padding(.vertical)
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Add to wallet")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(

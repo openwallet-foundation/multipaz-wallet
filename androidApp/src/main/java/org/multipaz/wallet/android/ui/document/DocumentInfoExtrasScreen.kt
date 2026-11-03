@@ -48,10 +48,10 @@ import org.multipaz.cbor.Tstr
 import org.multipaz.cbor.toCdn
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.tags.Tags
@@ -131,29 +131,29 @@ fun DocumentInfoExtrasScreen(
             )
 
             documentInfo?.document?.let { doc ->
-                FloatingItemList(title = "Metadata") {
-                    FloatingItemHeadingAndText(
+                SegmentedItemList(title = "Metadata") {
+                    SegmentedItemHeadingAndText(
                         heading = "Identifier",
                         text = doc.identifier
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Display name",
                         text = doc.displayName ?: "N/A"
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Type display name",
                         text = doc.typeDisplayName ?: "N/A"
                     )
                     val createdLocal = doc.created.toLocalDateTime(TimeZone.currentSystemDefault())
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Created",
                         text = createdLocal.formatLocalized()
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Provisioned",
                         text = if (doc.provisioned) "Yes" else "No"
                     )
-                    FloatingItemHeadingAndContent(
+                    SegmentedItemHeadingAndContent(
                         heading = "Card art",
                         content = {
                             val cardArt = doc.cardArt
@@ -172,7 +172,7 @@ fun DocumentInfoExtrasScreen(
                             }
                         }
                     )
-                    FloatingItemHeadingAndContent(
+                    SegmentedItemHeadingAndContent(
                         heading = "Issuer logo",
                         content = {
                             val issuerLogo = doc.issuerLogo
@@ -195,7 +195,7 @@ fun DocumentInfoExtrasScreen(
                     val onAuthDataClick: (() -> Unit)? = if (authData != null && onViewCbor != null) {
                         { onViewCbor("Authorization data", authData.toByteArray()) }
                     } else null
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Authorization data",
                         text = authData?.let { "${"%,d".format(it.size)} bytes of CBOR" } ?: "None",
                         showChevron = onAuthDataClick != null,
@@ -205,15 +205,15 @@ fun DocumentInfoExtrasScreen(
                             Modifier
                         }
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "MpzPass ID",
                         text = doc.mpzPassId ?: "N/A"
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "MpzPass version",
                         text = doc.mpzPassVersion?.toString() ?: "N/A"
                     )
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "MpzPass shareable",
                         text = if (doc.mpzPassId != null) (if (doc.isMpzPassShareable) "Yes" else "No") else "N/A"
                     )
@@ -221,7 +221,7 @@ fun DocumentInfoExtrasScreen(
                     val onMetadataClick: (() -> Unit)? = if (serializedMetadata != null && onViewCbor != null) {
                         { onViewCbor("Metadata", serializedMetadata.toByteArray()) }
                     } else null
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = "Metadata",
                         text = serializedMetadata?.let { "${"%,d".format(it.size)} bytes of CBOR" } ?: "None",
                         showChevron = onMetadataClick != null,
@@ -234,9 +234,9 @@ fun DocumentInfoExtrasScreen(
                 }
             }
 
-            FloatingItemList(title = "Document tags") {
+            SegmentedItemList(title = "Document tags") {
                 if (tagKeys.isEmpty()) {
-                    FloatingItemCenteredText("No tags")
+                    SegmentedItemCenteredText("No tags")
                 } else {
                     tagKeys.forEach { key ->
                         val text = tags?.formatTagValue(key).orEmpty()
@@ -257,7 +257,7 @@ fun DocumentInfoExtrasScreen(
                                 onViewCbor("Tag: $key", cborBytes)
                             }
                         } else null
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             heading = key,
                             text = text,
                             showChevron = onTagClick != null,
@@ -272,7 +272,7 @@ fun DocumentInfoExtrasScreen(
             }
 
             credentialsByDomain.forEach { (domain, creds) ->
-                FloatingItemList(title = "Domain $domain") {
+                SegmentedItemList(title = "Domain $domain") {
                     creds.forEach { credential ->
 
                         val (heading, text) = if (credential.isCertified) {
@@ -291,7 +291,7 @@ fun DocumentInfoExtrasScreen(
                                 "Pending certification"
                             )
                         }
-                        FloatingItemHeadingAndText(
+                        SegmentedItemHeadingAndText(
                             modifier = Modifier.clickable {
                                 onCredentialClicked(credential.identifier)
                             },
@@ -304,7 +304,7 @@ fun DocumentInfoExtrasScreen(
             }
 
             documentInfo?.document?.let { doc ->
-                FloatingItemList(title = stringResource(R.string.document_info_restrict_to_readers_title)) {
+                SegmentedItemList(title = stringResource(R.string.document_info_restrict_to_readers_title)) {
                     val readerIdentifiers = doc.readerIdentifiers
                     val text = if (readerIdentifiers.isEmpty()) {
                         stringResource(R.string.document_info_no_reader_identifiers_set)
@@ -313,7 +313,7 @@ fun DocumentInfoExtrasScreen(
                     } else {
                         stringResource(R.string.document_info_reader_identifiers_set_many, readerIdentifiers.size)
                     }
-                    FloatingItemHeadingAndText(
+                    SegmentedItemHeadingAndText(
                         heading = stringResource(R.string.document_info_reader_identifiers_heading),
                         text = text,
                         showChevron = true,

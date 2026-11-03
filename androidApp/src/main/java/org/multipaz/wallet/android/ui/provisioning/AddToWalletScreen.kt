@@ -42,9 +42,9 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemList
-import org.multipaz.compose.items.FloatingItemText
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemList
+import org.multipaz.compose.items.SegmentedItemText
 import org.multipaz.compose.pickers.rememberFilePicker
 import org.multipaz.util.Logger
 import org.multipaz.wallet.android.R
@@ -145,14 +145,14 @@ fun AddToWalletScreen(
                 // For now, just show a flat list. In the future we can have the wallet backend
                 // return a more complicated layered structure with categories and issuers inside
                 // them...
-                FloatingItemList {
+                SegmentedItemList {
                     if (errorLoading != null) {
-                        FloatingItemCenteredText(stringResource(R.string.provisioning_add_to_wallet_screen_error_loading))
+                        SegmentedItemCenteredText(stringResource(R.string.provisioning_add_to_wallet_screen_error_loading))
                     } else if (credentialIssuers == null) {
-                        FloatingItemCenteredText(stringResource(R.string.provisioning_add_to_wallet_screen_loading))
+                        SegmentedItemCenteredText(stringResource(R.string.provisioning_add_to_wallet_screen_loading))
                     } else {
                         credentialIssuers?.forEach { credentialIssuer ->
-                            FloatingItemText(
+                            SegmentedItemText(
                                 modifier = Modifier.clickable {
                                     onCredentialIssuerClicked(credentialIssuer)
                                 },
@@ -173,8 +173,8 @@ fun AddToWalletScreen(
                     }
                 }
 
-                FloatingItemList {
-                    FloatingItemText(
+                SegmentedItemList {
+                    SegmentedItemText(
                         modifier = Modifier.clickable { importMpzPassFilePicker.launch() },
                         showChevron = true,
                         text = stringResource(R.string.provisioning_add_to_wallet_screen_import_pass),
@@ -187,7 +187,7 @@ fun AddToWalletScreen(
                             )
                         }
                     )
-                    FloatingItemText(
+                    SegmentedItemText(
                         modifier = Modifier.clickable { onScanCredentialOfferClicked() },
                         showChevron = true,
                         text = stringResource(R.string.provisioning_add_to_wallet_screen_scan_credential_offer),
@@ -200,7 +200,7 @@ fun AddToWalletScreen(
                             )
                         }
                     )
-                    FloatingItemText(
+                    SegmentedItemText(
                         modifier = Modifier.clickable { onEnterIssuerUrlClicked() },
                         showChevron = true,
                         text = stringResource(R.string.provisioning_add_to_wallet_screen_enter_issuer_url_item),
@@ -214,7 +214,7 @@ fun AddToWalletScreen(
                         }
                     )
                     if (settingsModel.devMode.collectAsState().value) {
-                        FloatingItemText(
+                        SegmentedItemText(
                             modifier = Modifier.clickable { onAddSelfSignedDocumentClicked() },
                             showChevron = true,
                             text = stringResource(R.string.provisioning_add_to_wallet_screen_add_self_signed_document),

@@ -90,7 +90,7 @@ val AddToWalletScreen = FC<AddToWalletScreenProps> { props ->
                 }
 
                 // Issuers List
-                FloatingItemList {
+                SegmentedItemList {
                     if (errorLoading != null) {
                         div {
                             className = ClassName("px-6 py-8 text-center text-red-500")
@@ -103,7 +103,7 @@ val AddToWalletScreen = FC<AddToWalletScreenProps> { props ->
                         }
                     } else {
                         credentialIssuers.forEach { issuer ->
-                            FloatingItem {
+                            SegmentedItem {
                                 key = issuer.name
                                 title = issuer.name
                                 onClick = {
@@ -127,8 +127,8 @@ val AddToWalletScreen = FC<AddToWalletScreenProps> { props ->
                 div {
                     className = ClassName("space-y-2")
                     h2Section { +"More Options" }
-                    FloatingItemList {
-                        FloatingItem {
+                    SegmentedItemList {
+                        SegmentedItem {
                             title = "Import from file"
                             subtitle = "Import a .mpzpass file"
                             icon = FileUploadIcon
@@ -158,7 +158,7 @@ val AddToWalletScreen = FC<AddToWalletScreenProps> { props ->
                         }
 
                         if (devMode) {
-                            FloatingItem {
+                            SegmentedItem {
                                 title = "Enter Issuer URL"
                                 subtitle = "Manually enter a provisioning server URL"
                                 icon = AccountBalanceIcon

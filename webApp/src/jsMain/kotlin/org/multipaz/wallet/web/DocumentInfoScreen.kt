@@ -78,8 +78,8 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
 
             if (documentInfo.document.provisionedDocumentIdentifier != null) {
                 div {
-                    FloatingItemList {
-                        FloatingItemHeadingAndText {
+                    SegmentedItemList {
+                        SegmentedItemHeadingAndText {
                             heading = "Device-bound credential"
                             text = "Device-bound credentials are currently not supported"
                         }
@@ -92,7 +92,7 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
                 div {
                     className = ClassName("space-y-4")
                     h2Section { +"Claims" }
-                    FloatingItemList {
+                    SegmentedItemList {
                         val jsonIgnoredClaims = setOf("iss", "vct", "iat", "nbf", "exp", "cnf", "status")
                         credentialInfo.claims.forEach { claim ->
                             if (claim is JsonClaim) {
@@ -101,7 +101,7 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
                                     return@forEach
                                 }
                             }
-                            FloatingItemHeadingAndContent {
+                            SegmentedItemHeadingAndContent {
                                 heading = claim.displayName
                                 RenderClaimValue {
                                     this.claim = claim
@@ -115,7 +115,7 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
                 div {
                     className = ClassName("space-y-4")
                     h2Section { +"Certificate Information" }
-                    FloatingItemList {
+                    SegmentedItemList {
                         var certSignedDate: Instant? = null
                         var certValidFrom: Instant? = null
                         var certValidUntil: Instant? = null
@@ -135,19 +135,19 @@ val DocumentInfoScreen = FC<DocumentInfoScreenProps> { props ->
                             certValidUntil = claims.getInstant("exp")
                         }
 
-                        FloatingItemHeadingAndDate {
+                        SegmentedItemHeadingAndDate {
                             heading = "Signed At"
                             date = certSignedDate
                         }
-                        FloatingItemHeadingAndDate {
+                        SegmentedItemHeadingAndDate {
                             heading = "Valid From"
                             date = certValidFrom
                         }
-                        FloatingItemHeadingAndDate {
+                        SegmentedItemHeadingAndDate {
                             heading = "Valid Until"
                             date = certValidUntil
                         }
-                        FloatingItemHeadingAndDate {
+                        SegmentedItemHeadingAndDate {
                             heading = "Expected Update"
                             date = certExpectedUpdate
                         }

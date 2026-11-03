@@ -70,8 +70,8 @@ struct TrustEntryScreen: View {
                     }
                     .padding(.vertical, 8)
                     
-                    FloatingItemList {
-                        FloatingItemHeadingAndText(
+                    SegmentedItemList {
+                        SegmentedItemHeadingAndText(
                             heading: "Test only",
                             text: info.isTestOnly ? "Yes" : "No"
                         )
@@ -94,6 +94,7 @@ struct TrustEntryScreen: View {
             }
             .padding()
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(screenTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -144,32 +145,32 @@ struct TrustEntryScreen: View {
     
     @ViewBuilder
     private func vicalDetailsSection(vical: Vical, providerChain: X509CertChain) -> some View {
-        FloatingItemList(title: "VICAL data") {
-            FloatingItemHeadingAndText(heading: "Version", text: vical.version)
-            FloatingItemHeadingAndText(heading: "Provider", text: vical.vicalProvider)
+        SegmentedItemList(title: "VICAL data") {
+            SegmentedItemHeadingAndText(heading: "Version", text: vical.version)
+            SegmentedItemHeadingAndText(heading: "Provider", text: vical.vicalProvider)
             if let issueId = vical.vicalIssueID {
-                FloatingItemHeadingAndText(heading: "Issue ID", text: "\(issueId)")
+                SegmentedItemHeadingAndText(heading: "Issue ID", text: "\(issueId)")
             }
-            FloatingItemHeadingAndDate(
+            SegmentedItemHeadingAndDate(
                 heading: "Issued at",
                 date: Date(timeIntervalSince1970: Double(vical.date.epochSeconds))
             )
             if let nextUpdate = vical.nextUpdate {
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading: "Next update",
                     date: Date(timeIntervalSince1970: Double(nextUpdate.epochSeconds))
                 )
             }
             if let validUntil = vical.notAfter {
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading: "Valid until",
                     date: Date(timeIntervalSince1970: Double(validUntil.epochSeconds))
                 )
             }
             if let url = vical.vicalUrl {
-                FloatingItemHeadingAndText(heading: "Update URL", text: url)
+                SegmentedItemHeadingAndText(heading: "Update URL", text: url)
             }
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading: "Signer",
                 text: "Click to view certificate chain",
                 showChevron: true
@@ -180,18 +181,18 @@ struct TrustEntryScreen: View {
                 let extensionsStr = vical.extensions.map { key, value in
                     "\(key): \(Cbor.shared.toDiagnostics(item: value, options: [.prettyPrint]))"
                 }.joined(separator: "\n")
-                FloatingItemHeadingAndText(heading: "Extensions", text: extensionsStr)
+                SegmentedItemHeadingAndText(heading: "Extensions", text: extensionsStr)
             }
         }
     }
     
     @ViewBuilder
     private func vicalCertificatesSection(vical: Vical) -> some View {
-        FloatingItemList(title: "Certificates") {
+        SegmentedItemList(title: "Certificates") {
             ForEach(0..<vical.certificateInfos.count, id: \.self) { index in
                 let certInfo = vical.certificateInfos[index]
                 let name = certInfo.certificate.subject.components["2.5.4.3"]?.value ?? certInfo.certificate.subject.name
-                FloatingItemText(
+                SegmentedItemText(
                     text: name,
                     showChevron: true,
                     secondary: "Certificate",
@@ -209,33 +210,33 @@ struct TrustEntryScreen: View {
     
     @ViewBuilder
     private func ricalDetailsSection(rical: Rical, providerChain: X509CertChain) -> some View {
-        FloatingItemList(title: "RICAL data") {
-            FloatingItemHeadingAndText(heading: "Type", text: rical.type)
-            FloatingItemHeadingAndText(heading: "Version", text: rical.version)
-            FloatingItemHeadingAndText(heading: "Provider", text: rical.provider)
+        SegmentedItemList(title: "RICAL data") {
+            SegmentedItemHeadingAndText(heading: "Type", text: rical.type)
+            SegmentedItemHeadingAndText(heading: "Version", text: rical.version)
+            SegmentedItemHeadingAndText(heading: "Provider", text: rical.provider)
             if let id = rical.id {
-                FloatingItemHeadingAndText(heading: "ID", text: "\(id)")
+                SegmentedItemHeadingAndText(heading: "ID", text: "\(id)")
             }
-            FloatingItemHeadingAndDate(
+            SegmentedItemHeadingAndDate(
                 heading: "Issued at",
                 date: Date(timeIntervalSince1970: Double(rical.date.epochSeconds))
             )
             if let nextUpdate = rical.nextUpdate {
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading: "Next update",
                     date: Date(timeIntervalSince1970: Double(nextUpdate.epochSeconds))
                 )
             }
             if let validUntil = rical.notAfter {
-                FloatingItemHeadingAndDate(
+                SegmentedItemHeadingAndDate(
                     heading: "Valid until",
                     date: Date(timeIntervalSince1970: Double(validUntil.epochSeconds))
                 )
             }
             if let url = rical.latestRicalUrl {
-                FloatingItemHeadingAndText(heading: "Update URL", text: url)
+                SegmentedItemHeadingAndText(heading: "Update URL", text: url)
             }
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading: "Signer",
                 text: "Click to view certificate chain",
                 showChevron: true
@@ -246,18 +247,18 @@ struct TrustEntryScreen: View {
                 let extensionsStr = rical.extensions.map { key, value in
                     "\(key): \(Cbor.shared.toDiagnostics(item: value, options: [.prettyPrint]))"
                 }.joined(separator: "\n")
-                FloatingItemHeadingAndText(heading: "Extensions", text: extensionsStr)
+                SegmentedItemHeadingAndText(heading: "Extensions", text: extensionsStr)
             }
         }
     }
     
     @ViewBuilder
     private func ricalCertificatesSection(rical: Rical) -> some View {
-        FloatingItemList(title: "Certificates") {
+        SegmentedItemList(title: "Certificates") {
             ForEach(0..<rical.certificateInfos.count, id: \.self) { index in
                 let certInfo = rical.certificateInfos[index]
                 let name = certInfo.certificate.subject.components["2.5.4.3"]?.value ?? certInfo.certificate.subject.name
-                FloatingItemText(
+                SegmentedItemText(
                     text: name,
                     showChevron: true,
                     secondary: "Certificate",

@@ -17,8 +17,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.multipaz.compose.certificateviewer.X509CertViewer
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.trustmanagement.TrustEntryInfo
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.trustmanagement.TrustEntryBasedTrustManager
@@ -62,11 +62,11 @@ fun TrustEntryRicalEntryViewer(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        FloatingItemList(
+        SegmentedItemList(
             modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
             title = stringResource(R.string.trust_entry_rical_entry_title)
         ) {
-            FloatingItemHeadingAndText(
+            SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.trust_entry_rical_entry_trust_anchor),
                 text = if (ricalCertInfo.isTrustAnchor) {
                     stringResource(R.string.trust_entry_rical_entry_yes)

@@ -92,6 +92,7 @@ struct WalletScreen: View {
             contentStack(geometry: geometry, isFocused: isFocused)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarHidden(true)
         .refreshable {
@@ -417,10 +418,10 @@ struct WalletScreen: View {
     private func bottomGradientFilter(safeAreaBottom: CGFloat, isFocused: Bool) -> some View {
         LinearGradient(
             stops: [
-                .init(color: Color(uiColor: .systemBackground).opacity(0.00), location: 0.0),
-                .init(color: Color(uiColor: .systemBackground).opacity(0.50), location: 0.8),
-                .init(color: Color(uiColor: .systemBackground).opacity(0.75), location: 0.9),
-                .init(color: Color(uiColor: .systemBackground).opacity(1.00), location: 1.0)
+                .init(color: Color(uiColor: .systemGroupedBackground).opacity(0.00), location: 0.0),
+                .init(color: Color(uiColor: .systemGroupedBackground).opacity(0.50), location: 0.8),
+                .init(color: Color(uiColor: .systemGroupedBackground).opacity(0.75), location: 0.9),
+                .init(color: Color(uiColor: .systemGroupedBackground).opacity(1.00), location: 1.0)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -481,12 +482,12 @@ struct WalletScreen: View {
                             }
                     }
 
-                    FloatingItemList {
+                    SegmentedItemList {
                         if viewModel.signedInUser != nil && targetDocument.document.isSyncing {
                             let syncedSecondaryText = targetDocument.document.provisionedDocumentSetupNeeded
                                 ? "Complete setup…"
                                 : "Ready to use on this device"
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: "Synced to your account",
                                 showChevron: true,
                                 secondary: syncedSecondaryText,
@@ -504,7 +505,7 @@ struct WalletScreen: View {
                         }
 
                         if !targetDocument.document.provisionedDocumentSetupNeeded {
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: "\(typeDisplayName) info",
                                 showChevron: true,
                                 secondary: "Pass details and certificate info",
@@ -513,7 +514,7 @@ struct WalletScreen: View {
                                 viewModel.push(.documentInfoScreen(documentId: targetDocument.document.identifier))
                             }
 
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: "View and manage activity",
                                 showChevron: true,
                                 secondary: "Logging is enabled",
@@ -522,7 +523,7 @@ struct WalletScreen: View {
                                 print("TODO: go to activity page")
                             }
 
-                            FloatingItemText(
+                            SegmentedItemText(
                                 text: "In person-sharing and consent",
                                 showChevron: true,
                                 secondary: "Always ask before sharing",
@@ -533,8 +534,8 @@ struct WalletScreen: View {
                         }
                     }
 
-                    FloatingItemList {
-                        FloatingItemText(
+                    SegmentedItemList {
+                        SegmentedItemText(
                             text: AttributedString(
                                 "Remove",
                                 attributes: {

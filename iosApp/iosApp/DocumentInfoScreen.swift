@@ -22,24 +22,24 @@ struct DocumentInfoScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         
-                        FloatingItemList {
+                        SegmentedItemList {
                             ForEach(0..<claimsToShow.count, id: \.self) { index in
-                                FloatingItemListClaim(claim: claimsToShow[index])
+                                SegmentedItemListClaim(claim: claimsToShow[index])
                             }
                         }
                         
-                        FloatingItemList(title: "Certificate Info") {
+                        SegmentedItemList(title: "Certificate Info") {
                             if let date = certInfo.signedAt {
-                                FloatingItemHeadingAndDate(heading: "Signed At", date: date)
+                                SegmentedItemHeadingAndDate(heading: "Signed At", date: date)
                             }
                             if let date = certInfo.validFrom {
-                                FloatingItemHeadingAndDate(heading: "Valid From", date: date)
+                                SegmentedItemHeadingAndDate(heading: "Valid From", date: date)
                             }
                             if let date = certInfo.validUntil {
-                                FloatingItemHeadingAndDate(heading: "Valid Until", date: date)
+                                SegmentedItemHeadingAndDate(heading: "Valid Until", date: date)
                             }
                             if let date = certInfo.expectedUpdate {
-                                FloatingItemHeadingAndDate(heading: "Expected Update", date: date)
+                                SegmentedItemHeadingAndDate(heading: "Expected Update", date: date)
                             }
                         }
                         
@@ -52,6 +52,8 @@ struct DocumentInfoScreen: View {
                     .foregroundColor(.gray)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("\(documentInfo?.document.typeDisplayName ?? "Document") info")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

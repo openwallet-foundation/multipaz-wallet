@@ -51,10 +51,10 @@ import org.multipaz.cbor.Cbor
 import org.multipaz.compose.datetime.durationFromNowText
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndContent
-import org.multipaz.compose.items.LazyFloatingItemList
-import org.multipaz.compose.items.floatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndContent
+import org.multipaz.compose.items.LazySegmentedItemList
+import org.multipaz.compose.items.segmentedItemList
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.eventlogger.EventVerification
 import org.multipaz.eventlogger.SimpleEventLogger
@@ -190,7 +190,7 @@ fun VerificationEventListScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LazyFloatingItemList(
+            LazySegmentedItemList(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState),
@@ -212,13 +212,13 @@ fun VerificationEventListScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 if (currentEvents.isNullOrEmpty()) {
-                    floatingItemList(count = 1) {
-                        FloatingItemCenteredText(
+                    segmentedItemList(count = 1) {
+                        SegmentedItemCenteredText(
                             text = stringResource(R.string.verification_history_empty),
                         )
                     }
                 } else {
-                    floatingItemList(
+                    segmentedItemList(
                         items = currentEvents,
                         key = { it.identifier }
                     ) { event ->
@@ -290,7 +290,7 @@ private fun EventItemVerification(
         defaultTitle
     }
 
-    FloatingItemHeadingAndContent(
+    SegmentedItemHeadingAndContent(
         modifier = modifier,
         showChevron = true,
         image = {

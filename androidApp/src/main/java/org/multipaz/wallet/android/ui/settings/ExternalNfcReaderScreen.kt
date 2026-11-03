@@ -29,8 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.FloatingItemList
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.nfc.ExternalNfcReaderState
 import org.multipaz.nfc.ExternalNfcReaderStore
 import org.multipaz.nfc.ExternalNfcReaderUsb
@@ -109,18 +109,18 @@ fun ExternalNfcReaderScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            FloatingItemList(
+            SegmentedItemList(
                 modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
             ) {
-                FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_name), reader.userDisplayName ?: reader.displayName)
+                SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_name), reader.userDisplayName ?: reader.displayName)
                 if (reader.userDisplayName != null) {
-                    FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_original_name), reader.displayName)
+                    SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_original_name), reader.displayName)
                 }
                 if (reader is ExternalNfcReaderUsb) {
-                    FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_connection), stringResource(R.string.external_nfc_reader_connection_usb))
-                    FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_vendor_id), reader.vendorId.toHexString(hexFormat))
-                    FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_product_id), reader.productId.toHexString(hexFormat))
-                    FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_interface_index), reader.interfaceIndex.toString())
+                    SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_connection), stringResource(R.string.external_nfc_reader_connection_usb))
+                    SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_vendor_id), reader.vendorId.toHexString(hexFormat))
+                    SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_product_id), reader.productId.toHexString(hexFormat))
+                    SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_interface_index), reader.interfaceIndex.toString())
                 }
                 val isConnected = state != null && state != ExternalNfcReaderState.NOT_CONNECTED
                 val statusText = if (isConnected) {
@@ -128,7 +128,7 @@ fun ExternalNfcReaderScreen(
                 } else {
                     stringResource(R.string.external_nfc_reader_status_not_connected)
                 }
-                FloatingItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_state), statusText)
+                SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_state), statusText)
             }
         }
     }

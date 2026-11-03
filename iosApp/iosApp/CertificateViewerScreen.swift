@@ -34,8 +34,8 @@ struct CertificateViewerScreen: View {
                     VStack(alignment: .leading, spacing: 16) {
                         X509CertViewer(certificate: certificates[selectedIndex])
                         
-                        FloatingItemList(title: "PEM") {
-                            FloatingItemText(
+                        SegmentedItemList(title: "PEM") {
+                            SegmentedItemText(
                                 text: "Copy certificate PEM",
                                 showChevron: false,
                                 image: { Image(systemName: "doc.on.doc").frame(width: 24, height: 24) }
@@ -53,6 +53,8 @@ struct CertificateViewerScreen: View {
                     .padding()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(certificates.count > 1 ? "Certificate Chain" : "Certificate")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Copied to clipboard", isPresented: $showCopiedAlert) {

@@ -42,10 +42,10 @@ import kotlinx.datetime.toLocalDateTime
 import org.multipaz.compose.decodeImage
 import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.eventlogger.SimpleEventLoggerModel
-import org.multipaz.compose.items.FloatingItemCenteredText
-import org.multipaz.compose.items.FloatingItemHeadingAndText
-import org.multipaz.compose.items.LazyFloatingItemList
-import org.multipaz.compose.items.floatingItemList
+import org.multipaz.compose.items.SegmentedItemCenteredText
+import org.multipaz.compose.items.SegmentedItemHeadingAndText
+import org.multipaz.compose.items.LazySegmentedItemList
+import org.multipaz.compose.items.segmentedItemList
 import org.multipaz.datetime.formatLocalized
 import org.multipaz.eventlogger.Event
 import org.multipaz.eventlogger.EventPresentment
@@ -123,7 +123,7 @@ fun DocumentEventListScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LazyFloatingItemList(
+            LazySegmentedItemList(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState),
@@ -145,13 +145,13 @@ fun DocumentEventListScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 if (documentEvents.isEmpty()) {
-                    floatingItemList(count = 1) {
-                        FloatingItemCenteredText(
+                    segmentedItemList(count = 1) {
+                        SegmentedItemCenteredText(
                             text = stringResource(R.string.document_event_list_screen_no_events_text),
                         )
                     }
                 } else {
-                    floatingItemList(
+                    segmentedItemList(
                         items = documentEvents,
                         key = { it.identifier }
                     ) { event ->
@@ -202,7 +202,7 @@ private fun EventProvisioningForDocument(
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = "$eventDateTimeString • $eventType"
 
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
@@ -236,7 +236,7 @@ private fun EventPresentmentForDocument(
     val sharingType = event.getSharingType()
     val eventDateTimeString = event.timestamp.toLocalDateTime(timeZone = timeZone).formatLocalized()
     val text = stringResource(R.string.document_event_list_screen_time_and_type_text, eventDateTimeString, sharingType)
-    FloatingItemHeadingAndText(
+    SegmentedItemHeadingAndText(
         modifier = modifier,
         showChevron = true,
         image = {
