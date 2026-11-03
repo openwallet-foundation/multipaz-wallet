@@ -346,9 +346,7 @@ private fun EventViewerProvisioning(
             timeStyle = FormatStyle.LONG
         )
 
-        SegmentedItemList(
-            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
-        ) {
+        SegmentedItemList {
             SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_date_time),
                 text = eventDateTimeString
@@ -446,8 +444,6 @@ private fun EventViewerPresentment(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
-
-        Spacer(modifier = Modifier.size(16.dp))
 
         SegmentedItemList(title = null) {
             SegmentedItemHeadingAndText(
@@ -644,7 +640,6 @@ private fun EventViewerPresentment(
                 }
             }
         }
-        Spacer(modifier = Modifier.size(20.dp))
 
         presentmentData?.requestedDocuments?.forEach { requestedDocument ->
             val info = documentModel.documentInfos.collectAsState().value.find {
@@ -668,28 +663,23 @@ private fun EventViewerPresentment(
                 if (requestedClaim is MdocRequestedClaim) !requestedClaim.intentToRetain else true
             }
             if (sharedClaims.isNotEmpty()) {
-                Spacer(modifier = Modifier.size(16.dp))
                 SegmentedItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_text)) {
                     ExtractClaimsItems(sharedClaims, documentTypeRepository)
                 }
-                Spacer(modifier = Modifier.size(20.dp))
             }
 
             val sharedAndStoredClaims = requestedDocument.claims.filter { (requestedClaim, _) ->
                 if (requestedClaim is MdocRequestedClaim) requestedClaim.intentToRetain else false
             }
             if (sharedAndStoredClaims.isNotEmpty()) {
-                Spacer(modifier = Modifier.size(16.dp))
                 SegmentedItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_and_stored_text)) {
                     ExtractClaimsItems(sharedAndStoredClaims, documentTypeRepository)
                 }
-                Spacer(modifier = Modifier.size(20.dp))
             }
         }
 
         if (devModeEnabled) {
             SegmentedItemList(
-                modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = "Developer extras"
             ) {
                 event.telemetry?.let { telemetry ->
@@ -1102,7 +1092,7 @@ private fun EventViewerVerification(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val imageSize = 80.dp
@@ -1120,9 +1110,7 @@ private fun EventViewerVerification(
             modifier = if (onDevExtras != null) Modifier.clickable { onDevExtras() } else Modifier
         )
 
-        SegmentedItemList(
-            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
-        ) {
+        SegmentedItemList {
             SegmentedItemHeadingAndText(
                 heading = "Date and time",
                 text = eventDateTimeString
@@ -1321,7 +1309,6 @@ private fun EventViewerVerification(
                 is JsonVerifiedPresentation -> "Document ${index + 1}: ${vp.vct} ($formatText)"
             }
             SegmentedItemList(
-                modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = titleText
             ) {
                 vp.documentSignerCertChain?.let { certChain ->
@@ -1436,9 +1423,7 @@ private fun EventViewerSimple(
             )
         }
 
-        SegmentedItemList(
-            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
-        ) {
+        SegmentedItemList {
             SegmentedItemHeadingAndText(
                 heading = stringResource(R.string.event_viewer_date_time),
                 text = eventDateTimeString

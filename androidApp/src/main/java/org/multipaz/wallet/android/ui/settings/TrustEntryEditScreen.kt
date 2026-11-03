@@ -154,7 +154,7 @@ fun TrustEntryEditScreen(
                     bottom = 16.dp
                 ),
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
             TrustEntryEditor(
                 trustEntryInfo = info,
                 imageLoader = imageLoader,

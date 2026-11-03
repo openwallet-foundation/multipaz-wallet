@@ -3,7 +3,6 @@ package org.multipaz.wallet.android.ui.viewers
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -57,6 +56,8 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.util.fromBase64Url
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -184,22 +185,22 @@ private fun JsonCodeBox(
     }
     val horizontalScrollState = rememberScrollState()
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-            .horizontalScroll(horizontalScrollState)
-            .padding(16.dp)
-    ) {
-        SelectionContainer {
-            Text(
-                text = annotatedString,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-            )
+    SegmentedItemList(modifier = modifier) {
+        SegmentedItemContainer {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(horizontalScrollState)
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = annotatedString,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    )
+                }
+            }
         }
     }
 }
@@ -211,23 +212,23 @@ private fun PlainCodeBox(
 ) {
     val horizontalScrollState = rememberScrollState()
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-            .horizontalScroll(horizontalScrollState)
-            .padding(16.dp)
-    ) {
-        SelectionContainer {
-            Text(
-                text = text,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+    SegmentedItemList(modifier = modifier) {
+        SegmentedItemContainer {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(horizontalScrollState)
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = text,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
         }
     }
 }
@@ -264,8 +265,8 @@ private fun SubSectionHeading(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         if (textToCopy != null) {
             IconButton(
@@ -369,7 +370,7 @@ fun JwtViewerScreen(
                     bottom = 16.dp
                 )
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
 
             val byteCount = jwtString.encodeToByteArray().size
             val formattedSize = formatNumberWithCommas(byteCount)
@@ -582,8 +583,6 @@ fun JwtViewerScreen(
                     PlainCodeBox(jwtString)
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

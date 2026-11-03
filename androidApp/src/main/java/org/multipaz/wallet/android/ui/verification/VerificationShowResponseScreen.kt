@@ -243,7 +243,7 @@ fun VerificationShowResponseScreen(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
             if (parsingResponseFailed.value != null) {
                 ShowParsingFailedError(parsingResponseFailed.value!!)
             } else {
@@ -816,7 +816,7 @@ private fun ShowAgeOverResult(
         )
     }
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     ShowSource(
         result = result,
         builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
@@ -827,7 +827,6 @@ private fun ShowAgeOverResult(
         onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
-    Spacer(modifier = Modifier.height(20.dp))
 }
 
 @Composable
@@ -854,7 +853,7 @@ fun ShowIdentificationResult(
         revocationCheckResult = revocationCheckResult
     )
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     SegmentedItemList {
         SegmentedItemHeadingAndText(
             heading = stringResource(R.string.verification_show_response_name_heading),
@@ -871,7 +870,7 @@ fun ShowIdentificationResult(
             )
         }
     }
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     ShowSource(
         result = result,
         builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
@@ -882,7 +881,6 @@ fun ShowIdentificationResult(
         onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
-    Spacer(modifier = Modifier.height(20.dp))
 }
 
 @Composable
@@ -910,7 +908,7 @@ fun ShowDrivingPrivilegesResult(
         revocationCheckResult = revocationCheckResult
     )
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     SegmentedItemList {
         SegmentedItemHeadingAndText(
             heading = stringResource(R.string.verification_show_response_name_heading),
@@ -923,11 +921,11 @@ fun ShowDrivingPrivilegesResult(
     }
 
     if (result.drivingPrivilegesList.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         ShowDrivingPrivileges(result.drivingPrivilegesList)
     }
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     ShowSource(
         result = result,
         builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
@@ -938,7 +936,6 @@ fun ShowDrivingPrivilegesResult(
         onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
-    Spacer(modifier = Modifier.height(20.dp))
 }
 
 @Composable
@@ -978,7 +975,7 @@ private fun ShowEventDetails(
     verificationLocation: Location?
 ) {
     if (verificationTime != null || verificationLocation != null) {
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         SegmentedItemList(title = stringResource(R.string.verification_show_response_verified_at)) {
             if (verificationTime != null) {
                 val eventDateTime = verificationTime.toLocalDateTime(timeZone = TimeZone.currentSystemDefault())
@@ -1074,7 +1071,7 @@ fun ShowUserDefinedResult(
         revocationCheckResult = revocationCheckResult
     )
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     SegmentedItemList(
         title = stringResource(R.string.select_user_defined_query_dialog_doc_type)
     ) {
@@ -1084,7 +1081,7 @@ fun ShowUserDefinedResult(
     }
 
     result.elements.forEach { (namespace, elements) ->
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         SegmentedItemList(
             title = stringResource(R.string.verification_show_response_developer_extras_namespace, namespace)
         ) {
@@ -1140,7 +1137,7 @@ fun ShowUserDefinedResult(
         }
     }
 
-    Spacer(modifier = Modifier.height(20.dp))
+    Spacer(modifier = Modifier.height(16.dp))
     ShowSource(
         result = result,
         builtInIssuerTrustManagerModel = builtInIssuerTrustManagerModel,
@@ -1151,5 +1148,4 @@ fun ShowUserDefinedResult(
         onTrustEntryClicked = onTrustEntryClicked
     )
     ShowEventDetails(verificationTime, verificationLocation)
-    Spacer(modifier = Modifier.height(20.dp))
 }

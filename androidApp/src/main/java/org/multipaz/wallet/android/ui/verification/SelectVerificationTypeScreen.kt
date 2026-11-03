@@ -84,11 +84,10 @@ fun SelectVerificationTypeScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.select_verification_type_note))
-            Spacer(modifier = Modifier.height(10.dp))
             val selectedQuery = settingsModel.readerQuery.collectAsState().value
             val devMode = settingsModel.devMode.collectAsState().value
             SegmentedItemList {
@@ -183,7 +182,6 @@ fun SelectVerificationTypeScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

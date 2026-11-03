@@ -115,78 +115,81 @@ fun SettingsScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
-            SegmentedItemList(title = stringResource(R.string.settings_screen_account_title)) {
-                if (signedInData != null) {
-                    if (isSigningOut.value) {
-                        SegmentedItemCenteredText(
-                            text = stringResource(R.string.settings_screen_signing_out),
-                        )
-                    } else {
-                        SegmentedItemText(
-                            modifier = Modifier.clickable {
-                                onSignedInUserClicked()
-                            },
-                            showChevron = true,
-                            text = signedInData.displayName ?: stringResource(R.string.settings_screen_google_user_default_name),
-                            secondary = signedInData.id,
-                            image = {
-                                signedInData.ProfilePicture(size = 24.dp)
-                            }
-                        )
-                        SegmentedItemText(
-                            modifier = Modifier.clickable {
-                                onUseWithoutGoogleAccountClicked()
-                            },
-                            text = stringResource(R.string.settings_screen_use_without_google),
-                            image = {
-                                Icon(Icons.Outlined.NoAccounts, contentDescription = null)
-                            }
-                        )
-                    }
-                } else {
-                    if (isSigningIn.value) {
-                        SegmentedItemContainer {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.CenterHorizontally),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp).padding(4.dp),
-                                    strokeWidth = 1.dp
-                                )
-                                Text(
-                                    text = stringResource(R.string.settings_screen_signing_in),
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    fontStyle = FontStyle.Italic
-                                )
-                            }
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SegmentedItemList(title = stringResource(R.string.settings_screen_account_title)) {
+                    if (signedInData != null) {
+                        if (isSigningOut.value) {
+                            SegmentedItemCenteredText(
+                                text = stringResource(R.string.settings_screen_signing_out),
+                            )
+                        } else {
+                            SegmentedItemText(
+                                modifier = Modifier.clickable {
+                                    onSignedInUserClicked()
+                                },
+                                showChevron = true,
+                                text = signedInData.displayName ?: stringResource(R.string.settings_screen_google_user_default_name),
+                                secondary = signedInData.id,
+                                image = {
+                                    signedInData.ProfilePicture(size = 24.dp)
+                                }
+                            )
+                            SegmentedItemText(
+                                modifier = Modifier.clickable {
+                                    onUseWithoutGoogleAccountClicked()
+                                },
+                                text = stringResource(R.string.settings_screen_use_without_google),
+                                image = {
+                                    Icon(Icons.Outlined.NoAccounts, contentDescription = null)
+                                }
+                            )
                         }
                     } else {
-                        SegmentedItemText(
-                            modifier = Modifier.clickable {
-                                onSignInToGoogleClicked()
-                            },
-                            text = stringResource(R.string.settings_screen_sign_in),
-                            image = {
-                                Icon(Icons.Outlined.AccountCircle, contentDescription = null)
+                        if (isSigningIn.value) {
+                            SegmentedItemContainer {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp, alignment = Alignment.CenterHorizontally),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp).padding(4.dp),
+                                        strokeWidth = 1.dp
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.settings_screen_signing_in),
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontStyle = FontStyle.Italic
+                                    )
+                                }
                             }
-                        )
+                        } else {
+                            SegmentedItemText(
+                                modifier = Modifier.clickable {
+                                    onSignInToGoogleClicked()
+                                },
+                                text = stringResource(R.string.settings_screen_sign_in),
+                                image = {
+                                    Icon(Icons.Outlined.AccountCircle, contentDescription = null)
+                                }
+                            )
+                        }
                     }
                 }
+                val markdownString = if (signedInData != null) {
+                    stringResource(R.string.settings_screen_sync_info_signed_in, BuildConfig.BACKEND_URL)
+                } else {
+                    stringResource(R.string.settings_screen_sync_info_signed_out, BuildConfig.BACKEND_URL)
+                }
+                InfoNote(markdownString = markdownString)
             }
-            val markdownString = if (signedInData != null) {
-                stringResource(R.string.settings_screen_sync_info_signed_in, BuildConfig.BACKEND_URL)
-            } else {
-                stringResource(R.string.settings_screen_sync_info_signed_out, BuildConfig.BACKEND_URL)
-            }
-            InfoNote(markdownString = markdownString)
 
-            Spacer(modifier = Modifier.height(10.dp))
             SegmentedItemList {
                 SegmentedItemText(
                     modifier = Modifier.clickable {
@@ -253,7 +256,6 @@ fun SettingsScreen(
                     }
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

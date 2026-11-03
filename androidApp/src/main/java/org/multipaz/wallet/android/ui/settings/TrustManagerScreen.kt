@@ -328,13 +328,13 @@ fun TrustManagerScreen(
             ),
         ) {
             item {
-                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 14.dp))
             }
             item {
                 Note(explainer)
             }
             item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
             trustEntryList(
                 trustEntryInfos = builtInInfos,
@@ -347,7 +347,7 @@ fun TrustManagerScreen(
                 }
             )
             item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
             trustEntryList(
                 trustEntryInfos = userInfos,
@@ -359,9 +359,6 @@ fun TrustManagerScreen(
                     onTrustEntryClicked(user.trustManager.identifier, trustEntry.identifier)
                 }
             )
-            item {
-                Spacer(modifier = Modifier.height(20.dp))
-            }
         }
     }
 }

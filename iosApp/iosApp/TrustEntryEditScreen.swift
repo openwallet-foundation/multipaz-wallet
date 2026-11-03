@@ -50,7 +50,7 @@ struct TrustEntryEditScreen: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 if let info = entryInfo {
                     VStack(alignment: .center, spacing: 12) {
                         if let iconData = customIconData, let uiImage = UIImage(data: iconData) {
@@ -89,7 +89,6 @@ struct TrustEntryEditScreen: View {
                                 TextField(info.fallbackName, text: $displayName)
                                     .textFieldStyle(.plain)
                             }
-                            .padding(.vertical, 4)
                         }
                         
                         SegmentedItemContainer {

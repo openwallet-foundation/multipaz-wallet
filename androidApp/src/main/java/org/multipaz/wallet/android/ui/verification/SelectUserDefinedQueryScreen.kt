@@ -140,7 +140,7 @@ fun SelectUserDefinedQueryScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(
                 markdownString = stringResource(R.string.select_user_defined_query_note)
             )
@@ -254,8 +254,6 @@ fun SelectUserDefinedQueryScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.select_user_defined_query_dialog_add_namespace))
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

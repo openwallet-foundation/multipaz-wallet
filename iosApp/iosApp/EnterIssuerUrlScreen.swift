@@ -11,21 +11,18 @@ struct EnterIssuerUrlScreen: View {
                 Text("Enter the URL of an OpenID4VCI server to inquire about the credentials it supports and start the provisioning process.")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                    .padding(.horizontal)
                 
                 TextField("Issuer server URL", text: $issuingServerUrl)
                     .textFieldStyle(.roundedBorder)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
-                    .padding(.horizontal)
                 
                 Button("Reset to default") {
                     issuingServerUrl = "https://issuer.multipaz.org/issuer"
                     viewModel.settings.provisioningServerUrl = issuingServerUrl
                 }
                 .font(.subheadline)
-                .padding(.horizontal)
                 
                 Spacer()
                     .frame(height: 8)
@@ -42,9 +39,8 @@ struct EnterIssuerUrlScreen: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(issuingServerUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .padding(.horizontal)
             }
-            .padding(.vertical)
+            .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Enter issuer URL")

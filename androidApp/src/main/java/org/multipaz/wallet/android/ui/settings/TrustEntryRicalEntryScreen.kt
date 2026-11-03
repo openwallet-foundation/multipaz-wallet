@@ -67,7 +67,7 @@ fun TrustEntryRicalEntryScreen(
                     bottom = 16.dp
                 ),
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
             TrustEntryRicalEntryViewer(
                 trustManagerModel = trustManagerModel,
                 ricalTrustEntryId = ricalTrustEntryId,

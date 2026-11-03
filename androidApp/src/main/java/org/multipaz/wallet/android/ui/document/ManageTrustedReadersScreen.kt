@@ -118,7 +118,7 @@ fun ManageTrustedReadersScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.manage_trusted_readers_blurb))
 
             SegmentedItemList(title = stringResource(R.string.manage_trusted_readers_trusted_section)) {
@@ -226,7 +226,6 @@ fun ManageTrustedReadersScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

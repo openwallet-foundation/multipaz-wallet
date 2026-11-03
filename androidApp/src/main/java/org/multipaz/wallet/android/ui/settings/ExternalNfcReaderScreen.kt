@@ -105,13 +105,11 @@ fun ExternalNfcReaderScreen(
                     end = 16.dp,
                     bottom = 16.dp
                 ),
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            SegmentedItemList(
-                modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)
-            ) {
+            SegmentedItemList {
                 SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_name), reader.userDisplayName ?: reader.displayName)
                 if (reader.userDisplayName != null) {
                     SegmentedItemHeadingAndText(stringResource(R.string.external_nfc_reader_field_original_name), reader.displayName)

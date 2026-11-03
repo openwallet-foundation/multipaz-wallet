@@ -190,7 +190,7 @@ fun CredentialInfoScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
             Note(
                 markdownString = stringResource(R.string.credential_info_note)
             )
@@ -214,7 +214,6 @@ fun CredentialInfoScreen(
                     SegmentedItemCenteredText(stringResource(R.string.credential_info_empty))
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

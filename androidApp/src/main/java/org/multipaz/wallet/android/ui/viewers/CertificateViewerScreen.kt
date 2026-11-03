@@ -140,7 +140,7 @@ private fun CertificateViewerInternal(
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
         ) {
             val topSpacerHeight = if (certificates.size > 1) {
                 innerPadding.calculateTopPadding() + 8.dp
@@ -155,7 +155,6 @@ private fun CertificateViewerInternal(
                     certificate = currentCert
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

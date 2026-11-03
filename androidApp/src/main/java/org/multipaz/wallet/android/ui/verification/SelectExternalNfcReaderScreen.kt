@@ -79,11 +79,10 @@ fun SelectExternalNfcReaderScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.select_external_nfc_reader_note))
-            Spacer(modifier = Modifier.height(10.dp))
             SegmentedItemList {
                 // Built-in NFC reader option
                 val isInternalSelected = selectedReaderId == null || readers.none { it.id == selectedReaderId }
@@ -93,23 +92,20 @@ fun SelectExternalNfcReaderScreen(
                     }
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
                     ) {
                         RadioButton(
                             selected = isInternalSelected,
-                            onClick = {
-                                settingsModel.selectedExternalNfcReaderId.value = null
-                            }
+                            onClick = null,
+                            modifier = Modifier.padding(top = 2.dp, end = 16.dp)
                         )
                         Column {
                             Text(
                                 text = stringResource(R.string.request_verification_internal_nfc_reader),
                                 style = MaterialTheme.typography.titleMedium
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = stringResource(R.string.external_nfc_reader_type_builtin),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -136,23 +132,20 @@ fun SelectExternalNfcReaderScreen(
                         }
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Top
                         ) {
                             RadioButton(
                                 selected = isSelected,
-                                onClick = {
-                                    settingsModel.selectedExternalNfcReaderId.value = reader.id
-                                }
+                                onClick = null,
+                                modifier = Modifier.padding(top = 2.dp, end = 16.dp)
                             )
                             Column {
                                 Text(
                                     text = reader.userDisplayName ?: reader.displayName,
                                     style = MaterialTheme.typography.titleMedium
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = stringResource(R.string.external_nfc_reader_type_external_status, statusText),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -163,7 +156,6 @@ fun SelectExternalNfcReaderScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }

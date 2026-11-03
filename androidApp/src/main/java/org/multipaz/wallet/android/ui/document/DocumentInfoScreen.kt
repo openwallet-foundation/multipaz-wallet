@@ -1,6 +1,7 @@
 package org.multipaz.wallet.android.ui.document
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -94,17 +95,16 @@ fun DocumentInfoScreen(
                     start = 16.dp,
                     end = 16.dp,
                     bottom = 16.dp
-                )
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
             val hint = if (documentInfo.isProximityPresentable) {
                 stringResource(R.string.doc_info_screen_usage_info)
             } else {
                 stringResource(R.string.doc_info_screen_usage_info_not_proximity_presentable)
             }
             Note(markdownString = hint)
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // TODO: Need better renderers for complex claims like Driving Privileges
             //   for mDL and object claims in JSON based credentials. This should probably
@@ -123,8 +123,6 @@ fun DocumentInfoScreen(
                     SegmentedItemListClaim(claim = claim)
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             SegmentedItemList(title = stringResource(R.string.doc_info_screen_cert_info_title)) {
                 var certSignedDate: Instant? = null
@@ -160,7 +158,6 @@ fun DocumentInfoScreen(
                     date = certExpectedUpdate
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

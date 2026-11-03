@@ -159,7 +159,7 @@ fun DeviceSessionsScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             val accountIdentifier = signedInData?.id ?: stringResource(R.string.device_sessions_screen_your_account)
             Note(stringResource(R.string.device_sessions_screen_blurb, accountIdentifier))
 
@@ -255,8 +255,6 @@ fun DeviceSessionsScreen(
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 

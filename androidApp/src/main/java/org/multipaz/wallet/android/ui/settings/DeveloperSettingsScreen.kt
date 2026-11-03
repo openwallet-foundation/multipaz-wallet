@@ -120,7 +120,7 @@ fun DeveloperSettingsScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(
                 markdownString = stringResource(R.string.dev_settings_screen_warning),
             )
@@ -370,7 +370,6 @@ fun DeveloperSettingsScreen(
                     text = stringResource(R.string.dev_settings_exit_dev_mode_text)
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

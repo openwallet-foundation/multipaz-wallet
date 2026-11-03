@@ -130,7 +130,7 @@ fun EventListScreen(
                 ),
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 14.dp))
                 }
                 item {
                     Note(
@@ -138,7 +138,7 @@ fun EventListScreen(
                     )
                 }
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
                 if (currentEvents.isEmpty()) {
                     segmentedItemList(count = 1) {
@@ -186,9 +186,6 @@ fun EventListScreen(
                             }
                         }
                     }
-                }
-                item {
-                    Spacer(modifier = Modifier.size(20.dp))
                 }
             }
         }

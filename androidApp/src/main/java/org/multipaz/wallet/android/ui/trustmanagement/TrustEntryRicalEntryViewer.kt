@@ -63,7 +63,6 @@ fun TrustEntryRicalEntryViewer(
         Spacer(modifier = Modifier.height(16.dp))
 
         SegmentedItemList(
-            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
             title = stringResource(R.string.trust_entry_rical_entry_title)
         ) {
             SegmentedItemHeadingAndText(
@@ -82,6 +81,8 @@ fun TrustEntryRicalEntryViewer(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         X509CertViewer(certificate = ricalCertInfo.certificate)
     }

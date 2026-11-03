@@ -3,6 +3,7 @@ package org.multipaz.wallet.android.ui.settings
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,8 +29,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -105,6 +104,8 @@ import org.multipaz.cbor.toDataItemFullDate
 import org.multipaz.compose.camera.Camera
 import org.multipaz.compose.camera.CameraCaptureResolution
 import org.multipaz.compose.camera.CameraSelection
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.compose.permissions.rememberCameraPermissionState
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
@@ -807,66 +808,76 @@ fun DeveloperAddSelfSignedDocumentScreen(
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .verticalScroll(scrollState)
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(
                 markdownString = stringResource(R.string.dev_add_self_signed_explainer)
             )
 
             // Document Type Selector
-            ExposedDropdownMenuBox(
-                expanded = docTypeDropdownExpanded,
-                onExpandedChange = { docTypeDropdownExpanded = it },
-                modifier = Modifier.fillMaxWidth()
+            SegmentedItemList(
+                title = stringResource(R.string.dev_add_self_signed_document_type_label)
             ) {
-                val formatBadge = buildList {
-                    selectedDocumentType.mdocDocumentType?.let { add(it.docType) }
-                    selectedDocumentType.jsonDocumentType?.let { add(it.vct) }
-                }.joinToString(" • ")
-
-                OutlinedTextField(
-                    value = "${selectedDocumentType.displayName} ($formatBadge)",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.dev_add_self_signed_document_type_label)) },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = docTypeDropdownExpanded)
-                    },
-                    modifier = Modifier
-                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                        .fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = docTypeDropdownExpanded,
-                    onDismissRequest = { docTypeDropdownExpanded = false }
-                ) {
-                    supportedDocumentTypes.forEach { docType ->
-                        val docBadge = buildList {
-                            docType.mdocDocumentType?.let { add("mdoc: ${it.docType}") }
-                            docType.jsonDocumentType?.let { add("SD-JWT: ${it.vct}") }
+                SegmentedItemContainer {
+                    ExposedDropdownMenuBox(
+                        expanded = docTypeDropdownExpanded,
+                        onExpandedChange = { docTypeDropdownExpanded = it },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val formatBadge = buildList {
+                            selectedDocumentType.mdocDocumentType?.let { add(it.docType) }
+                            selectedDocumentType.jsonDocumentType?.let { add(it.vct) }
                         }.joinToString(" • ")
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(
-                                        text = docType.displayName,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        text = docBadge,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+
+                        OutlinedTextField(
+                            value = "${selectedDocumentType.displayName} ($formatBadge)",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.dev_add_self_signed_document_type_label)) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = docTypeDropdownExpanded)
                             },
-                            onClick = {
-                                selectedDocumentType = docType
-                                docTypeDropdownExpanded = false
-                            }
+                            modifier = Modifier
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
                         )
+                        ExposedDropdownMenu(
+                            expanded = docTypeDropdownExpanded,
+                            onDismissRequest = { docTypeDropdownExpanded = false }
+                        ) {
+                            supportedDocumentTypes.forEach { docType ->
+                                val docBadge = buildList {
+                                    docType.mdocDocumentType?.let { add("mdoc: ${it.docType}") }
+                                    docType.jsonDocumentType?.let { add("SD-JWT: ${it.vct}") }
+                                }.joinToString(" • ")
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = docType.displayName,
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                            Text(
+                                                text = docBadge,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedDocumentType = docType
+                                        docTypeDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -889,23 +900,11 @@ fun DeveloperAddSelfSignedDocumentScreen(
                         val activeEntries = allEntries.filter { (_, state) -> state.included || state.mandatory }
                         val optionalHiddenEntries = allEntries.filter { (_, state) -> !state.included && !state.mandatory }
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                        SegmentedItemList(
+                            title = stringResource(R.string.dev_add_self_signed_namespace_title, nsName)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.dev_add_self_signed_namespace_title, nsName),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-
-                                activeEntries.forEach { (stateKey, state) ->
+                            activeEntries.forEach { (stateKey, state) ->
+                                SegmentedItemContainer {
                                     AttributeEditorRow(
                                         identifier = stateKey.second,
                                         state = state,
@@ -913,10 +912,17 @@ fun DeveloperAddSelfSignedDocumentScreen(
                                         onOpenDatePicker = { req -> activeDatePickerRequest = req }
                                     )
                                 }
+                            }
 
-                                if (optionalHiddenEntries.isNotEmpty() || showOptionalAttributes) {
-                                    TextButton(
-                                        onClick = { showOptionalAttributes = !showOptionalAttributes }
+                            if (optionalHiddenEntries.isNotEmpty() || showOptionalAttributes) {
+                                SegmentedItemContainer(
+                                    modifier = Modifier.clickable {
+                                        showOptionalAttributes = !showOptionalAttributes
+                                    }
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = if (showOptionalAttributes) {
@@ -926,12 +932,16 @@ fun DeveloperAddSelfSignedDocumentScreen(
                                                     R.string.dev_add_self_signed_show_optional_attributes,
                                                     optionalHiddenEntries.size
                                                 )
-                                            }
+                                            },
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.labelLarge
                                         )
                                     }
+                                }
 
-                                    if (showOptionalAttributes) {
-                                        optionalHiddenEntries.forEach { (stateKey, state) ->
+                                if (showOptionalAttributes) {
+                                    optionalHiddenEntries.forEach { (stateKey, state) ->
+                                        SegmentedItemContainer {
                                             AttributeEditorRow(
                                                 identifier = stateKey.second,
                                                 state = state,
@@ -960,63 +970,51 @@ fun DeveloperAddSelfSignedDocumentScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Authorized Name Spaces Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                // Authorized Name Spaces
+                SegmentedItemList(
+                    title = stringResource(R.string.dev_add_self_signed_auth_namespaces_title)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.dev_add_self_signed_auth_namespaces_title),
-                            style = MaterialTheme.typography.titleSmall
-                        )
-
-                        if (authorizedNamespaces.isEmpty()) {
+                    if (authorizedNamespaces.isEmpty()) {
+                        SegmentedItemContainer {
                             Text(
                                 text = stringResource(R.string.dev_add_self_signed_no_auth_namespaces),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        } else {
-                            authorizedNamespaces.forEachIndexed { index, ns ->
-                                Card(
+                        }
+                    } else {
+                        authorizedNamespaces.forEachIndexed { index, ns ->
+                            SegmentedItemContainer {
+                                Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = ns,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        IconButton(
-                                            onClick = {
-                                                authorizedNamespaces = authorizedNamespaces
-                                                    .toMutableList()
-                                                    .also { it.removeAt(index) }
-                                            }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Delete,
-                                                contentDescription = stringResource(
-                                                    R.string.dev_add_self_signed_remove_auth_namespace
-                                                )
-                                            )
+                                    Text(
+                                        text = ns,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            authorizedNamespaces = authorizedNamespaces
+                                                .toMutableList()
+                                                .also { it.removeAt(index) }
                                         }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Delete,
+                                            contentDescription = stringResource(
+                                                R.string.dev_add_self_signed_remove_auth_namespace
+                                            )
+                                        )
                                     }
                                 }
                             }
                         }
+                    }
 
+                    SegmentedItemContainer {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1046,69 +1044,57 @@ fun DeveloperAddSelfSignedDocumentScreen(
                     }
                 }
 
-                // Authorized Data Elements Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                // Authorized Data Elements
+                SegmentedItemList(
+                    title = stringResource(R.string.dev_add_self_signed_auth_data_elements_title)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.dev_add_self_signed_auth_data_elements_title),
-                            style = MaterialTheme.typography.titleSmall
-                        )
-
-                        if (authorizedDataElements.isEmpty()) {
+                    if (authorizedDataElements.isEmpty()) {
+                        SegmentedItemContainer {
                             Text(
                                 text = stringResource(R.string.dev_add_self_signed_no_auth_data_elements),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        } else {
-                            authorizedDataElements.forEachIndexed { index, entry ->
-                                Card(
+                        }
+                    } else {
+                        authorizedDataElements.forEachIndexed { index, entry ->
+                            SegmentedItemContainer {
+                                Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = entry.namespace,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = entry.dataElement,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            authorizedDataElements = authorizedDataElements
+                                                .toMutableList()
+                                                .also { it.removeAt(index) }
+                                        }
                                     ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = entry.namespace,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.primary
+                                        Icon(
+                                            imageVector = Icons.Outlined.Delete,
+                                            contentDescription = stringResource(
+                                                R.string.dev_add_self_signed_remove_auth_data_element
                                             )
-                                            Text(
-                                                text = entry.dataElement,
-                                                style = MaterialTheme.typography.bodyMedium
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                authorizedDataElements = authorizedDataElements
-                                                    .toMutableList()
-                                                    .also { it.removeAt(index) }
-                                            }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Delete,
-                                                contentDescription = stringResource(
-                                                    R.string.dev_add_self_signed_remove_auth_data_element
-                                                )
-                                            )
-                                        }
+                                        )
                                     }
                                 }
                             }
                         }
+                    }
 
+                    SegmentedItemContainer {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -1193,15 +1179,9 @@ fun DeveloperAddSelfSignedDocumentScreen(
                     val activeJsonEntries = allJsonEntries.filter { (_, state) -> state.included || state.mandatory }
                     val optionalJsonEntries = allJsonEntries.filter { (_, state) -> !state.included && !state.mandatory }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            activeJsonEntries.forEach { (path, state) ->
+                    SegmentedItemList {
+                        activeJsonEntries.forEach { (path, state) ->
+                            SegmentedItemContainer {
                                 AttributeEditorRow(
                                     identifier = path,
                                     state = state,
@@ -1209,10 +1189,17 @@ fun DeveloperAddSelfSignedDocumentScreen(
                                     onOpenDatePicker = { req -> activeDatePickerRequest = req }
                                 )
                             }
+                        }
 
-                            if (optionalJsonEntries.isNotEmpty() || showOptionalJsonAttributes) {
-                                TextButton(
-                                    onClick = { showOptionalJsonAttributes = !showOptionalJsonAttributes }
+                        if (optionalJsonEntries.isNotEmpty() || showOptionalJsonAttributes) {
+                            SegmentedItemContainer(
+                                modifier = Modifier.clickable {
+                                    showOptionalJsonAttributes = !showOptionalJsonAttributes
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = if (showOptionalJsonAttributes) {
@@ -1222,12 +1209,16 @@ fun DeveloperAddSelfSignedDocumentScreen(
                                                 R.string.dev_add_self_signed_show_optional_attributes,
                                                 optionalJsonEntries.size
                                             )
-                                        }
+                                        },
+                                        color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.labelLarge
                                     )
                                 }
+                            }
 
-                                if (showOptionalJsonAttributes) {
-                                    optionalJsonEntries.forEach { (path, state) ->
+                            if (showOptionalJsonAttributes) {
+                                optionalJsonEntries.forEach { (path, state) ->
+                                    SegmentedItemContainer {
                                         AttributeEditorRow(
                                             identifier = path,
                                             state = state,
@@ -1265,27 +1256,26 @@ fun DeveloperAddSelfSignedDocumentScreen(
                 )
 
                 if (!cameraPermissionState.isGranted) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.dev_add_self_signed_camera_permission_needed),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        cameraPermissionState.launchPermissionRequest()
-                                    }
-                                }
+                    SegmentedItemList {
+                        SegmentedItemContainer {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(stringResource(R.string.dev_add_self_signed_grant_permission))
+                                Text(
+                                    text = stringResource(R.string.dev_add_self_signed_camera_permission_needed),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Button(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            cameraPermissionState.launchPermissionRequest()
+                                        }
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.dev_add_self_signed_grant_permission))
+                                }
                             }
                         }
                     }
@@ -1456,8 +1446,6 @@ fun DeveloperAddSelfSignedDocumentScreen(
                 }
                 Text(stringResource(R.string.dev_add_self_signed_create_button))
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 

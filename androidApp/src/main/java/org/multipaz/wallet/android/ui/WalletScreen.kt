@@ -788,7 +788,7 @@ private fun DocumentInfoContent(
             JustAdded()
         } else {
             Column(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 DocumentInfoContentReal(
@@ -861,9 +861,11 @@ private fun DocumentInfoContentReal(
         }
     }
     Column(
-        modifier = Modifier.verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
         SegmentedItemList {
             val typeDisplayName = documentInfo.document.typeDisplayName
                 ?: stringResource(R.string.wallet_screen_document_type_name_fallback)
@@ -969,7 +971,6 @@ private fun DocumentInfoContentReal(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(20.dp))
 
         // Make Remove stand out by having it in its own list
         SegmentedItemList {
@@ -992,7 +993,6 @@ private fun DocumentInfoContentReal(
                 }
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 

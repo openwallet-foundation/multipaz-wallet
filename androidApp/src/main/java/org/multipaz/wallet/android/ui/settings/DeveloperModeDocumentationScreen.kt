@@ -66,7 +66,7 @@ fun DeveloperModeDocumentationScreen(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
             MarkdownView(
                 markdown = BuildConfig.DEVELOPER_MODE_TEXT_MD
             )

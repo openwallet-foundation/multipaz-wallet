@@ -335,9 +335,9 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(
                 markdownString = stringResource(R.string.verification_show_response_developer_extras_note)
             )
@@ -345,7 +345,6 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                 Text(text = verificationError.value!!.message ?: stringResource(R.string.verification_show_response_developer_extras_failed))
             } else if (verficationResult.value != null) {
                 for (section in verficationResult.value!!.sections) {
-                    Spacer(modifier = Modifier.height(10.dp))
                     SegmentedItemList(title = section.header) {
                         for (line in section.lines) {
                             when (line.value) {
@@ -411,7 +410,6 @@ fun VerificationShowResponseDeveloperExtrasScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }

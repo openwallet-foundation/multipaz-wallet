@@ -124,7 +124,7 @@ fun DocumentInfoExtrasScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(padding.calculateTopPadding()))
             Note(
                 markdownString = "This screen contains low-level information about the pass, " +
                         "including its backing credentials, organized by domain."
@@ -323,8 +323,6 @@ fun DocumentInfoExtrasScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

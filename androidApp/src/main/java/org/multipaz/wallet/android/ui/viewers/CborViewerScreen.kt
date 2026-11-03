@@ -2,8 +2,6 @@ package org.multipaz.wallet.android.ui.viewers
 
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,7 +27,6 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -49,6 +45,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import org.multipaz.cbor.Cdn
 import org.multipaz.cbor.CdnGeneratorOptions
+import org.multipaz.compose.items.SegmentedItemContainer
+import org.multipaz.compose.items.SegmentedItemList
 import org.multipaz.util.toHex
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppBackButton
@@ -386,7 +384,7 @@ fun CborViewerScreen(
                     bottom = 16.dp
                 )
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
 
             val formattedSize = formatNumberWithCommas(cborBytes.size)
             val unit = if (cborBytes.size == 1) "byte" else "bytes"
@@ -397,22 +395,22 @@ fun CborViewerScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                    .horizontalScroll(horizontalScrollState)
-                    .padding(16.dp)
-            ) {
-                SelectionContainer {
-                    Text(
-                        text = annotatedString,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                    )
+            SegmentedItemList {
+                SegmentedItemContainer {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(horizontalScrollState)
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                text = annotatedString,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                            )
+                        }
+                    }
                 }
             }
         }

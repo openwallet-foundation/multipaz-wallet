@@ -96,7 +96,7 @@ fun AuthorizationScreenSecretText(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             val lengthFixed = (challenge.request.length != null)
             val constraints = challenge.request.length?.let {
                 PassphraseConstraints(

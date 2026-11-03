@@ -93,7 +93,7 @@ fun ActivityLoggingSettingsScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(
                 markdownString = stringResource(R.string.activity_logging_settings_screen_activity_log_info_text)
             )
@@ -164,7 +164,6 @@ fun ActivityLoggingSettingsScreen(
                     },
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

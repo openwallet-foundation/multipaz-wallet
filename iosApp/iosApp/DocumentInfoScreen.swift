@@ -20,7 +20,7 @@ struct DocumentInfoScreen: View {
                 let certInfo = getCertInfo(credentialInfo: credentialInfo)
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 16) {
                         
                         SegmentedItemList {
                             ForEach(0..<claimsToShow.count, id: \.self) { index in
@@ -42,8 +42,6 @@ struct DocumentInfoScreen: View {
                                 SegmentedItemHeadingAndDate(heading: "Expected Update", date: date)
                             }
                         }
-                        
-                        Spacer()
                     }
                     .padding()
                 }

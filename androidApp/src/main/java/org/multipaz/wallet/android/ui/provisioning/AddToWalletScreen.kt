@@ -138,7 +138,7 @@ fun AddToWalletScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
                 Note(
                     stringResource(R.string.provisioning_add_to_wallet_screen_explainer)
                 )
@@ -229,7 +229,6 @@ fun AddToWalletScreen(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }

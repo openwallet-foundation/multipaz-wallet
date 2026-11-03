@@ -56,7 +56,6 @@ struct TrustEntryScreen: View {
                         Text("This trust entry was imported by you. Make sure you trust the source where you obtained it from.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
-                            .padding(.horizontal, 4)
                     }
                     
                     VStack(alignment: .center, spacing: 12) {

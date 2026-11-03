@@ -20,7 +20,7 @@ struct CredentialInfoScreen: View {
         }
         
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 Text("This screen contains low-level technical details about a specific credential")
                     .font(.footnote)
                 if let credentialInfo = credentialInfo {

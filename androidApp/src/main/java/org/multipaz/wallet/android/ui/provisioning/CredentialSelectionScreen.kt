@@ -87,7 +87,7 @@ fun CredentialSelectionScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(
                 stringResource(
                     R.string.provisioning_selection_explainer,
@@ -122,7 +122,6 @@ fun CredentialSelectionScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.size(20.dp))
         }
     }
 }

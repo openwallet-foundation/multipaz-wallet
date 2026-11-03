@@ -134,7 +134,7 @@ fun DocumentEventListScreen(
                 ),
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 14.dp))
                 }
                 item {
                     Note(
@@ -142,7 +142,7 @@ fun DocumentEventListScreen(
                     )
                 }
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
                 if (documentEvents.isEmpty()) {
                     segmentedItemList(count = 1) {
@@ -176,9 +176,6 @@ fun DocumentEventListScreen(
                             is EventSimple -> {}
                         }
                     }
-                }
-                item {
-                    Spacer(modifier = Modifier.size(20.dp))
                 }
             }
         }

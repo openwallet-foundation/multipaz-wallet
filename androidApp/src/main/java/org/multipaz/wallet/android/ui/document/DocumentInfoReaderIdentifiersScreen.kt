@@ -215,7 +215,7 @@ fun DocumentInfoReaderIdentifiersScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.document_info_reader_identifiers_note))
 
             SegmentedItemList(title = stringResource(R.string.document_info_reader_identifiers_screen_title)) {
@@ -318,8 +318,6 @@ fun DocumentInfoReaderIdentifiersScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

@@ -389,11 +389,10 @@ struct CredentialSelectionView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 Text("\(metadata.display.text) offers the following passes. Select a pass to continue.")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                    .padding(.horizontal)
                 
                 // Collect credential ids
                 let keys = Array(metadata.credentials.keys).compactMap { $0 as? String }
@@ -421,9 +420,8 @@ struct CredentialSelectionView: View {
                         }
                     }
                 }
-                .padding(.horizontal)
             }
-            .padding(.vertical)
+            .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Select pass")

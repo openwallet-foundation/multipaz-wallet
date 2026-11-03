@@ -67,7 +67,7 @@ fun TrustEntryVicalEntryScreen(
                     bottom = 16.dp
                 ),
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 16.dp))
             TrustEntryVicalEntryViewer(
                 trustManagerModel = trustManagerModel,
                 vicalTrustEntryId = vicalTrustEntryId,

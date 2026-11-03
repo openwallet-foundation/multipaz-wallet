@@ -58,10 +58,9 @@ struct TrustManagerScreen: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 Text(explainerText)
                     .font(.footnote)
-                    .padding(.horizontal)
                 
                 SegmentedItemList(title: "Built-in trust anchors") {
                     if builtInModel.isLoading && builtInModel.entries == nil {
@@ -85,7 +84,6 @@ struct TrustManagerScreen: View {
                         }
                     }
                 }
-                .padding(.horizontal)
                 
                 SegmentedItemList(title: "Manually imported trust anchors") {
                     if userModel.isLoading && userModel.entries == nil {
@@ -109,9 +107,8 @@ struct TrustManagerScreen: View {
                         }
                     }
                 }
-                .padding(.horizontal)
             }
-            .padding(.vertical)
+            .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(screenTitle)

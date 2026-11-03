@@ -81,7 +81,7 @@ fun EnterIssuerUrlScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
 
             Note(stringResource(R.string.provisioning_add_to_wallet_screen_issuer_server_dialog_text))
 
@@ -123,8 +123,6 @@ fun EnterIssuerUrlScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

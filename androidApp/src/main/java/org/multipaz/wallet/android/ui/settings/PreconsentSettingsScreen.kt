@@ -90,7 +90,7 @@ fun PreconsentSettingsScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             Note(stringResource(R.string.preconsent_defaults_screen_blurb))
 
             SegmentedItemList {
@@ -114,8 +114,6 @@ fun PreconsentSettingsScreen(
             }
 
             InfoNote(markdownString = stringResource(R.string.preconsent_defaults_per_document_note))
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

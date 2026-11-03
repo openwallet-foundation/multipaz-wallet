@@ -331,9 +331,9 @@ fun RequestVerificationScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.height(IntrinsicSize.Min)
             ) {
@@ -358,7 +358,6 @@ fun RequestVerificationScreen(
                     }
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
             SegmentedItemList(title = stringResource(R.string.request_verification_what_to_request)) {
                 val selectedQuery = settingsModel.readerQuery.collectAsState().value
                 SegmentedItemHeadingAndContent(
@@ -393,7 +392,6 @@ fun RequestVerificationScreen(
             }
 
             if (!isInPerson) {
-                Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
@@ -422,8 +420,6 @@ fun RequestVerificationScreen(
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (pendingList.value.isNotEmpty()) {
                     SegmentedItemList(title = stringResource(R.string.request_verification_pending_heading)) {
@@ -611,16 +607,19 @@ fun RequestVerificationScreen(
                     stringResource(R.string.external_nfc_reader_type_external_status, statusText)
                 }
 
-                SegmentedItemList(title = stringResource(R.string.request_verification_nfc_reader_heading)) {
-                    SegmentedItemHeadingAndText(
-                        modifier = Modifier.clickable { onSelectNfcReaderClicked() },
-                        showChevron = true,
-                        heading = activeReaderDisplayName,
-                        text = activeReaderSubtitle
-                    )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SegmentedItemList(title = stringResource(R.string.request_verification_nfc_reader_heading)) {
+                        SegmentedItemHeadingAndText(
+                            modifier = Modifier.clickable { onSelectNfcReaderClicked() },
+                            showChevron = true,
+                            heading = activeReaderDisplayName,
+                            text = activeReaderSubtitle
+                        )
+                    }
+                    InfoNote(markdownString = stringResource(R.string.request_verification_nfc_reader_info))
                 }
-                InfoNote(markdownString = stringResource(R.string.request_verification_nfc_reader_info))
-                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -15,7 +15,7 @@ struct DocumentInfoExtrasScreen: View {
         
         VStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 16) {
                     Text("This is a low-level view of the credentials backing this pass, organized by domain.")
                         .font(.footnote)
                     if sortedDomains.isEmpty {
@@ -50,8 +50,6 @@ struct DocumentInfoExtrasScreen: View {
                             }
                         }
                     }
-                    
-                    Spacer()
                 }
                 .padding()
             }

@@ -473,7 +473,7 @@ struct WalletScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
             } else {
-                VStack {
+                VStack(spacing: 16) {
                     if targetDocument.isProximityPresentable {
                         PresentQrCodePromptView()
                             .contentShape(Rectangle())
@@ -855,7 +855,7 @@ private struct PresentQrCodePromptView: View {
         .foregroundStyle(.primary)
         .frame(height: 20)
         .offset(y: -38)
-        .padding(.bottom, -30)
+        .padding(.bottom, -36)
         .opacity(showPresentQrCode ? 1.0 : 0.0)
         .task {
             try? await Task.sleep(nanoseconds: 400_000_000)

@@ -14,11 +14,10 @@ struct AddToWalletScreen: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 Text("Select a pass type to start adding to your wallet")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                    .padding(.horizontal)
                 
                 SegmentedItemList {
                     if let error = errorLoading {
@@ -51,7 +50,6 @@ struct AddToWalletScreen: View {
                         }
                     }
                 }
-                .padding(.horizontal)
                 
                 SegmentedItemList {
                     SegmentedItemText(
@@ -78,9 +76,8 @@ struct AddToWalletScreen: View {
                         viewModel.push(.enterIssuerUrl)
                     }
                 }
-                .padding(.horizontal)
             }
-            .padding(.vertical)
+            .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Add to wallet")

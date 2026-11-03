@@ -86,9 +86,9 @@ fun RequestVerificationFromMdocUrlScreen(
                     bottom = 16.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+            Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             SegmentedItemList(title = stringResource(R.string.request_verification_what_to_request)) {
                 val selectedQuery = settingsModel.readerQuery.collectAsState().value
                 SegmentedItemHeadingAndContent(
@@ -122,7 +122,6 @@ fun RequestVerificationFromMdocUrlScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {

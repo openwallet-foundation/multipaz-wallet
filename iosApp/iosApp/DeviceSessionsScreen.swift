@@ -38,10 +38,9 @@ struct DeviceSessionsScreen: View {
                     Text(errorMessage)
                         .font(.footnote)
                         .foregroundColor(.red)
-                        .padding(.horizontal)
                 }
             }
-            .padding(.vertical)
+            .padding()
         }
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle("Device sessions")
@@ -89,7 +88,6 @@ struct DeviceSessionsScreen: View {
         let accountIdentifier = viewModel.signedInUser?.id ?? "your account"
         Text("Devices signed in to \(accountIdentifier) have access to your synced wallet data. You can review active sessions and sign out of any device at any time.")
             .font(.footnote)
-            .padding(.horizontal)
     }
     
     @ViewBuilder
@@ -106,7 +104,6 @@ struct DeviceSessionsScreen: View {
                             .foregroundColor(.secondary)
                         Spacer()
                     }
-                    .padding(.vertical, 8)
                 }
             } else if let sessionList = sessions {
                 if sessionList.isEmpty {
@@ -118,7 +115,6 @@ struct DeviceSessionsScreen: View {
                 }
             }
         }
-        .padding(.horizontal)
     }
     
     @ViewBuilder

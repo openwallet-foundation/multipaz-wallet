@@ -63,7 +63,6 @@ fun TrustEntryVicalEntryViewer(
         Spacer(modifier = Modifier.height(16.dp))
 
         SegmentedItemList(
-            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
             title = stringResource(R.string.trust_entry_vical_entry_title)
         ) {
             SegmentedItemHeadingAndText(
@@ -78,6 +77,8 @@ fun TrustEntryVicalEntryViewer(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         X509CertViewer(certificate = vicalCertInfo.certificate)
     }

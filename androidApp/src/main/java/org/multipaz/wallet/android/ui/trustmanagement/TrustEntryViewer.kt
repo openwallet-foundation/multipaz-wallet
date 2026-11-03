@@ -1,6 +1,7 @@
 package org.multipaz.wallet.android.ui.trustmanagement
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -118,9 +119,9 @@ fun TrustEntryViewer(
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SegmentedItemList(
-                modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
                 title = null
             ) {
                 SegmentedItemHeadingAndText(stringResource(R.string.trust_entry_viewer_test_only_heading),
@@ -168,7 +169,6 @@ private fun VicalDetails(
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     SegmentedItemList(
-        modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_vical_data_heading)
     ) {
         SegmentedItemHeadingAndText(
@@ -221,7 +221,6 @@ private fun VicalDetails(
     }
 
     SegmentedItemList(
-        modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_certificates)
     ) {
         signedVical.vical.certificateInfos.forEachIndexed { n, certificateInfo ->
@@ -245,7 +244,6 @@ private fun RicalDetails(
     onViewCbor: ((title: String, cborBytes: ByteArray) -> Unit)? = null,
 ) {
     SegmentedItemList(
-        modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_rical_data_heading)
     ) {
         SegmentedItemHeadingAndText(
@@ -302,7 +300,6 @@ private fun RicalDetails(
     }
 
     SegmentedItemList(
-        modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
         title = stringResource(R.string.trust_entry_viewer_certificates)
     ) {
         signedRical.rical.certificateInfos.forEachIndexed { n, certificateInfo ->
