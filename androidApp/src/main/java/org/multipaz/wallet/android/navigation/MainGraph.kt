@@ -229,6 +229,9 @@ fun mainGraph(
                     openID4VCIIssuerUrl = key.openID4VCIIssuerUrl,
                     openID4VCICredentialId = key.openID4VCICredentialId,
                     onCloseClicked = {
+                        if (key.fromCredentialManager) {
+                            app.cancelCredmanProvisioning()
+                        }
                         backStack.removeAt(backStack.size - 1)
                     },
                     onComplete = { document, provisionedDocument ->
@@ -319,14 +322,21 @@ fun mainGraph(
                                 WalletDestination(
                                     documentId = document.identifier,
                                     justAddedAtMillis = Clock.System.now().toEpochMilliseconds(),
+                                    fromCredentialManager = key.fromCredentialManager && errorDialogToAdd == null,
                                 )
                             )
                             if (errorDialogToAdd != null) {
+                                if (key.fromCredentialManager) {
+                                    app.completeCredmanProvisioning()
+                                }
                                 backStack.add(errorDialogToAdd)
                             }
                         }
                     },
-                    onFailed = {
+                    onFailed = { error ->
+                        if (key.fromCredentialManager) {
+                            app.cancelCredmanProvisioning(error)
+                        }
                         backStack.removeAt(backStack.size - 1)
                     }
                 )
@@ -419,6 +429,11 @@ fun mainGraph(
                         },
                         onBackClicked = {
                             backStack.removeAt(backStack.size - 1)
+                        },
+                        onJustAddedComplete = {
+                            if (key.fromCredentialManager) {
+                                app.completeCredmanProvisioning()
+                            }
                         },
                         onRefresh = {
                             app.refreshWallet(reason = RefreshReason.USER_PULL_TO_REFRESH)

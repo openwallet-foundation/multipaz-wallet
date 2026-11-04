@@ -165,6 +165,8 @@
     <string name="dev_settings_logging_debug_text">Enable debug to print out structures helpful for debugging. Warning: debug messages may contain PII.</string>
     <string name="dev_settings_disable_no_user_auth_title">Always require auth for presentment</string>
     <string name="dev_settings_disable_no_user_auth_text">If enabled, the wallet will not request `no_user_auth` credentials and if available, won\'t be used at presentment time</string>
+    <string name="dev_settings_return_to_browser_after_provisioning_title">Return to browser after provisioning</string>
+    <string name="dev_settings_return_to_browser_after_provisioning_text">If enabled, returns to the calling browser or app after provisioning a pass offered via the Digital Credentials API.</string>
     <string name="dev_settings_face_matcher_title">Presentation face matcher</string>
     <string name="dev_settings_face_matcher_dialog_title">Select face matcher</string>
     <string name="dev_settings_face_matcher_dialog_close">Close</string>

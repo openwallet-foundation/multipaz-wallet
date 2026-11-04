@@ -16,6 +16,9 @@ Once enabled, a **Developer Settings** item will appear under **Settings**, and 
 The **Developer Settings** screen (accessible via **Settings** → **Developer Settings**) provides the following options:
 
 - **Enable debug logging**: Toggles verbose debug logs useful for troubleshooting.
+- **Return to browser after provisioning**: Toggles whether to return to the
+  calling browser or app after provisioning a pass offered via the Digital
+  Credentials API.
 - **Corrupt encryption key in Google Drive**: Intentionally corrupts stored key data to test encryption key recovery and error handling flows.
 - **Revoke Google Drive access**: Revokes OAuth authorization for Google Drive app data storage to test sign-in and consent prompts.
 - **Clear explicitly signed out flag**: Resets the signed-out state to prompt sign-in on next application launch.

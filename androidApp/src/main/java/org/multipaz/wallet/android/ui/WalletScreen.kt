@@ -219,6 +219,7 @@ fun WalletScreen(
     onDocumentUnsetupClicked: (documentInfo: DocumentInfo) -> Unit = {},
     onDocumentPreconsentSettingsClicked: (documentInfo: DocumentInfo) -> Unit,
     onBackClicked: () -> Unit,
+    onJustAddedComplete: () -> Unit = {},
     onRefresh: suspend () -> Unit = {},
     showToast: (message: String) -> Unit
 ) {
@@ -253,6 +254,9 @@ fun WalletScreen(
 
     val handleBack: () -> Unit = {
         if (!isUnfocusing) {
+            if (justAdded) {
+                onJustAddedComplete()
+            }
             if (isPreviousScreenCardList) {
                 isUnfocusing = true
                 titleAndFabVisible = true
@@ -638,6 +642,7 @@ fun WalletScreen(
                                 settingsModel = settingsModel,
                                 isSyncing = signedIn != null && documentInfo.document.isSyncing,
                                 justAdded = justAdded,
+                                onJustAddedComplete = onJustAddedComplete,
                                 onDocumentActivityClicked = onDocumentActivityClicked,
                                 onDocumentInfoClicked = onDocumentInfoClicked,
                                 onDocumentInfoExtrasClicked = onDocumentInfoExtrasClicked,
@@ -764,6 +769,7 @@ private fun DocumentInfoContent(
     settingsModel: SettingsModel,
     isSyncing: Boolean,
     justAdded: Boolean,
+    onJustAddedComplete: () -> Unit = {},
     onDocumentActivityClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoClicked: (documentInfo: DocumentInfo) -> Unit,
     onDocumentInfoExtrasClicked: (documentInfo: DocumentInfo) -> Unit,
@@ -784,6 +790,7 @@ private fun DocumentInfoContent(
             LaunchedEffect(Unit) {
                 delay(3.seconds)
                 showJustAdded = false
+                onJustAddedComplete()
             }
             JustAdded()
         } else {

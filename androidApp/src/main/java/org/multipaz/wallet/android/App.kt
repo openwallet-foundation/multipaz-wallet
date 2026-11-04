@@ -2,6 +2,8 @@ package org.multipaz.wallet.android
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,7 @@ import com.google.android.gms.location.LocationServices
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -42,7 +45,10 @@ import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.context.applicationContext
+import org.multipaz.compose.digitalcredentials.CredentialManagerProvisioningActivity
 import org.multipaz.digitalcredentials.DigitalCredentialsCredman
+import org.multipaz.digitalcredentials.registerForCredmanCredentialOffers
+import java.io.ByteArrayOutputStream
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentBadge
 import org.multipaz.document.DocumentBadgeColor
@@ -167,7 +173,13 @@ class App private constructor() {
     lateinit var externalNfcReaderStore: ExternalNfcReaderStore
     private val promptModel = Platform.promptModel
 
-    private val credentialOffers = Channel<String>()
+    data class CredentialOfferRequest(
+        val offerUri: String,
+        val fromCredentialManager: Boolean = false,
+    )
+
+    private val credentialOffers = Channel<CredentialOfferRequest>()
+    private var pendingCredmanProvisioningResult: CompletableDeferred<CredentialManagerProvisioningActivity.Result>? = null
 
     private suspend fun initialize() {
         Branding.setCurrent(WalletBranding)
@@ -279,6 +291,16 @@ class App private constructor() {
                     }
                     .launchIn(this)
             }
+        }
+        try {
+            registerForCredmanCredentialOffers(
+                title = BuildConfig.APP_NAME,
+                subtitle = null,
+                icon = applicationIconPng(),
+            )
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Logger.w(TAG, "Error registering for credential offers with W3C DC API", e)
         }
         settingsModel = SettingsModel.create(storage)
         val walletBackendUrl = settingsModel.walletBackendUrl.value ?: BuildConfig.BACKEND_URL
@@ -688,6 +710,17 @@ class App private constructor() {
         }
     }
 
+    private fun applicationIconPng(): ByteArray {
+        val drawable = applicationContext.applicationInfo.loadIcon(applicationContext.packageManager)
+        val bitmap = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888)
+        drawable.setBounds(0, 0, bitmap.width, bitmap.height)
+        drawable.draw(Canvas(bitmap))
+        return ByteArrayOutputStream().use { stream ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            stream.toByteArray()
+        }
+    }
+
     /**
      * Handle a link (either a app link, universal link or custom URL schema link).
      */
@@ -698,7 +731,7 @@ class App private constructor() {
             val queryIndex = url.indexOf('?')
             if (queryIndex >= 0) {
                 CoroutineScope(Dispatchers.Default).launch {
-                    credentialOffers.send(url)
+                    credentialOffers.send(CredentialOfferRequest(offerUri = url))
                 }
             }
         } else if (url.startsWith(walletClient.appLinkBaseUrl)) {
@@ -708,6 +741,41 @@ class App private constructor() {
         } else {
             Logger.e(TAG, "Unhandled URL: '$url'")
         }
+    }
+
+    suspend fun handleCredmanCredentialOffer(
+        offerUri: String
+    ): CredentialManagerProvisioningActivity.Result {
+        val deferred = CompletableDeferred<CredentialManagerProvisioningActivity.Result>()
+        pendingCredmanProvisioningResult?.complete(
+            CredentialManagerProvisioningActivity.Result.Canceled("Superseded by another provisioning request")
+        )
+        pendingCredmanProvisioningResult = deferred
+        credentialOffers.send(
+            CredentialOfferRequest(
+                offerUri = offerUri,
+                fromCredentialManager = true
+            )
+        )
+        return deferred.await()
+    }
+
+    fun completeCredmanProvisioning() {
+        val returnToCallingApp = settingsModel.returnToBrowserAfterProvisioning.value
+        pendingCredmanProvisioningResult?.complete(
+            CredentialManagerProvisioningActivity.Result.Success(returnToCallingApp = returnToCallingApp)
+        )
+        pendingCredmanProvisioningResult = null
+    }
+
+    fun cancelCredmanProvisioning(error: Throwable? = null) {
+        val result = if (error != null) {
+            CredentialManagerProvisioningActivity.Result.Error(error.message)
+        } else {
+            CredentialManagerProvisioningActivity.Result.Canceled("Provisioning canceled")
+        }
+        pendingCredmanProvisioningResult?.complete(result)
+        pendingCredmanProvisioningResult = null
     }
 
     private val documentIdToViewChannel = Channel<String>(Channel.UNLIMITED)

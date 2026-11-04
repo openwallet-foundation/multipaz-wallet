@@ -69,7 +69,8 @@ data class ProvisioningDestination(
     val openID4VCICredentialOfferUri: String? = null,
     val openID4VCIIssuerUrl: String? = null,
     val openID4VCICredentialId: String? = null,
-    val provisionedDocumentIdentifier: String? = null
+    val provisionedDocumentIdentifier: String? = null,
+    val fromCredentialManager: Boolean = false,
 ): Destination() {
 
     constructor(
@@ -77,11 +78,13 @@ data class ProvisioningDestination(
         openID4VCICredentialOfferUri: String? = null,
         openID4VCIIssuerUrl: String? = null,
         openID4VCICredentialId: String? = null,
+        fromCredentialManager: Boolean = false,
     ): this(
         credentialIssuerEncoded = credentialIssuer?.toCbor()?.toBase64Url(),
         openID4VCICredentialOfferUri = openID4VCICredentialOfferUri,
         openID4VCIIssuerUrl = openID4VCIIssuerUrl,
-        openID4VCICredentialId = openID4VCICredentialId
+        openID4VCICredentialId = openID4VCICredentialId,
+        fromCredentialManager = fromCredentialManager,
     )
 
     val credentialIssuer: CredentialIssuer?
@@ -93,7 +96,8 @@ data class ProvisioningDestination(
 data class WalletDestination(
     val documentId: String? = null,
     val justAddedAtMillis: Long? = null,
-    val animateListTransitions: Boolean = false
+    val animateListTransitions: Boolean = false,
+    val fromCredentialManager: Boolean = false,
 ): Destination()
 
 @Serializable
