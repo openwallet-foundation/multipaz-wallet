@@ -399,7 +399,9 @@ data object SelectExternalNfcReaderDestination: Destination()
 data object SelectCustomAgeDestination: Destination()
 
 @Serializable
-data object SelectUserDefinedQueryDestination: Destination()
+data class SelectUserDefinedQueryDestination(
+    val index: Int? = null
+): Destination()
 
 
 @Serializable
