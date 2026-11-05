@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Bstr
 import org.multipaz.cbor.Cbor
+import org.multipaz.cbor.CborMap
 import org.multipaz.cbor.Simple
 import org.multipaz.cbor.Tstr
 import org.multipaz.cbor.buildCborArray
@@ -89,6 +90,7 @@ class SettingsModel private constructor(
                         dataItem.asArray.map { item ->
                             when (item) {
                                 is Bstr -> ByteString(item.asBstr)
+                                is CborMap -> Query.fromDataItem(item)
                                 else -> (item as Tstr).value
                             }
                         }
@@ -121,6 +123,7 @@ class SettingsModel private constructor(
                                         when (item) {
                                             is String -> add(Tstr(item))
                                             is ByteString -> add(item.toByteArray().toDataItem())
+                                            is Query -> add(item.toDataItem())
                                             else -> throw IllegalStateException("List element type not supported")
                                         }
                                     }
@@ -161,6 +164,7 @@ class SettingsModel private constructor(
         bind(eventLoggingLocationEnabled, "eventLoggingLocationEnabled", true)
         bind(provisioningServerUrl, "provisioningServerUrl", DEFAULT_PROVISIONING_SERVER_URL)
         bind(readerQuery, "readerQuery", IdentificationQuery(false))
+        bind(userDefinedQueries, "userDefinedQueries", emptyList<UserDefinedQuery>())
         bind(verificationIsInPerson, "verificationIsInPerson", true)
         bind(verificationStoreResponse, "verificationStoreResponse", false)
         bind(selectedExternalNfcReaderId, "selectedExternalNfcReaderId", null)
@@ -172,6 +176,12 @@ class SettingsModel private constructor(
         bind(customVerificationReaderCertChain, "customVerificationReaderCertChain", null)
         bind(presentmentFaceMatcher, "presentmentFaceMatcher", "MobileFaceNet")
         bind(returnToBrowserAfterProvisioning, "returnToBrowserAfterProvisioning", true)
+
+        // Before several user defined queries could be saved, the only one was kept as the selected query.
+        val selectedQuery = readerQuery.value
+        if (userDefinedQueries.value.isEmpty() && selectedQuery is UserDefinedQuery) {
+            userDefinedQueries.value = listOf(selectedQuery)
+        }
 
         Logger.isDebugEnabled = loggingDebugEnabled.value
         CoroutineScope(Dispatchers.Default).launch {
@@ -197,6 +207,7 @@ class SettingsModel private constructor(
     val eventLoggingLocationEnabled = MutableStateFlow<Boolean>(false)
     val provisioningServerUrl = MutableStateFlow<String>(DEFAULT_PROVISIONING_SERVER_URL)
     val readerQuery = MutableStateFlow<Query>(IdentificationQuery(false))
+    val userDefinedQueries = MutableStateFlow<List<UserDefinedQuery>>(emptyList())
     val verificationIsInPerson = MutableStateFlow<Boolean>(true)
     val verificationStoreResponse = MutableStateFlow<Boolean>(false)
     val selectedExternalNfcReaderId = MutableStateFlow<String?>(null)
@@ -208,6 +219,36 @@ class SettingsModel private constructor(
     val customVerificationReaderCertChain = MutableStateFlow<X509CertChain?>(null)
     val presentmentFaceMatcher = MutableStateFlow<String>("MobileFaceNet")
     val returnToBrowserAfterProvisioning = MutableStateFlow<Boolean>(true)
+
+    /**
+     * Saves a user defined query and selects it.
+     *
+     * @param index the position of the query to replace in [userDefinedQueries], or `null` to add a new one.
+     * @param query the query to save.
+     */
+    fun saveUserDefinedQuery(index: Int?, query: UserDefinedQuery) {
+        userDefinedQueries.value = if (index == null) {
+            userDefinedQueries.value + query
+        } else {
+            userDefinedQueries.value.toMutableList().apply { set(index, query) }
+        }
+        readerQuery.value = query
+    }
+
+    /**
+     * Deletes a user defined query.
+     *
+     * If the query is the selected one, [readerQuery] falls back to identification.
+     *
+     * @param index the position of the query in [userDefinedQueries].
+     */
+    fun deleteUserDefinedQuery(index: Int) {
+        val deleted = userDefinedQueries.value[index]
+        userDefinedQueries.value = userDefinedQueries.value.toMutableList().apply { removeAt(index) }
+        if (readerQuery.value == deleted) {
+            readerQuery.value = IdentificationQuery(false)
+        }
+    }
 
     /**
      * Checks whether any non-default advanced verification settings are currently configured.

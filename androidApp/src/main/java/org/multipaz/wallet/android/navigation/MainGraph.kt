@@ -1999,8 +1999,11 @@ fun mainGraph(
                     onCustomAgeClicked = {
                         backStack.add(SelectCustomAgeDestination)
                     },
-                    onUserDefinedClicked = {
-                        backStack.add(SelectUserDefinedQueryDestination)
+                    onUserDefinedClicked = { index ->
+                        backStack.add(SelectUserDefinedQueryDestination(index))
+                    },
+                    onImportUserDefinedClicked = {
+                        backStack.add(ImportUserDefinedQueryUrlDestination)
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
@@ -2025,12 +2028,19 @@ fun mainGraph(
                 )
             }
             is SelectUserDefinedQueryDestination -> NavEntry(key) {
-                val readerQuery by settingsModel.readerQuery.collectAsState()
+                val userDefinedQueries by settingsModel.userDefinedQueries.collectAsState()
                 org.multipaz.wallet.android.ui.verification.SelectUserDefinedQueryScreen(
-                    initialQuery = readerQuery as? org.multipaz.wallet.client.verification.UserDefinedQuery,
+                    initialQuery = key.index?.let { userDefinedQueries.getOrNull(it) } ?: key.importedQuery,
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
-                    onConfirmed = { userDefinedQuery ->
-                        settingsModel.readerQuery.value = userDefinedQuery
+                    onSaved = { userDefinedQuery ->
+                        settingsModel.saveUserDefinedQuery(key.index, userDefinedQuery)
+                        backStack.removeAt(backStack.size - 1)
+                    },
+                    onDeleted = key.index?.let { index ->
+                        {
+                            settingsModel.deleteUserDefinedQuery(index)
+                            backStack.removeAt(backStack.size - 1)
+                        }
                     }
                 )
             }
@@ -2181,7 +2191,13 @@ fun mainGraph(
                     }
                 )
             }
-            else -> null
+            else -> importUserDefinedQueryEntry(
+                key = key,
+                backStack = backStack,
+                settingsModel = settingsModel,
+                provisioningModel = provisioningModel,
+                walletClient = walletClient
+            )
         }
     }
 }
