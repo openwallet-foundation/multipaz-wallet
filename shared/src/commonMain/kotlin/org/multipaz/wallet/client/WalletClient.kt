@@ -135,7 +135,8 @@ class WalletClient private constructor(
     private val httpClientEngineFactory: HttpClientEngineFactory<*>?,
     private val dispatcherAndNotifier: Pair<RpcDispatcher, RpcNotifier>?,
     val clientDevice: String? = null,
-    val clientPlatform: String? = null
+    val clientPlatform: String? = null,
+    private val preferredLocales: () -> List<String> = { listOf("en-US") }
 ) {
     init {
         require(httpClientEngineFactory != null || dispatcherAndNotifier != null) {
@@ -270,16 +271,25 @@ class WalletClient private constructor(
     }
 
     suspend fun getOpenID4VCIClientPreferences(): OpenID4VCIClientPreferences {
+        val locales = expandPreferredLocales(preferredLocales())
         lock.withLock {
-            _openID4VCIClientPreferences?.let { return it }
+            // Only rebuild when the locales change. The SDK caches issuer metadata keyed on the
+            // identity of this object, so returning a new instance on every call would make it
+            // fetch the metadata again.
+            _openID4VCIClientPreferences?.let {
+                if (it.locales == locales) {
+                    return it
+                }
+            }
             _openID4VCIClientPreferences = OpenID4VCIClientPreferences(
-                clientId = withContext(RpcAuthClientSession()) {
-                    getOpenID4VCIBackendUnlocked().getClientId()
-                },
+                clientId = _openID4VCIClientPreferences?.clientId
+                    ?: withContext(RpcAuthClientSession()) {
+                        getOpenID4VCIBackendUnlocked().getClientId()
+                    },
                 // Note: always uses `BuildConfig.BACKEND_URL` instead of `backendUrl` since this
                 // is what the AndroidManifest.xml file uses
                 redirectUrl = "${BuildConfig.BACKEND_URL}/redirect",
-                locales = listOf("en-US"),
+                locales = locales,
                 signingAlgorithms = listOf(Algorithm.ESP256, Algorithm.ESP384, Algorithm.ESP512)
             )
             return _openID4VCIClientPreferences!!
@@ -1295,6 +1305,14 @@ class WalletClient private constructor(
          * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          * @param clientDevice optional name of the device.
          * @param clientPlatform optional name and version of the platform.
+         * @param preferredLocales returns the user's preferred languages, most preferred first, as
+         *   language tags. This is used to pick localized display data, such as credential names,
+         *   from OpenID4VCI issuer metadata. It is called each time [getOpenID4VCIClientPreferences]
+         *   is, so that a change of the device language applies to subsequent provisioning and
+         *   credential refreshes even if the process outlives it, as it can on Android. Display data
+         *   already stored with a document is not affected. Applications should pass the platform's
+         *   preferred languages, e.g. `LocaleList.getDefault()` on Android or
+         *   `Locale.preferredLanguages` on iOS. The default returns `en-US`.
          */
         suspend fun create(
             clientType: ClientType,
@@ -1305,7 +1323,8 @@ class WalletClient private constructor(
             httpClientEngineFactory: HttpClientEngineFactory<*>,
             numReaderKeys: Int,
             clientDevice: String?,
-            clientPlatform: String?
+            clientPlatform: String?,
+            preferredLocales: () -> List<String> = { listOf("en-US") }
         ): WalletClient {
             val client = WalletClient(
                 clientType = clientType,
@@ -1317,7 +1336,8 @@ class WalletClient private constructor(
                 httpClientEngineFactory = httpClientEngineFactory,
                 dispatcherAndNotifier = null,
                 clientDevice = clientDevice,
-                clientPlatform = clientPlatform
+                clientPlatform = clientPlatform,
+                preferredLocales = preferredLocales
             )
             client.initialize()
             return client
@@ -1354,6 +1374,7 @@ class WalletClient private constructor(
          * @param numReaderKeys the size of the reader key pool, or 0 if this client shouldn't request reader keys.
          * @param clientDevice optional name of the device.
          * @param clientPlatform optional name and version of the platform.
+         * @param preferredLocales returns the user's preferred languages, see the other [create].
          */
         suspend fun create(
             clientType: ClientType,
@@ -1363,7 +1384,8 @@ class WalletClient private constructor(
             secureArea: SecureArea,
             numReaderKeys: Int,
             clientDevice: String?,
-            clientPlatform: String?
+            clientPlatform: String?,
+            preferredLocales: () -> List<String> = { listOf("en-US") }
         ): WalletClient {
             val client = WalletClient(
                 clientType = clientType,
@@ -1375,7 +1397,8 @@ class WalletClient private constructor(
                 numReaderKeys = numReaderKeys,
                 dispatcherAndNotifier = Pair(dispatcher, notifier),
                 clientDevice = clientDevice,
-                clientPlatform = clientPlatform
+                clientPlatform = clientPlatform,
+                preferredLocales = preferredLocales
             )
             client.initialize()
             return client
