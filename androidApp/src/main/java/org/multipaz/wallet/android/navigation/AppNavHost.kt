@@ -93,7 +93,6 @@ fun AppNavHost(
     readerTrustManager: CompositeTrustManager,
     revocationChecker: RevocationChecker,
     mpzPassesToImportChannel: Channel<ByteString>,
-    credentialOffers: Channel<App.CredentialOfferRequest>,
     documentIdToViewChannel: Channel<String>,
     eventIdToViewChannel: Channel<String>,
     requestVerificationFlow: StateFlow<Boolean>,
@@ -146,18 +145,6 @@ fun AppNavHost(
         // TODO: Only run this code the first time this screen is shown
         if (settingsModel.firstTimeSetupDone.value) {
             appJustLaunched(app)
-        }
-    }
-
-    LaunchedEffect(true) {
-        while (true) {
-            val request = credentialOffers.receive()
-            backStack.add(ProvisioningDestination(
-                credentialIssuer = null,
-                openID4VCICredentialOfferUri = request.offerUri,
-                openID4VCIIssuerUrl = null,
-                fromCredentialManager = request.fromCredentialManager,
-            ))
         }
     }
 

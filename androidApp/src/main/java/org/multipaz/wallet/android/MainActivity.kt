@@ -84,14 +84,6 @@ class MainActivity : FragmentActivity() {
                 val app = App.getInstance()
                 app.viewRequestVerificationScreen()
             }
-        } else if (intent.action == Intent.ACTION_VIEW) {
-            val url = intent.dataString
-            if (url != null) {
-                lifecycle.coroutineScope.launch {
-                    val app = App.getInstance()
-                    app.handleUrl(url)
-                }
-            }
         } else if (intent.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
             val device = IntentCompat.getParcelableExtra(
                 intent,

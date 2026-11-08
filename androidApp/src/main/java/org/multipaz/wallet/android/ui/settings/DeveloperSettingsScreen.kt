@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Login
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Delete
@@ -165,29 +164,6 @@ fun DeveloperSettingsScreen(
                             checked = settingsModel.disableNoUserAuth.collectAsState().value,
                             onCheckedChange = { value ->
                                 settingsModel.disableNoUserAuth.value = value
-                            }
-                        )
-                    }
-                )
-
-                SegmentedItemHeadingAndText(
-                    modifier = Modifier.clickable {
-                        settingsModel.returnToBrowserAfterProvisioning.value =
-                            !settingsModel.returnToBrowserAfterProvisioning.value
-                    },
-                    image = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                            contentDescription = null
-                        )
-                    },
-                    heading = stringResource(R.string.dev_settings_return_to_browser_after_provisioning_title),
-                    text = stringResource(R.string.dev_settings_return_to_browser_after_provisioning_text),
-                    trailingContent = {
-                        Switch(
-                            checked = settingsModel.returnToBrowserAfterProvisioning.collectAsState().value,
-                            onCheckedChange = { value ->
-                                settingsModel.returnToBrowserAfterProvisioning.value = value
                             }
                         )
                     }

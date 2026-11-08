@@ -1,6 +1,6 @@
 package org.multipaz.wallet.android
 
-import android.content.Intent
+import io.ktor.http.encodeURLParameter
 import org.multipaz.compose.digitalcredentials.CredentialManagerProvisioningActivity
 import org.multipaz.digitalcredentials.CredmanCredentialOffer
 
@@ -15,11 +15,8 @@ class WalletCredentialManagerProvisioningActivity : CredentialManagerProvisionin
         origin: String,
         offer: CredmanCredentialOffer,
     ): Result {
-        val app = App.getInstance()
-        val mainIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        startActivity(mainIntent)
-        return app.handleCredmanCredentialOffer(offer.offerUri)
+        val offerUri = "openid-credential-offer://?credential_offer=" +
+            offer.offer.toString().encodeURLParameter()
+        return ProvisioningActivity.handleCredmanCredentialOffer(this, offerUri)
     }
 }

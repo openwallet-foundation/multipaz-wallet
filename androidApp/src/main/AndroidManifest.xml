@@ -71,7 +71,15 @@
             </intent-filter>
             <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/usb_nfc_readers" />
+        </activity>
 
+        <activity
+            android:name=".OAuthRedirectActivity"
+            android:theme="@style/Theme.Transparent"
+            android:exported="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true">
             <!-- AppLink used by provisioning backend, keep in sync with WalletClient.
                  The applinkHost parameter is defined in build.gradle.kts.
               -->
@@ -84,7 +92,18 @@
                     android:host="${applinkHost}"
                     android:pathPattern="/redirect"/>
             </intent-filter>
+        </activity>
 
+        <activity
+            android:name=".ProvisioningActivity"
+            android:theme="@style/NavigationActivityTheme"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+            android:launchMode="singleTask"
+            android:taskAffinity=".provisioning"
+            android:excludeFromRecents="true">
             <!-- OpenID4VCI Credential Offers -->
             <!-- Examples: openid-credential-offer://, haip:// -->
             <intent-filter>

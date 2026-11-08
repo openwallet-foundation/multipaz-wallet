@@ -22,7 +22,6 @@ import com.google.android.gms.location.LocationServices
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -45,7 +44,6 @@ import org.multipaz.compose.document.DocumentModel
 import org.multipaz.compose.prompt.PromptDialogs
 import org.multipaz.compose.trustmanagement.TrustManagerModel
 import org.multipaz.context.applicationContext
-import org.multipaz.compose.digitalcredentials.CredentialManagerProvisioningActivity
 import org.multipaz.digitalcredentials.DigitalCredentialsCredman
 import org.multipaz.digitalcredentials.registerForCredmanCredentialOffers
 import java.io.ByteArrayOutputStream
@@ -91,6 +89,7 @@ import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.navigation.Destination
 import org.multipaz.wallet.android.navigation.MdocUrlVerificationNavHost
+import org.multipaz.wallet.android.navigation.ProvisioningNavHost
 import org.multipaz.wallet.android.navigation.VerificationShowResponseDestination
 import org.multipaz.wallet.android.navigation.WalletDestination
 import org.multipaz.wallet.android.ui.CommunicatingWithBackendDialog
@@ -172,14 +171,6 @@ class App private constructor() {
     private lateinit var revocationChecker: RevocationChecker
     lateinit var externalNfcReaderStore: ExternalNfcReaderStore
     private val promptModel = Platform.promptModel
-
-    data class CredentialOfferRequest(
-        val offerUri: String,
-        val fromCredentialManager: Boolean = false,
-    )
-
-    private val credentialOffers = Channel<CredentialOfferRequest>()
-    private var pendingCredmanProvisioningResult: CompletableDeferred<CredentialManagerProvisioningActivity.Result>? = null
 
     private suspend fun initialize() {
         Branding.setCurrent(WalletBranding)
@@ -297,6 +288,7 @@ class App private constructor() {
                 title = BuildConfig.APP_NAME,
                 subtitle = null,
                 icon = applicationIconPng(),
+                protocols = setOf("openid4vci-v1"),
             )
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -640,6 +632,53 @@ class App private constructor() {
     }
 
     @Composable
+    fun ProvisioningContent(
+        offerUri: String,
+        onComplete: () -> Unit,
+        onCanceled: () -> Unit,
+        onFailed: (Throwable) -> Unit,
+    ) {
+        val context = LocalPlatformContext.current
+        val imageLoader = remember {
+            val engineFactory = Android
+            val httpClient = HttpClient(engineFactory.create()) {
+            }
+            ImageLoader.Builder(context)
+                .components {
+                    add(KtorNetworkFetcherFactory(httpClient))
+                }
+                .build()
+        }
+        val currentBranding = Branding.Current.collectAsState().value
+        currentBranding.theme {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                PromptDialogs(
+                    promptModel = promptModel,
+                    imageLoader = imageLoader
+                )
+                if (walletClient.showSetSharedDataSpinner.collectAsState().value) {
+                    CommunicatingWithBackendDialog()
+                }
+                ProvisioningNavHost(
+                    offerUri = offerUri,
+                    walletClient = walletClient,
+                    documentStore = documentStore,
+                    documentModel = documentModel,
+                    settingsModel = settingsModel,
+                    provisioningModel = provisioningModel,
+                    imageLoader = imageLoader,
+                    onComplete = onComplete,
+                    onCanceled = onCanceled,
+                    onFailed = onFailed,
+                )
+            }
+        }
+    }
+
+    @Composable
     fun Content() {
         val context = LocalPlatformContext.current
         val imageLoader = remember {
@@ -692,7 +731,6 @@ class App private constructor() {
                     readerTrustManager = readerTrustManager,
                     revocationChecker = revocationChecker,
                     mpzPassesToImportChannel = mpzPassesToImportChannel,
-                    credentialOffers = credentialOffers,
                     documentIdToViewChannel = documentIdToViewChannel,
                     eventIdToViewChannel = eventIdToViewChannel,
                     requestVerificationFlow = requestVerificationFlow,
@@ -719,63 +757,6 @@ class App private constructor() {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
             stream.toByteArray()
         }
-    }
-
-    /**
-     * Handle a link (either a app link, universal link or custom URL schema link).
-     */
-    fun handleUrl(url: String) {
-        Logger.i(TAG, "Handling URL $url")
-        if (url.startsWith(OID4VCI_CREDENTIAL_OFFER_URL_SCHEME)
-            || url.startsWith(HAIP_VCI_URL_SCHEME)) {
-            val queryIndex = url.indexOf('?')
-            if (queryIndex >= 0) {
-                CoroutineScope(Dispatchers.Default).launch {
-                    credentialOffers.send(CredentialOfferRequest(offerUri = url))
-                }
-            }
-        } else if (url.startsWith(walletClient.appLinkBaseUrl)) {
-            CoroutineScope(Dispatchers.Default).launch {
-                walletClient.processAppLinkInvocation(url)
-            }
-        } else {
-            Logger.e(TAG, "Unhandled URL: '$url'")
-        }
-    }
-
-    suspend fun handleCredmanCredentialOffer(
-        offerUri: String
-    ): CredentialManagerProvisioningActivity.Result {
-        val deferred = CompletableDeferred<CredentialManagerProvisioningActivity.Result>()
-        pendingCredmanProvisioningResult?.complete(
-            CredentialManagerProvisioningActivity.Result.Canceled("Superseded by another provisioning request")
-        )
-        pendingCredmanProvisioningResult = deferred
-        credentialOffers.send(
-            CredentialOfferRequest(
-                offerUri = offerUri,
-                fromCredentialManager = true
-            )
-        )
-        return deferred.await()
-    }
-
-    fun completeCredmanProvisioning() {
-        val returnToCallingApp = settingsModel.returnToBrowserAfterProvisioning.value
-        pendingCredmanProvisioningResult?.complete(
-            CredentialManagerProvisioningActivity.Result.Success(returnToCallingApp = returnToCallingApp)
-        )
-        pendingCredmanProvisioningResult = null
-    }
-
-    fun cancelCredmanProvisioning(error: Throwable? = null) {
-        val result = if (error != null) {
-            CredentialManagerProvisioningActivity.Result.Error(error.message)
-        } else {
-            CredentialManagerProvisioningActivity.Result.Canceled("Provisioning canceled")
-        }
-        pendingCredmanProvisioningResult?.complete(result)
-        pendingCredmanProvisioningResult = null
     }
 
     private val documentIdToViewChannel = Channel<String>(Channel.UNLIMITED)
@@ -950,8 +931,6 @@ class App private constructor() {
         private var app: App? = null
         private val lock = Mutex()
 
-        private const val OID4VCI_CREDENTIAL_OFFER_URL_SCHEME = "openid-credential-offer://"
-        private const val HAIP_VCI_URL_SCHEME = "haip-vci://"
         const val ACTION_VIEW_DOCUMENT = "${BuildConfig.ANDROID_APP_ID}.action.viewDocument"
         const val ACTION_VIEW_EVENT = "${BuildConfig.ANDROID_APP_ID}.action.viewEvent"
 

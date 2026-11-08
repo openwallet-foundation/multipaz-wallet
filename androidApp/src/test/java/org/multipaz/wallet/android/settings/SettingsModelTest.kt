@@ -2,7 +2,6 @@ package org.multipaz.wallet.android.settings
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlin.time.Duration.Companion.milliseconds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -160,20 +159,5 @@ class SettingsModelTest {
 
         val settingsModel2 = SettingsModel.create(storage)
         assertEquals("MobileFaceNet (debug)", settingsModel2.presentmentFaceMatcher.value)
-    }
-
-    @Test
-    fun testReturnToBrowserAfterProvisioningDefaultsToTrueAndPersists() = runBlocking {
-        val storage = EphemeralStorage()
-        val settingsModel1 = SettingsModel.create(storage)
-
-        assertTrue(settingsModel1.returnToBrowserAfterProvisioning.value)
-
-        settingsModel1.returnToBrowserAfterProvisioning.value = false
-        delay(100.milliseconds)
-        assertFalse(settingsModel1.returnToBrowserAfterProvisioning.value)
-
-        val settingsModel2 = SettingsModel.create(storage)
-        assertFalse(settingsModel2.returnToBrowserAfterProvisioning.value)
     }
 }

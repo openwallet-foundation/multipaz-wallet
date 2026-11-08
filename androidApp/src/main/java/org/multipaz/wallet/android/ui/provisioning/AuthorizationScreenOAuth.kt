@@ -40,6 +40,7 @@ import org.multipaz.provisioning.AuthorizationResponse
 import org.multipaz.provisioning.ProvisioningModel
 import org.multipaz.provisioning.openid4vci.OpenID4VCIClientPreferences
 import org.multipaz.util.Logger
+import org.multipaz.wallet.android.OAuthRedirectActivity
 import org.multipaz.wallet.android.R
 import org.multipaz.wallet.android.ui.AppTopAppBar
 import org.multipaz.wallet.client.WalletClient
@@ -162,6 +163,7 @@ private fun EvidenceRequestOAuthBrowser(
             return@LaunchedEffect
         }
 
+        OAuthRedirectActivity.targetActivityClass = activity.javaClass
         val customTabsIntent = CustomTabsIntent.Builder(currentSession)
             .build()
         customTabsIntent.intent.data = url.toUri()
