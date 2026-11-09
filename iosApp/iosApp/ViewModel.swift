@@ -141,6 +141,9 @@ class ViewModel {
         documentTypeRepository = DocumentTypeRepository()
         documentTypeRepository.addKnownTypes(locale: currentLocale)
         documentTypeRepository.addUtopiaTypes(locale: currentLocale)
+        // Not part of the utopia types: it is only registered alongside the renderer that shows
+        // the mandate (walletTransactionDataRenderers).
+        documentTypeRepository.addDelegateTransactionType()
         documentStore = DocumentStore.Builder(
             storage: storage,
             secureAreaRepository: secureAreaRepository
@@ -489,7 +492,8 @@ class ViewModel {
                     preselectedDocuments: preselectedDocuments,
                     onDocumentsInFocus: { documents in
                         onDocumentsInFocus(documents)
-                    }
+                    },
+                    transactionDataRendererRepository: walletTransactionDataRenderers
                 )
             },
             getFaceMatchingModeFn: { credential, requesterIdentities in
