@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.LocaleList
 import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -361,7 +362,10 @@ class App private constructor() {
             httpClientEngineFactory = Android,
             numReaderKeys = 10,
             clientDevice = getAndroidClientDevice(),
-            clientPlatform = getAndroidClientPlatform()
+            clientPlatform = getAndroidClientPlatform(),
+            preferredLocales = {
+                LocaleList.getDefault().toLanguageTags().split(',')
+            }
         )
 
         userIssuerTrustManager = TrustManager(
