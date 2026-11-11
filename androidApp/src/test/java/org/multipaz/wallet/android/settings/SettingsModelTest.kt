@@ -8,6 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.multipaz.storage.ephemeral.EphemeralStorage
 import org.multipaz.util.Logger
+import org.multipaz.wallet.client.verification.IdentificationQuery
+import org.multipaz.wallet.client.verification.UserDefinedQuery
 
 class SettingsModelTest {
     @Test
@@ -159,5 +161,82 @@ class SettingsModelTest {
 
         val settingsModel2 = SettingsModel.create(storage)
         assertEquals("MobileFaceNet (debug)", settingsModel2.presentmentFaceMatcher.value)
+    }
+
+    private val residenceQuery = UserDefinedQuery(
+        docType = "jp.go.juminhyo.1",
+        namespaces = mapOf("jp.go.juminhyo.1" to listOf("family_name", "given_name")),
+        name = "Residence record"
+    )
+    private val disasterQuery = UserDefinedQuery(
+        docType = "jp.go.disaster.1",
+        namespaces = mapOf("jp.go.disaster.1" to listOf("damage_level")),
+        name = "Disaster victim certificate"
+    )
+
+    @Test
+    fun testUserDefinedQueriesPersistAcrossInstances() = runBlocking {
+        val storage = EphemeralStorage()
+        val settingsModel1 = SettingsModel.create(storage)
+        assertEquals(emptyList<UserDefinedQuery>(), settingsModel1.userDefinedQueries.value)
+        // User defined queries can only be selected in developer mode.
+        settingsModel1.devMode.value = true
+
+        settingsModel1.saveUserDefinedQuery(null, residenceQuery)
+        settingsModel1.saveUserDefinedQuery(null, disasterQuery)
+        delay(100)
+
+        val settingsModel2 = SettingsModel.create(storage)
+        assertEquals(listOf(residenceQuery, disasterQuery), settingsModel2.userDefinedQueries.value)
+        assertEquals(disasterQuery, settingsModel2.readerQuery.value)
+    }
+
+    @Test
+    fun testSaveUserDefinedQueryReplacesAndSelects() = runBlocking {
+        val settingsModel = SettingsModel.create(EphemeralStorage())
+        settingsModel.devMode.value = true
+        settingsModel.saveUserDefinedQuery(null, residenceQuery)
+        settingsModel.saveUserDefinedQuery(null, disasterQuery)
+
+        val edited = residenceQuery.copy(name = "Edited")
+        settingsModel.saveUserDefinedQuery(0, edited)
+        assertEquals(listOf(edited, disasterQuery), settingsModel.userDefinedQueries.value)
+        assertEquals(edited, settingsModel.readerQuery.value)
+    }
+
+    @Test
+    fun testDeleteUserDefinedQuery() = runBlocking {
+        val settingsModel = SettingsModel.create(EphemeralStorage())
+        settingsModel.devMode.value = true
+        settingsModel.saveUserDefinedQuery(null, residenceQuery)
+        settingsModel.saveUserDefinedQuery(null, disasterQuery)
+
+        // Deleting a query that is not selected keeps the selection.
+        settingsModel.deleteUserDefinedQuery(0)
+        assertEquals(listOf(disasterQuery), settingsModel.userDefinedQueries.value)
+        assertEquals(disasterQuery, settingsModel.readerQuery.value)
+
+        // Deleting the selected query falls back to identification.
+        settingsModel.deleteUserDefinedQuery(0)
+        assertEquals(emptyList<UserDefinedQuery>(), settingsModel.userDefinedQueries.value)
+        assertEquals(IdentificationQuery(false), settingsModel.readerQuery.value)
+    }
+
+    @Test
+    fun testSelectedUserDefinedQueryIsMigrated() = runBlocking {
+        // Before several queries could be saved, the only one was stored as the selected query.
+        val storage = EphemeralStorage()
+        val settingsModel1 = SettingsModel.create(storage)
+        val oldQuery = UserDefinedQuery(
+            docType = "jp.go.juminhyo.1",
+            namespaces = mapOf("jp.go.juminhyo.1" to listOf("family_name"))
+        )
+        settingsModel1.devMode.value = true
+        settingsModel1.readerQuery.value = oldQuery
+        delay(100)
+
+        val settingsModel2 = SettingsModel.create(storage)
+        assertEquals(listOf(oldQuery), settingsModel2.userDefinedQueries.value)
+        assertEquals(oldQuery, settingsModel2.readerQuery.value)
     }
 }
