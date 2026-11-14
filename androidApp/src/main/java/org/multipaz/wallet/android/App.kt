@@ -85,6 +85,7 @@ import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustMetadata
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
+import org.multipaz.utopia.knowntypes.addDelegateTransactionType
 import org.multipaz.utopia.knowntypes.addUtopiaTypes
 import org.multipaz.wallet.android.navigation.AppNavHost
 import org.multipaz.wallet.android.navigation.Destination
@@ -93,6 +94,7 @@ import org.multipaz.wallet.android.navigation.ProvisioningNavHost
 import org.multipaz.wallet.android.navigation.VerificationShowResponseDestination
 import org.multipaz.wallet.android.navigation.WalletDestination
 import org.multipaz.wallet.android.ui.CommunicatingWithBackendDialog
+import org.multipaz.wallet.android.ui.presentment.walletTransactionDataRenderers
 import org.multipaz.wallet.android.settings.SettingsModel
 import org.multipaz.wallet.client.WalletClient
 import org.multipaz.wallet.client.clearOnSignOut
@@ -206,6 +208,9 @@ class App private constructor() {
         documentTypeRepository = DocumentTypeRepository()
         documentTypeRepository.addKnownTypes()
         documentTypeRepository.addUtopiaTypes()
+        // Not part of the utopia types: it is only registered alongside the renderer that shows
+        // the mandate (walletTransactionDataRenderers).
+        documentTypeRepository.addDelegateTransactionType()
         documentStore = buildDocumentStore(storage = storage, secureAreaRepository = secureAreaRepository) {}
         documentModel = DocumentModel.create(
             documentStore = documentStore,
@@ -491,7 +496,8 @@ class App private constructor() {
             trustedRequesterIdentity = trustedRequesterIdentity,
             presentmentData = presentmentData,
             preselectedDocuments = preselectedDocuments,
-            onDocumentsInFocus = onDocumentsInFocus
+            onDocumentsInFocus = onDocumentsInFocus,
+            transactionDataRendererRepository = walletTransactionDataRenderers,
         )
     }
 
