@@ -50,6 +50,7 @@ import java.io.ByteArrayOutputStream
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentBadge
 import org.multipaz.document.DocumentBadgeColor
+import org.multipaz.document.DocumentCredentialUsageUpdated
 import org.multipaz.document.DocumentStore
 import org.multipaz.document.buildDocumentStore
 import org.multipaz.documenttype.DocumentTypeRepository
@@ -249,6 +250,7 @@ class App private constructor() {
             preferSignatureToKeyAgreement = true,
             domainsMdocSignature = listOf(Domains.DOMAIN_MDOC_USER_AUTH, Domains.DOMAIN_MDOC_SOFTWARE),
             domainsMdocKeyAgreement = emptyList(),
+            domainsKeylessMdoc = listOf(Domains.DOMAIN_MDOC_KEYLESS, Domains.DOMAIN_MDOC_SOFTWARE),
             domainsKeyBoundSdJwt = listOf(Domains.DOMAIN_SDJWT_USER_AUTH, Domains.DOMAIN_SDJWT_SOFTWARE),
             domainsKeylessSdJwt = listOf(Domains.DOMAIN_SDJWT_KEYLESS, Domains.DOMAIN_SDJWT_SOFTWARE),
         )
@@ -259,7 +261,8 @@ class App private constructor() {
                     documentStore = documentStore,
                     documentTypeRepository = documentTypeRepository,
                 )
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 Logger.w(TAG, "Error registering with W3C DC API", e)
             }
 
@@ -267,6 +270,9 @@ class App private constructor() {
             CoroutineScope(Dispatchers.IO).launch {
                 documentStore.eventFlow
                     .onEach { event ->
+                        if (event is DocumentCredentialUsageUpdated) {
+                            return@onEach
+                        }
                         Logger.i(
                             TAG,
                             "DocumentStore event ${event::class.simpleName} ${event.documentId}"
@@ -276,7 +282,8 @@ class App private constructor() {
                                 documentStore = documentStore,
                                 documentTypeRepository = documentTypeRepository,
                             )
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
                             Logger.w(TAG, "Error registering with W3C DC API", e)
                         }
                     }
@@ -305,6 +312,7 @@ class App private constructor() {
                 defaultDocumentProvisioningSettings = DocumentProvisioningSettings(
                     mdocUserAuthDomain = Domains.DOMAIN_MDOC_USER_AUTH,
                     mdocNoUserAuthDomain = Domains.DOMAIN_MDOC_NO_USER_AUTH,
+                    mdocKeylessDomain = Domains.DOMAIN_MDOC_KEYLESS,
                     sdJwtUserAuthDomain = Domains.DOMAIN_SDJWT_USER_AUTH,
                     sdJwtNoUserAuthDomain = Domains.DOMAIN_SDJWT_NO_USER_AUTH,
                     sdJwtKeylessDomain = Domains.DOMAIN_SDJWT_KEYLESS,
@@ -896,6 +904,7 @@ class App private constructor() {
                         mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                         mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                         mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                        mpzPassKeylessIsoMdocDomain = Domains.DOMAIN_MDOC_KEYLESS,
                         walletClient = walletClient,
                         initialPreconsentSetting = preconsentSetting,
                         onDocumentOrderChanged = { order ->

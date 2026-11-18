@@ -15,6 +15,7 @@ import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
 import org.multipaz.mpzpass.MpzPass
 import org.multipaz.util.Logger
+import org.multipaz.wallet.shared.Domains
 
 private const val TAG = "WalletClientSharedData"
 
@@ -163,9 +164,11 @@ suspend fun DocumentStore.mapLocalDocumentOrderToShared(
  * @param mpzPassIsoMdocDomain The domain string to use when creating ISO mdoc credentials.
  * @param mpzPassSdJwtVcDomain The domain string to use when creating SD-JWT VC credentials.
  * @param mpzPassKeylessSdJwtVcDomain the domain string to use when creating keyless SD-JWT VC credentials.
+ * @param mpzPassKeylessIsoMdocDomain the domain string to use when creating keyless ISO mdoc credentials.
  * @param walletClient optional [WalletClient] to auto-remove un-importable corrupt passes from cloud shared data.
  * @param initialPreconsentSetting optional initial preconsent setting for imported documents.
  * @param onDocumentOrderChanged optional callback invoked with the new document order mapped to local document IDs.
+ * @throws Exception if synchronization fails.
  */
 @Throws(Exception::class)
 suspend fun DocumentStore.syncWithSharedData(
@@ -173,6 +176,7 @@ suspend fun DocumentStore.syncWithSharedData(
     mpzPassIsoMdocDomain: String,
     mpzPassSdJwtVcDomain: String,
     mpzPassKeylessSdJwtVcDomain: String,
+    mpzPassKeylessIsoMdocDomain: String = Domains.DOMAIN_MDOC_KEYLESS,
     walletClient: WalletClient? = null,
     initialPreconsentSetting: DocumentPreconsentSetting? = null,
     onDocumentOrderChanged: ((documentOrder: List<String>) -> Unit)? = null,
@@ -182,6 +186,7 @@ suspend fun DocumentStore.syncWithSharedData(
         mpzPassIsoMdocDomain = mpzPassIsoMdocDomain,
         mpzPassSdJwtVcDomain = mpzPassSdJwtVcDomain,
         mpzPassKeylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain,
+        mpzPassKeylessIsoMdocDomain = mpzPassKeylessIsoMdocDomain,
         walletClient = walletClient,
         initialPreconsentSetting = initialPreconsentSetting,
     )
@@ -201,6 +206,7 @@ private suspend fun DocumentStore.syncMpzPasses(
     mpzPassIsoMdocDomain: String = "mdoc",
     mpzPassSdJwtVcDomain: String = "sdjwtvc",
     mpzPassKeylessSdJwtVcDomain: String = "sdjwtvc_keyless",
+    mpzPassKeylessIsoMdocDomain: String = Domains.DOMAIN_MDOC_KEYLESS,
     walletClient: WalletClient? = null,
     initialPreconsentSetting: DocumentPreconsentSetting? = null,
 ) {
@@ -220,7 +226,8 @@ private suspend fun DocumentStore.syncMpzPasses(
                     mpzPass = pass,
                     isoMdocDomain = mpzPassIsoMdocDomain,
                     sdJwtVcDomain = mpzPassSdJwtVcDomain,
-                    keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
+                    keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain,
+                    keylessIsoMdocDomain = mpzPassKeylessIsoMdocDomain,
                 )
                 withContext(NonCancellable) {
                     document.setMpzPassData(ByteString(Cbor.encode(pass.toDataItem())))
@@ -236,7 +243,8 @@ private suspend fun DocumentStore.syncMpzPasses(
                     mpzPass = pass,
                     isoMdocDomain = mpzPassIsoMdocDomain,
                     sdJwtVcDomain = mpzPassSdJwtVcDomain,
-                    keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain
+                    keylessSdJwtVcDomain = mpzPassKeylessSdJwtVcDomain,
+                    keylessIsoMdocDomain = mpzPassKeylessIsoMdocDomain,
                 )
                 withContext(NonCancellable) {
                     document.setMpzPassData(ByteString(Cbor.encode(pass.toDataItem())))

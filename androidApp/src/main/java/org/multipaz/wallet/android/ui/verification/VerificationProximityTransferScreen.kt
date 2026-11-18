@@ -78,7 +78,8 @@ import org.multipaz.compose.qrcode.QrCodeScanner
 import org.multipaz.compose.rememberUiBoundCoroutineScope
 import org.multipaz.context.AndroidUiContext
 import org.multipaz.crypto.AsymmetricKey
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
+import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
+import org.multipaz.mdoc.nfc.MdocReaderNfcEngagementType
 import org.multipaz.mdoc.nfc.MdocReaderNfcHandoverOptions
 import org.multipaz.mdoc.nfc.ScanMdocReaderResult
 import org.multipaz.mdoc.nfc.scanMdocReader
@@ -271,23 +272,23 @@ fun VerificationProximityTransferScreen(
                                 message = null,
                                 options = MdocTransportOptions(
                                     bleUseL2CAP = false,               // Doesn't work with Apple Wallet
-                                    bleUseL2CAPInEngagement = true
                                 ),
                                 handoverOptions = MdocReaderNfcHandoverOptions(
-                                    useCce = useNfcV2
+                                    engagementType = if (useNfcV2) {
+                                        MdocReaderNfcEngagementType.NFC_CCE_AND_NFC_CONNECTION_HANDOVER
+                                    } else {
+                                        MdocReaderNfcEngagementType.NFC_CONNECTION_HANDOVER_ONLY
+                                    }
                                 ),
                                 transportFactory = MdocTransportFactory.Default,
                                 selectConnectionMethod = { connectionMethods -> connectionMethods.first() },
                                 negotiatedHandoverConnectionMethods = if (nfcOnly) {
                                     emptyList()
                                 } else {
+                                    val bleUuid = UUID.randomUUID()
                                     listOf(
-                                        MdocConnectionMethodBle(
-                                            supportsPeripheralServerMode = false,
-                                            supportsCentralClientMode = true,
-                                            peripheralServerModeUuid = null,
-                                            centralClientModeUuid = UUID.randomUUID(),
-                                        )
+                                        MdocConnectionMethod.Ble.DirectL2capCentral(uuid = bleUuid),
+                                        MdocConnectionMethod.Ble.GattCentral(uuid = bleUuid),
                                     )
                                 },
                                 nfcScanOptions = nfcScanOptions,
@@ -299,7 +300,8 @@ fun VerificationProximityTransferScreen(
                             if (scanResult != null) {
                                 break
                             }
-                        } catch (e: Throwable) {
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
                             if (!isActive) {
                                 Logger.e(TAG, "Caught exception while scanning and scope isn't active", e)
                                 break
@@ -367,7 +369,10 @@ fun VerificationProximityTransferScreen(
                 } else if (initialScanMode == ProximityScanMode.QR) {
                     InPersonQrScannerView(
                         onQrCodeScanned = { qrCode ->
-                            if (qrCode?.startsWith("mdoc:") == true && onQrCodeScanned != null) {
+                            if (qrCode?.startsWith("mdoc:") == true &&
+                                !qrCode.startsWith("mdoc://") &&
+                                onQrCodeScanned != null
+                            ) {
                                 if (proximityReaderModel.state.value == ProximityReaderModel.State.IDLE) {
                                     coroutineScope.launch {
                                         onQrCodeScanned(qrCode)

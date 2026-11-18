@@ -22,7 +22,7 @@ import org.multipaz.crypto.X500Name
 import org.multipaz.crypto.X509Cert
 import org.multipaz.crypto.X509KeyUsage
 import org.multipaz.crypto.buildX509Cert
-import org.multipaz.mdoc.credential.MdocCredential
+import org.multipaz.mdoc.credential.KeyBoundMdocCredential
 import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.util.truncateToWholeSeconds
 import kotlin.time.Clock
@@ -399,7 +399,7 @@ class PreconsentUtilTest {
         // Add two credentials to the same domain in docMdl
         // provisionStandardDocuments already added one to "mdoc" domain.
         
-        MdocCredential.create(
+        KeyBoundMdocCredential.create(
             document = harness.docMdl,
             asReplacementForIdentifier = null,
             domain = "mdoc",

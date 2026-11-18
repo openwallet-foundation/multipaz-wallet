@@ -82,7 +82,8 @@ val WalletScreen = FC<WalletScreenProps> { props ->
                                     sharedData = props.walletClient.sharedData.value!!,
                                     mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                                     mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                                    mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                                    mpzPassKeylessIsoMdocDomain = Domains.DOMAIN_MDOC_KEYLESS,
                                 )
                                 setStatus("Data updated")
                             } catch (e: Exception) {

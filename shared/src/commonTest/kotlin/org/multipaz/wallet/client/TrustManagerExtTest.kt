@@ -145,8 +145,7 @@ class TrustManagerExtTest {
             notAfter = null,
             certificateInfos = listOf(
                 RicalCertificateInfo(
-                    certificate = caCert,
-                    isTrustAnchor = true
+                    certificate = caCert
                 )
             ),
             id = id,

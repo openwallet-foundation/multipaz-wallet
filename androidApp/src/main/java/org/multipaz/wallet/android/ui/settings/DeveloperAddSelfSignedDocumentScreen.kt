@@ -670,7 +670,9 @@ fun DeveloperAddSelfSignedDocumentScreen(
     }
     var authorizedDataElements by remember(selectedDocumentType) {
         mutableStateOf(
-            if (selectedDocumentType.mdocDocumentType?.supportsPortraitImageEquivalence != null) {
+            if (selectedDocumentType.mdocDocumentType?.keyBound == true &&
+                selectedDocumentType.mdocDocumentType?.supportsPortraitImageEquivalence != null
+            ) {
                 listOf(
                     AuthorizedDataElementEntry(
                         namespace = ISO_23220_5_CHV_1_NAMESPACE,
@@ -957,8 +959,9 @@ fun DeveloperAddSelfSignedDocumentScreen(
                 }
 
                 // MSO Key Authorizations section
-                Text(
-                    text = stringResource(R.string.dev_add_self_signed_key_authorizations_title),
+                if (mdocDocType.keyBound) {
+                    Text(
+                        text = stringResource(R.string.dev_add_self_signed_key_authorizations_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1152,6 +1155,7 @@ fun DeveloperAddSelfSignedDocumentScreen(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
                 }
             }
 
@@ -1390,15 +1394,23 @@ fun DeveloperAddSelfSignedDocumentScreen(
                     } else {
                         null
                     }
-                    val authDeMap = authorizedDataElements
-                        .map { AuthorizedDataElementEntry(it.namespace.trim(), it.dataElement.trim()) }
-                        .filter { it.namespace.isNotEmpty() && it.dataElement.isNotEmpty() }
-                        .groupBy({ it.namespace }, { it.dataElement })
-                        .mapValues { it.value.distinct() }
-                    val authNsList = authorizedNamespaces
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() }
-                        .distinct()
+                    val authDeMap = if (mdocDocType?.keyBound == true) {
+                        authorizedDataElements
+                            .map { AuthorizedDataElementEntry(it.namespace.trim(), it.dataElement.trim()) }
+                            .filter { it.namespace.isNotEmpty() && it.dataElement.isNotEmpty() }
+                            .groupBy({ it.namespace }, { it.dataElement })
+                            .mapValues { it.value.distinct() }
+                    } else {
+                        emptyMap()
+                    }
+                    val authNsList = if (mdocDocType?.keyBound == true) {
+                        authorizedNamespaces
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                            .distinct()
+                    } else {
+                        emptyList()
+                    }
 
                     val mdocDataElements = mdocAttributeStates
                         .filterValues { it.included }

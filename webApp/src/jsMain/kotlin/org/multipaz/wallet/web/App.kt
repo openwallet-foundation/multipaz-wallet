@@ -165,7 +165,8 @@ val App = FC<AppProps> { props ->
                                         mpzPass = pass,
                                         isoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                                         sdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                                        keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                                        keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                                        keylessIsoMdocDomain = Domains.DOMAIN_MDOC_KEYLESS,
                                     )
                                     document.setMpzPassData(encodedMpzPass)
                                     window.location.hash = ""

@@ -7,7 +7,7 @@ import org.multipaz.claim.MdocClaim
 import org.multipaz.compose.document.DocumentInfo
 import org.multipaz.documenttype.DocumentAttributeType
 import org.multipaz.mdoc.credential.MdocCredential
-import org.multipaz.sdjwt.credential.KeyBoundSdJwtVcCredential
+import org.multipaz.sdjwt.credential.SdJwtVcCredential
 import org.multipaz.wallet.client.isMpzPassShareable
 
 /**
@@ -23,7 +23,7 @@ val DocumentInfo.isProximityPresentable: Boolean
     get() {
         credentialInfos.forEach { credentialInfo ->
             if (credentialInfo.credential is MdocCredential ||
-                credentialInfo.credential is KeyBoundSdJwtVcCredential) {
+                credentialInfo.credential is SdJwtVcCredential) {
                 return true
             }
         }

@@ -27,7 +27,8 @@ internal suspend fun appJustLaunched(
                 sharedData = walletClient.sharedData.value!!,
                 mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                 mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                mpzPassKeylessIsoMdocDomain = Domains.DOMAIN_MDOC_KEYLESS,
             )
         } catch (e: WalletBackendNotSignedInException) {
             Logger.i(TAG, "Failed refreshing with wallet backend, not signed in", e)

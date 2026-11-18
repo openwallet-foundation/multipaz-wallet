@@ -60,7 +60,8 @@ import org.multipaz.documenttype.JsonDocumentType
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.EUPersonalID
 import org.multipaz.documenttype.knowntypes.PhotoID
-import org.multipaz.mdoc.credential.MdocCredential
+import org.multipaz.mdoc.credential.KeyBoundMdocCredential
+import org.multipaz.mdoc.credential.KeylessMdocCredential
 import org.multipaz.mdoc.issuersigned.buildIssuerNamespaces
 import org.multipaz.mdoc.mso.MobileSecurityObject
 import org.multipaz.mdoc.util.MdocUtil
@@ -393,7 +394,9 @@ YM2TzKkXtYaiiKAKBggqhkjOPQMBBw==
         jsonClaims: JsonObject = buildDefaultJsonClaims(documentType),
         authorizedNamespaces: List<String> = emptyList(),
         authorizedDataElements: Map<String, List<String>> =
-            if (documentType.mdocDocumentType?.supportsPortraitImageEquivalence != null) {
+            if (documentType.mdocDocumentType?.keyBound == true &&
+                documentType.mdocDocumentType?.supportsPortraitImageEquivalence != null
+            ) {
                 mapOf(ISO_23220_5_CHV_1_NAMESPACE to listOf(ISO_23220_5_CHV_1_DATA_ELEMENT))
             } else {
                 emptyMap()
@@ -504,67 +507,117 @@ YM2TzKkXtYaiiKAKBggqhkjOPQMBBw==
                 }
             }
 
-            val mdocDomains = mutableListOf(Domains.DOMAIN_MDOC_USER_AUTH)
-            if (!settingsModel.disableNoUserAuth.value) {
-                mdocDomains.add(Domains.DOMAIN_MDOC_NO_USER_AUTH)
-            }
+            val protectedHeaders = mapOf<CoseLabel, DataItem>(
+                Pair(
+                    CoseNumberLabel(Cose.COSE_LABEL_ALG),
+                    Algorithm.ES256.coseAlgorithmIdentifier!!.toDataItem()
+                )
+            )
+            val unprotectedHeaders = mapOf<CoseLabel, DataItem>(
+                Pair(
+                    CoseNumberLabel(Cose.COSE_LABEL_X5CHAIN),
+                    dsKey.certChain.toDataItem()
+                )
+            )
 
-            for (domain in mdocDomains) {
-                val userAuthRequired = (domain == Domains.DOMAIN_MDOC_USER_AUTH)
-                val createKeySettings = buildCreateKeySettings(userAuthRequired)
-
-                val mdocCredential = try {
-                    MdocCredential.create(
-                        document = document,
-                        asReplacementForIdentifier = null,
-                        domain = domain,
-                        secureArea = secureArea,
-                        docType = mdocDocType.docType,
-                        createKeySettings = createKeySettings
-                    )
-                } catch (e: Exception) {
-                    if (e is CancellationException) throw e
-                    Logger.w(TAG, "Failed creating mdoc key with userAuth=$userAuthRequired, falling back to no-auth", e)
-                    MdocCredential.create(
-                        document = document,
-                        asReplacementForIdentifier = null,
-                        domain = domain,
-                        secureArea = secureArea,
-                        docType = mdocDocType.docType,
-                        createKeySettings = CreateKeySettings(userAuthenticationRequired = false)
-                    )
+            if (mdocDocType.keyBound) {
+                val mdocDomains = mutableListOf(Domains.DOMAIN_MDOC_USER_AUTH)
+                if (!settingsModel.disableNoUserAuth.value) {
+                    mdocDomains.add(Domains.DOMAIN_MDOC_NO_USER_AUTH)
                 }
+
+                for (domain in mdocDomains) {
+                    val userAuthRequired = (domain == Domains.DOMAIN_MDOC_USER_AUTH)
+                    val createKeySettings = buildCreateKeySettings(userAuthRequired)
+
+                    val mdocCredential = try {
+                        KeyBoundMdocCredential.create(
+                            document = document,
+                            asReplacementForIdentifier = null,
+                            domain = domain,
+                            secureArea = secureArea,
+                            docType = mdocDocType.docType,
+                            createKeySettings = createKeySettings
+                        )
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.w(
+                            TAG,
+                            "Failed creating mdoc key with userAuth=$userAuthRequired, falling back to no-auth",
+                            e
+                        )
+                        KeyBoundMdocCredential.create(
+                            document = document,
+                            asReplacementForIdentifier = null,
+                            domain = domain,
+                            secureArea = secureArea,
+                            docType = mdocDocType.docType,
+                            createKeySettings = CreateKeySettings(userAuthenticationRequired = false)
+                        )
+                    }
+
+                    val mso = MobileSecurityObject(
+                        version = "1.0",
+                        docType = mdocDocType.docType,
+                        signedAt = validFrom,
+                        validFrom = validFrom,
+                        validUntil = validUntil,
+                        expectedUpdate = null,
+                        digestAlgorithm = Algorithm.SHA256,
+                        valueDigests = issuerNamespaces.getValueDigests(Algorithm.SHA256),
+                        deviceKey = mdocCredential.getAttestation().publicKey,
+                        deviceKeyAuthorizedNamespaces = authorizedNamespaces,
+                        deviceKeyAuthorizedDataElements = authorizedDataElements,
+                    )
+                    val taggedEncodedMso = Cbor.encode(
+                        Tagged(
+                            Tagged.ENCODED_CBOR,
+                            Bstr(Cbor.encode(mso.toDataItem()))
+                        )
+                    )
+                    val encodedIssuerAuth = Cbor.encode(
+                        Cose.coseSign1Sign(
+                            dsKey,
+                            taggedEncodedMso,
+                            true,
+                            protectedHeaders,
+                            unprotectedHeaders
+                        ).toDataItem()
+                    )
+                    val issuerProvidedAuthenticationData = Cbor.encode(
+                        buildCborMap {
+                            put("nameSpaces", issuerNamespaces.toDataItem())
+                            put("issuerAuth", RawCbor(encodedIssuerAuth))
+                        }
+                    )
+
+                    mdocCredential.certify(ByteString(issuerProvidedAuthenticationData))
+                }
+            } else {
+                val mdocCredential = KeylessMdocCredential.create(
+                    document = document,
+                    asReplacementForIdentifier = null,
+                    domain = Domains.DOMAIN_MDOC_KEYLESS,
+                    docType = mdocDocType.docType,
+                )
 
                 val mso = MobileSecurityObject(
                     version = "1.0",
                     docType = mdocDocType.docType,
-                    signedAt = now,
+                    signedAt = validFrom,
                     validFrom = validFrom,
                     validUntil = validUntil,
                     expectedUpdate = null,
                     digestAlgorithm = Algorithm.SHA256,
                     valueDigests = issuerNamespaces.getValueDigests(Algorithm.SHA256),
-                    deviceKey = mdocCredential.getAttestation().ecPublicKey,
-                    deviceKeyAuthorizedNamespaces = authorizedNamespaces,
-                    deviceKeyAuthorizedDataElements = authorizedDataElements,
+                    deviceKey = null,
+                    deviceKeyAuthorizedNamespaces = emptyList(),
+                    deviceKeyAuthorizedDataElements = emptyMap(),
                 )
                 val taggedEncodedMso = Cbor.encode(
                     Tagged(
                         Tagged.ENCODED_CBOR,
                         Bstr(Cbor.encode(mso.toDataItem()))
-                    )
-                )
-
-                val protectedHeaders = mapOf<CoseLabel, DataItem>(
-                    Pair(
-                        CoseNumberLabel(Cose.COSE_LABEL_ALG),
-                        Algorithm.ES256.coseAlgorithmIdentifier!!.toDataItem()
-                    )
-                )
-                val unprotectedHeaders = mapOf<CoseLabel, DataItem>(
-                    Pair(
-                        CoseNumberLabel(Cose.COSE_LABEL_X5CHAIN),
-                        dsKey.certChain.toDataItem()
                     )
                 )
                 val encodedIssuerAuth = Cbor.encode(

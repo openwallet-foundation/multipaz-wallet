@@ -3,9 +3,11 @@ package org.multipaz.wallet.client.verification
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.multipaz.cbor.Bstr
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.DataItem
@@ -281,7 +283,7 @@ class ProximityReaderModel {
             } catch (e: CancellationException) {
                 Logger.i(TAG, "Reader flow cancelled")
                 throw e
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Logger.w(TAG, "Error doing reader flow", e)
                 _result = null
                 _error = e
@@ -325,10 +327,10 @@ class ProximityReaderModel {
         val transport = if (existingTransport != null) {
             existingTransport
         } else {
-            val connectionMethods = MdocConnectionMethod.disambiguate(
-                deviceEngagement.connectionMethods,
-                MdocRole.MDOC_READER
-            )
+            val connectionMethods = deviceEngagement.connectionMethods
+            if (connectionMethods.isEmpty()) {
+                throw IllegalStateException("No supported connection methods in DeviceEngagement")
+            }
             val connectionMethod = if (connectionMethods.size == 1) {
                 connectionMethods[0]
             } else {
@@ -362,7 +364,7 @@ class ProximityReaderModel {
         Logger.i(TAG, "OK, with transport: $transport")
         val connectionMethod = transport.connectionMethod
         try {
-            transport.open(deviceEngagement.eDeviceKey)
+            transport.open(eSenderKeyBytes = deviceEngagement.eDeviceKeyBytes)
             Logger.dCbor(TAG, "DeviceRequest", deviceRequest!!.toDataItem())
             transport.sendMessage(
                 sessionEncryption.encryptMessage(
@@ -403,9 +405,9 @@ class ProximityReaderModel {
                             "Auto-close is enabled, so sending termination message, closing, and " +
                             "ending reader loop")
                 transport.sendMessage(
-                    SessionEncryption.encodeStatus(
-                        statusCode = Constants.SESSION_DATA_STATUS_SESSION_TERMINATION,
-                        sequenceNumber = if (insertSequenceNumbers) sessionEncryption.nextSequenceNumber else null
+                    sessionEncryption.encryptMessage(
+                        messagePlaintext = null,
+                        statusCode = Constants.SESSION_DATA_STATUS_SESSION_TERMINATION
                     )
                 )
             }
@@ -431,7 +433,9 @@ class ProximityReaderModel {
                 updateNfcDialogMessage("Transfer complete")
             }
              */
-            transport.close()
+            withContext(NonCancellable) {
+                transport.close()
+            }
         }
     }
 }

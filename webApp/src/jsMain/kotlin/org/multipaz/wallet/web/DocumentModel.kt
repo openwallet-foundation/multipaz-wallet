@@ -20,6 +20,7 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.crypto.Crypto
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentAdded
+import org.multipaz.document.DocumentCredentialUsageUpdated
 import org.multipaz.document.DocumentDeleted
 import org.multipaz.document.DocumentEvent
 import org.multipaz.document.DocumentStore
@@ -167,6 +168,7 @@ class DocumentModel private constructor(
                     }
                 }
             }
+            is DocumentCredentialUsageUpdated -> {}
             null -> {}
         }
     }

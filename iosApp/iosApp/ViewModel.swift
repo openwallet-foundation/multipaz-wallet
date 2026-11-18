@@ -201,7 +201,8 @@ class ViewModel {
                     mdocNoUserAuthDomain: Domains.shared.DOMAIN_MDOC_NO_USER_AUTH,
                     sdJwtUserAuthDomain: Domains.shared.DOMAIN_SDJWT_USER_AUTH,
                     sdJwtNoUserAuthDomain: Domains.shared.DOMAIN_SDJWT_NO_USER_AUTH,
-                    sdJwtKeylessDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
+                    sdJwtKeylessDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS,
+                    mdocKeylessDomain: Domains.shared.DOMAIN_MDOC_KEYLESS
                 ),
                 selectSecureAreaFn: nil  // TODO
             ),
@@ -231,7 +232,10 @@ class ViewModel {
                 print("Error registering with DigitalCredentials API: \(error)")
             }
             Task {
-                for await _ in documentStore.eventFlow {
+                for await event in documentStore.eventFlow {
+                    if event is DocumentCredentialUsageUpdated {
+                        continue
+                    }
                     Task {
                         do {
                             try await dcApi.register(
@@ -335,6 +339,7 @@ class ViewModel {
                 mpzPassIsoMdocDomain: Domains.shared.DOMAIN_MDOC_SOFTWARE,
                 mpzPassSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
                 mpzPassKeylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS,
+                mpzPassKeylessIsoMdocDomain: Domains.shared.DOMAIN_MDOC_KEYLESS,
                 walletClient: walletClient,
                 initialPreconsentSetting: DocumentPreconsentSetting.NeverRequireConsent.shared,
                 onDocumentOrderChanged: { [weak self] order in
@@ -382,7 +387,7 @@ class ViewModel {
         }
     }
 
-    func importMpzPass(data: Data) async throws -> Document {
+    func importMpzPass(data: Data) async throws -> MultipazDocument {
         let byteString = data.toByteString()
         let byteArray = byteString.toByteArray(startIndex: 0, endIndex: Int32(data.count))
         let dataItem = try Cbor.shared.decode(encodedCbor: byteArray)
@@ -407,7 +412,8 @@ class ViewModel {
             mpzPass: pass,
             isoMdocDomain: Domains.shared.DOMAIN_MDOC_SOFTWARE,
             sdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_SOFTWARE,
-            keylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS
+            keylessSdJwtVcDomain: Domains.shared.DOMAIN_SDJWT_KEYLESS,
+            keylessIsoMdocDomain: Domains.shared.DOMAIN_MDOC_KEYLESS
         )
         try await document.setMpzPassData(data: byteString)
         try await document.setPreconsentSetting(value: DocumentPreconsentSetting.NeverRequireConsent.shared)
@@ -498,6 +504,7 @@ class ViewModel {
             preferSignatureToKeyAgreement: true,
             domainsMdocSignature: [ Domains.shared.DOMAIN_MDOC_USER_AUTH, Domains.shared.DOMAIN_MDOC_SOFTWARE ],
             domainsMdocKeyAgreement: [],
+            domainsKeylessMdoc: [ Domains.shared.DOMAIN_MDOC_KEYLESS, Domains.shared.DOMAIN_MDOC_SOFTWARE ],
             domainsKeylessSdJwt: [ Domains.shared.DOMAIN_SDJWT_KEYLESS, Domains.shared.DOMAIN_SDJWT_SOFTWARE ],
             domainsKeyBoundSdJwt: [ Domains.shared.DOMAIN_SDJWT_USER_AUTH, Domains.shared.DOMAIN_SDJWT_SOFTWARE ]
         )

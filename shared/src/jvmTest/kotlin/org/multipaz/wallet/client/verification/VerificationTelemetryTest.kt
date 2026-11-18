@@ -37,8 +37,8 @@ class VerificationTelemetryTest {
         val stats = MdocTransportStats(
             transportType = MdocTransportType.NFC_CCE_MDOC_CENTRAL_CLIENT_MODE,
             role = MdocRole.MDOC_READER,
-            scanningTime = 80.milliseconds,
-            connectingTime = 40.milliseconds,
+            bleScanningTime = 80.milliseconds,
+            bleConnectingTime = 40.milliseconds,
             bytesSent = 512,
             bytesReceived = 2048,
             numMessagesSent = 10,

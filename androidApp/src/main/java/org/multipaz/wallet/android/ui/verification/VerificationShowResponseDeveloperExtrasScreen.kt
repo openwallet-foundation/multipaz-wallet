@@ -681,6 +681,7 @@ private fun createProtocolDetailsSection(
         is ProximityVerificationTelemetry -> {
             val engagementText = when (telemetry.engagementType) {
                 EngagementType.QR_CODE -> "QR code"
+                EngagementType.READER_QR_CODE -> "Reader QR code"
                 EngagementType.NFC_STATIC_HANDOVER -> "NFC static handover"
                 EngagementType.NFC_NEGOTIATED_HANDOVER -> "NFC negotiated handover"
                 EngagementType.NFC_CONCURRENT_CHANNEL_ENGAGEMENT -> "NFC concurrent channel engagement"
@@ -715,7 +716,7 @@ private fun createProtocolDetailsSection(
                 }
                 lines.add(Line("Transport stats", ValueText(text)))
                 stats.bleNegotiatedMtu?.let { mtu ->
-                    val mtuText = if (stats.bleMtuInferredFromWrite) "$mtu (inferred from write)" else "$mtu"
+                    val mtuText = if (stats.bleMtuInferredFromWrite == true) "$mtu (inferred from write)" else "$mtu"
                     lines.add(Line("BLE negotiated MTU", ValueText(mtuText)))
                 }
                 if (stats.warnings.isNotEmpty()) {

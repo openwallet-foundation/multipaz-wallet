@@ -37,16 +37,18 @@ class WalletMdocNdefService : MdocNdefService() {
             sessionEncryptionCurve = EcCurve.P256,
             useNegotiatedHandover = true,
             negotiatedHandoverPreferredOrder = listOf(
-                "ble:central_client_mode:",
-                "ble:peripheral_server_mode:",
+                "ble:direct_l2cap_central:",
+                "ble:direct_l2cap_peripheral:",
+                "ble:gatt_central:",
+                "ble:gatt_peripheral:",
                 "nfc:"
             ),
             staticHandoverBleCentralClientModeEnabled = true,
             staticHandoverBlePeripheralServerModeEnabled = true,
             staticHandoverNfcDataTransferEnabled = false,
+            bleDirectL2capEnabled = true,
             transportOptions = MdocTransportOptions(
                 bleUseL2CAP = false,
-                bleUseL2CAPInEngagement = true
             ),
         )
     }

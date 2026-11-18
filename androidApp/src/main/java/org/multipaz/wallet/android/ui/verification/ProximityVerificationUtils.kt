@@ -64,7 +64,6 @@ suspend fun handleNfcHandover(
         proximityReaderModel.setMdocTransportOptions(
             MdocTransportOptions(
                 bleUseL2CAP = false,             // Doesn't work with Apple Wallet
-                bleUseL2CAPInEngagement = true
             )
         )
         proximityReaderModel.setConnectionEndpoint(
@@ -119,7 +118,6 @@ suspend fun handleQrCodeScanned(
         proximityReaderModel.setMdocTransportOptions(
             MdocTransportOptions(
                 bleUseL2CAP = true,
-                bleUseL2CAPInEngagement = true
             )
         )
         proximityReaderModel.setConnectionEndpoint(

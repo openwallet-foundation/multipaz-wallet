@@ -182,7 +182,8 @@ fun AppNavHost(
                         mpzPass = pass,
                         isoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                         sdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
-                        keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS
+                        keylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                        keylessIsoMdocDomain = Domains.DOMAIN_MDOC_KEYLESS,
                     )
                     document.setMpzPassData(encodedPass)
                     if (!settingsModel.preconsentForNewDocuments.value) {

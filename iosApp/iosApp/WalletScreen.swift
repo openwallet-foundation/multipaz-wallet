@@ -939,7 +939,7 @@ private struct RefreshControlAdjuster: UIViewRepresentable {
 extension DocumentInfo {
     var isProximityPresentable: Bool {
         credentialInfos.contains {
-            $0.credential is MdocCredential || $0.credential is KeyBoundSdJwtVcCredential
+            $0.credential is MdocCredential || $0.credential is SdJwtVcCredential
         }
     }
 

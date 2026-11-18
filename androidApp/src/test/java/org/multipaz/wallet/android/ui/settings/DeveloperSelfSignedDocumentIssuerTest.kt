@@ -30,6 +30,8 @@ import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.EUPersonalID
 import org.multipaz.documenttype.knowntypes.PhotoID
 import org.multipaz.documenttype.knowntypes.addKnownTypes
+import org.multipaz.mdoc.credential.KeyBoundMdocCredential
+import org.multipaz.mdoc.credential.KeylessMdocCredential
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.sdjwt.SdJwt
 import org.multipaz.sdjwt.credential.KeyBoundSdJwtVcCredential
@@ -139,7 +141,7 @@ class DeveloperSelfSignedDocumentIssuerTest {
 
         val mdocCredential = document
             .getCertifiedCredentialsForDomain(Domains.DOMAIN_MDOC_USER_AUTH)
-            .first() as MdocCredential
+            .first() as KeyBoundMdocCredential
 
         val nsData = mdocCredential.issuerNamespaces.data[nsIso]!!
         val dataElementMap = nsData.mapValues { it.value.dataElementValue }
@@ -348,7 +350,7 @@ class DeveloperSelfSignedDocumentIssuerTest {
         val natClaims = natCred.getClaims(env.documentTypeRepository)
         assertTrue(natClaims.any { it.attribute?.identifier == "given_name" })
 
-        // 2. Keyless SD-JWT VC (UtopiaMovieTicket)
+        // 2. Keyless mdoc and SD-JWT VC (UtopiaMovieTicket)
         val movieDocType = UtopiaMovieTicket.getDocumentType()
         val movieDoc = DeveloperSelfSignedDocumentIssuer.issueSelfSignedDocument(
             documentStore = env.documentStore,
@@ -358,6 +360,14 @@ class DeveloperSelfSignedDocumentIssuerTest {
             documentType = movieDocType
         )
         assertEquals(movieDocType.displayName, movieDoc.displayName)
+        val movieMdocCred = movieDoc
+            .getCertifiedCredentialsForDomain(Domains.DOMAIN_MDOC_KEYLESS)
+            .first() as KeylessMdocCredential
+        assertEquals(UtopiaMovieTicket.MOVIE_TICKET_DOCTYPE, movieMdocCred.docType)
+        assertNull(movieMdocCred.mso.deviceKey)
+        val movieMdocValidation = movieMdocCred.validate(movieMdocCred.issuerProvidedData)
+        assertFalse("Mdoc validation errors: ${movieMdocValidation.errors}", movieMdocValidation.hasErrors)
+
         val movieCred = movieDoc
             .getCertifiedCredentialsForDomain(Domains.DOMAIN_SDJWT_KEYLESS)
             .first() as KeylessSdJwtVcCredential

@@ -62,27 +62,50 @@ fun TrustEntryRicalEntryViewer(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        SegmentedItemList(
-            title = stringResource(R.string.trust_entry_rical_entry_title)
-        ) {
-            SegmentedItemHeadingAndText(
-                heading = stringResource(R.string.trust_entry_rical_entry_trust_anchor),
-                text = if (ricalCertInfo.isTrustAnchor) {
-                    stringResource(R.string.trust_entry_rical_entry_yes)
-                } else {
-                    stringResource(R.string.trust_entry_rical_entry_no)
+        val hasEntryDetails = ricalCertInfo.name != null ||
+            ricalCertInfo.type != null ||
+            ricalCertInfo.issuingCountry != null ||
+            ricalCertInfo.stateOrProvinceName != null ||
+            ricalCertInfo.extensions.isNotEmpty()
+        if (hasEntryDetails) {
+            SegmentedItemList(
+                title = stringResource(R.string.trust_entry_rical_entry_title)
+            ) {
+                ricalCertInfo.name?.let {
+                    SegmentedItemHeadingAndText(
+                        heading = stringResource(R.string.trust_entry_rical_entry_name),
+                        text = it
+                    )
                 }
-            )
-            if (ricalCertInfo.extensions.isNotEmpty()) {
-                ItemWithExtensions(
-                    heading = stringResource(R.string.trust_entry_rical_entry_extensions),
-                    extensions = ricalCertInfo.extensions,
-                    onViewCbor = onViewCbor
-                )
+                ricalCertInfo.type?.let {
+                    SegmentedItemHeadingAndText(
+                        heading = stringResource(R.string.trust_entry_rical_entry_type),
+                        text = it
+                    )
+                }
+                ricalCertInfo.issuingCountry?.let {
+                    SegmentedItemHeadingAndText(
+                        heading = stringResource(R.string.trust_entry_rical_entry_issuing_country),
+                        text = it
+                    )
+                }
+                ricalCertInfo.stateOrProvinceName?.let {
+                    SegmentedItemHeadingAndText(
+                        heading = stringResource(R.string.trust_entry_rical_entry_state_or_province),
+                        text = it
+                    )
+                }
+                if (ricalCertInfo.extensions.isNotEmpty()) {
+                    ItemWithExtensions(
+                        heading = stringResource(R.string.trust_entry_rical_entry_extensions),
+                        extensions = ricalCertInfo.extensions,
+                        onViewCbor = onViewCbor
+                    )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         X509CertViewer(certificate = ricalCertInfo.certificate)
     }

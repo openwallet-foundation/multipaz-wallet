@@ -19,12 +19,12 @@ class ProximityPresentmentModel {
     var state: State = .idle
     var qrCodeToShow: String? = nil
     var transactionError: Error? = nil
-    var selectedDocuments: [Document] = []
+    var selectedDocuments: [MultipazDocument] = []
 
     private var transactionTask: Task<Void, Never>? = nil
 
     func start(
-        document: Document?,
+        document: MultipazDocument?,
         source: PresentmentSource,
         onConnected: @escaping @MainActor () -> Void
     ) {
@@ -38,19 +38,19 @@ class ProximityPresentmentModel {
         let transportFactory = MdocTransportFactoryDefault()
 
         let bleUuid = UUID.companion.randomUUID(random: KotlinRandom.companion)
-        let connectionMethods = [
-            MdocConnectionMethodBle(
-                supportsPeripheralServerMode: true,
-                supportsCentralClientMode: false,
-                peripheralServerModeUuid: bleUuid,
-                centralClientModeUuid: nil,
-                peripheralServerModePsm: nil,
-                peripheralServerModeMacAddress: nil
+        let connectionMethods: [MdocConnectionMethod] = [
+            MdocConnectionMethod.BleDirectL2capPeripheral(
+                uuid: bleUuid,
+                psm: nil,
+                peripheralAddress: nil
+            ),
+            MdocConnectionMethod.BleGattPeripheral(
+                uuid: bleUuid,
+                peripheralAddress: nil
             )
         ]
         let transportOptions = MdocTransportOptions(
-            bleUseL2CAP: false,
-            bleUseL2CAPInEngagement: true
+            bleUseL2CAP: false
         )
 
         transactionTask = Task {
@@ -68,8 +68,8 @@ class ProximityPresentmentModel {
                     eDeviceKey: eDeviceKey.publicKey,
                     version: nil
                 ) { builder in
-                    advertisedTransports.forEach {
-                        if let connectionMethod = $0.connectionMethod {
+                    advertisedTransports.forEach { transport in
+                        transport.connectionMethods.forEach { connectionMethod in
                             builder.addConnectionMethod(connectionMethod: connectionMethod)
                         }
                     }
@@ -85,7 +85,7 @@ class ProximityPresentmentModel {
 
                 let transport = try await ConnectionHelperKt.waitForConnection(
                     advertisedTransports,
-                    eSenderKey: eDeviceKey.publicKey
+                    eSenderKeyBytes: deviceEngagement.eDeviceKeyBytes
                 )
 
                 self.state = .waitingForRequest

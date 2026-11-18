@@ -41,9 +41,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
@@ -56,7 +58,6 @@ import org.multipaz.crypto.EcCurve
 import org.multipaz.document.Document
 import org.multipaz.document.DocumentStore
 import org.multipaz.mdoc.connectionmethod.MdocConnectionMethod
-import org.multipaz.mdoc.connectionmethod.MdocConnectionMethodBle
 import org.multipaz.mdoc.engagement.Capability
 import org.multipaz.mdoc.engagement.EngagementType
 import org.multipaz.mdoc.engagement.buildDeviceEngagement
@@ -116,7 +117,7 @@ fun  DocumentQrPresentmentDialog(
 
     LaunchedEffect(Unit) {
         val document = documentStore.lookupDocument(documentId)
-        proximityPresentment(
+        transactionJob = proximityPresentment(
             document = document,
             scope = scope,
             source = App.getPresentmentSource(),
@@ -197,10 +198,10 @@ private fun proximityPresentment(
     source: PresentmentSource,
     qrCodeReady: (qrCode: String) -> Unit,
     onTransactionUnderway: () -> Unit
-) {
+): Job {
     var listenForCancellationFromUiJob: Job? = null
     var transactionJob: Job? = null
-    transactionJob = (scope + PresentmentActivity.promptModel).launch {
+    val job = (scope + PresentmentActivity.promptModel).launch {
         val timeStarted = Clock.System.now()
         var advertisedTransports: List<MdocTransport>? = null
         var connectedTransport: MdocTransport? = null
@@ -211,17 +212,11 @@ private fun proximityPresentment(
             val transportFactory = MdocTransportFactory.Default
             val transportOptions = MdocTransportOptions(
                 bleUseL2CAP = false,
-                bleUseL2CAPInEngagement = true
             )
-            val connectionMethods = mutableListOf<MdocConnectionMethod>()
             val bleUuid = UUID.randomUUID()
-            connectionMethods.add(
-                MdocConnectionMethodBle(
-                    supportsPeripheralServerMode = true,
-                    supportsCentralClientMode = false,
-                    peripheralServerModeUuid = bleUuid,
-                    centralClientModeUuid = null,
-                )
+            val connectionMethods = listOf(
+                MdocConnectionMethod.Ble.DirectL2capPeripheral(uuid = bleUuid),
+                MdocConnectionMethod.Ble.GattPeripheral(uuid = bleUuid),
             )
             val eDeviceKey = Crypto.createEcPrivateKey(eDeviceKeyCurve)
             val transports = connectionMethods.advertise(
@@ -230,17 +225,20 @@ private fun proximityPresentment(
                 options = transportOptions
             )
             advertisedTransports = transports
-            val deviceEngagement = buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey) {
-                transports.forEach { addConnectionMethod(it.connectionMethod!!) }
+            val deviceEngagementObj = buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey) {
+                transports.forEach { transport ->
+                    transport.connectionMethods.forEach { addConnectionMethod(it) }
+                }
                 addCapability(Capability.READER_AUTH_ALL_SUPPORT, true.toDataItem())
                 addCapability(Capability.EXTENDED_REQUEST_SUPPORT, true.toDataItem())
-            }.toDataItem()
+            }
+            val deviceEngagement = deviceEngagementObj.toDataItem()
             val encodedDeviceEngagement = ByteString(Cbor.encode(deviceEngagement))
             val qrCode = "mdoc:" + encodedDeviceEngagement.toByteArray().toBase64Url()
             qrCodeReady(qrCode)
 
             val transport = transports.waitForConnection(
-                eSenderKey = eDeviceKey.publicKey,
+                eSenderKeyBytes = deviceEngagementObj.eDeviceKeyBytes,
             )
             connectedTransport = transport
             advertisedTransports = null
@@ -302,21 +300,43 @@ private fun proximityPresentment(
                 transportStats = (connectedTransport ?: advertisedTransports?.firstOrNull())?.stats,
             )
             if (e is CancellationException) {
-                PresentmentActivity.presentmentModel.setCompleted(
-                    PresentmentCanceledException(
-                        applicationContext.getString(R.string.qr_presentment_cancelled_error)
-                    ),
-                    resolvedTelemetry
-                )
+                if (enteredPresentment) {
+                    PresentmentActivity.presentmentModel.setCompleted(
+                        PresentmentCanceledException(
+                            applicationContext.getString(R.string.qr_presentment_cancelled_error)
+                        ),
+                        resolvedTelemetry
+                    )
+                }
             } else {
                 PresentmentActivity.presentmentModel.setCompleted(e, resolvedTelemetry)
             }
         } finally {
+            withContext(NonCancellable) {
+                advertisedTransports?.forEach {
+                    try {
+                        it.close()
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.w(TAG, "Error closing advertised transport", e)
+                    }
+                }
+                if (!enteredPresentment) {
+                    try {
+                        connectedTransport?.close()
+                    } catch (e: Exception) {
+                        if (e is CancellationException) throw e
+                        Logger.w(TAG, "Error closing connected transport", e)
+                    }
+                }
+            }
             transactionJob = null
             listenForCancellationFromUiJob?.cancel()
             listenForCancellationFromUiJob = null
         }
     }
+    transactionJob = job
+    return job
 }
 
 private fun Context.findActivity(): Activity? {

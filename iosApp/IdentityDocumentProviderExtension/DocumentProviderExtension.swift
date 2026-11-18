@@ -134,6 +134,7 @@ func getPresentmentSource() async -> PresentmentSource {
         preferSignatureToKeyAgreement: true,
         domainsMdocSignature: [ Domains.shared.DOMAIN_MDOC_USER_AUTH, Domains.shared.DOMAIN_MDOC_SOFTWARE ],
         domainsMdocKeyAgreement: [],
+        domainsKeylessMdoc: [ Domains.shared.DOMAIN_MDOC_KEYLESS, Domains.shared.DOMAIN_MDOC_SOFTWARE ],
         domainsKeylessSdJwt: [ Domains.shared.DOMAIN_SDJWT_KEYLESS, Domains.shared.DOMAIN_SDJWT_SOFTWARE ],
         domainsKeyBoundSdJwt: [ Domains.shared.DOMAIN_SDJWT_USER_AUTH, Domains.shared.DOMAIN_SDJWT_SOFTWARE ]
     )
@@ -143,6 +144,41 @@ func getPresentmentSource() async -> PresentmentSource {
 struct DocumentProviderExtension: IdentityDocumentProvider {
 
     var body: some IdentityDocumentRequestScene {
+#if compiler(>=6.4)
+        if #available(iOS 27.3, *) {
+            ISO18013MobileDocumentRawRequestScene { context in
+                RequestAuthorizationView(
+                    requestContext: context,
+                    getPresentmentSource: {
+                        initializeLogging()
+                        return await getPresentmentSource()
+                    }
+                )
+            }
+        }
+        if #available(iOS 27.3, *) {
+            OpenID4VPRawRequestScene { context in
+                RequestAuthorizationView(
+                    requestContext: context,
+                    getPresentmentSource: {
+                        initializeLogging()
+                        return await getPresentmentSource()
+                    }
+                )
+            }
+        }
+        if #unavailable(iOS 27.3) {
+            ISO18013MobileDocumentRequestScene { context in
+                RequestAuthorizationView(
+                    requestContext: context,
+                    getPresentmentSource: {
+                        initializeLogging()
+                        return await getPresentmentSource()
+                    }
+                )
+            }
+        }
+#else
         ISO18013MobileDocumentRequestScene { context in
             RequestAuthorizationView(
                 requestContext: context,
@@ -152,6 +188,7 @@ struct DocumentProviderExtension: IdentityDocumentProvider {
                 }
             )
         }
+#endif
     }
 
     func performRegistrationUpdates() async {

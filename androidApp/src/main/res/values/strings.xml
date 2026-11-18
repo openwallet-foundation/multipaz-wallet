@@ -773,9 +773,10 @@
     <string name="trust_entry_editor_test_only_rical">This RICAL is for testing only</string>
 
     <string name="trust_entry_rical_entry_title">RICAL entry</string>
-    <string name="trust_entry_rical_entry_trust_anchor">Trust anchor</string>
-    <string name="trust_entry_rical_entry_yes">Yes</string>
-    <string name="trust_entry_rical_entry_no">No</string>
+    <string name="trust_entry_rical_entry_name">Name</string>
+    <string name="trust_entry_rical_entry_type">Type</string>
+    <string name="trust_entry_rical_entry_issuing_country">Issuing country</string>
+    <string name="trust_entry_rical_entry_state_or_province">State or province</string>
     <string name="trust_entry_rical_entry_extensions">Extensions</string>
 
     <string name="trust_entry_vical_entry_title">VICAL entry</string>

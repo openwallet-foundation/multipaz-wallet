@@ -829,6 +829,7 @@ fun mainGraph(
                                         mpzPassIsoMdocDomain = Domains.DOMAIN_MDOC_SOFTWARE,
                                         mpzPassSdJwtVcDomain = Domains.DOMAIN_SDJWT_SOFTWARE,
                                         mpzPassKeylessSdJwtVcDomain = Domains.DOMAIN_SDJWT_KEYLESS,
+                                        mpzPassKeylessIsoMdocDomain = Domains.DOMAIN_MDOC_KEYLESS,
                                         walletClient = walletClient,
                                         initialPreconsentSetting = preconsentSetting,
                                         onDocumentOrderChanged = { order ->

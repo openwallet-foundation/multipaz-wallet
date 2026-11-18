@@ -37,11 +37,12 @@ class WalletMdocNfcCceService : MdocNfcCceService() {
             sessionEncryptionCurve = EcCurve.P256,
             onlyAllowNfc = false,
             handoverPreferredOrder = listOf(
-                "ble:central_client_mode:",
+                "ble:direct_l2cap_central:",
+                "ble:gatt_central:",
             ),
+            bleDirectL2capEnabled = true,
             transportOptions = MdocTransportOptions(
                 bleUseL2CAP = false,
-                bleUseL2CAPInEngagement = true
             ),
         )
     }

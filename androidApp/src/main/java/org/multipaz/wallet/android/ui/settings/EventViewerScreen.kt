@@ -88,6 +88,7 @@ import org.multipaz.compose.text.fromMarkdown
 import org.multipaz.crypto.X509CertChain
 import org.multipaz.datetime.FormatStyle
 import org.multipaz.datetime.formatLocalized
+import org.multipaz.documenttype.DocumentType
 import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.Icon
 import org.multipaz.eventlogger.Event
@@ -541,7 +542,9 @@ private fun EventViewerPresentment(
                     } else if (event.telemetry?.engagementType != null) {
                         SegmentedItemHeadingAndText(
                             heading = sharedInPerson,
-                            text = if (event.telemetry!!.engagementType == EngagementType.QR_CODE) {
+                            text = if (event.telemetry!!.engagementType == EngagementType.QR_CODE ||
+                                event.telemetry!!.engagementType == EngagementType.READER_QR_CODE
+                            ) {
                                 stringResource(R.string.event_viewer_screen_using_qr_code_text)
                             } else {
                                 stringResource(R.string.event_viewer_screen_using_nfc_text)
@@ -645,6 +648,10 @@ private fun EventViewerPresentment(
             val info = documentModel.documentInfos.collectAsState().value.find {
                 it.document.identifier == requestedDocument.documentId
             }
+            var fallbackDocType by remember(info?.document) { mutableStateOf<DocumentType?>(null) }
+            LaunchedEffect(info?.document) {
+                fallbackDocType = info?.document?.getDocumentType()
+            }
             if (info != null) {
                 Image(
                     modifier = Modifier.height(80.dp),
@@ -664,7 +671,7 @@ private fun EventViewerPresentment(
             }
             if (sharedClaims.isNotEmpty()) {
                 SegmentedItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_text)) {
-                    ExtractClaimsItems(sharedClaims, documentTypeRepository)
+                    ExtractClaimsItems(sharedClaims, documentTypeRepository, fallbackDocType)
                 }
             }
 
@@ -673,7 +680,7 @@ private fun EventViewerPresentment(
             }
             if (sharedAndStoredClaims.isNotEmpty()) {
                 SegmentedItemList(title = stringResource(R.string.event_viewer_screen_this_info_was_shared_and_stored_text)) {
-                    ExtractClaimsItems(sharedAndStoredClaims, documentTypeRepository)
+                    ExtractClaimsItems(sharedAndStoredClaims, documentTypeRepository, fallbackDocType)
                 }
             }
         }
@@ -925,7 +932,7 @@ private fun MdocTransportStats.formatTransportStats(): String {
         }
         bleNegotiatedMtu?.let {
             append("\nBLE negotiated MTU: $it")
-            if (bleMtuInferredFromWrite) append(" (inferred)")
+            if (bleMtuInferredFromWrite == true) append(" (inferred)")
         }
         if (warnings.isNotEmpty()) {
             append("\nWarnings: ${warnings.joinToString(", ") { it.code.name }}")
@@ -999,13 +1006,15 @@ private fun OriginAndAppIdItem(
 @Composable
 private fun ExtractClaimsItems(
     requestedClaims: Map<RequestedClaim, Claim>,
-    documentTypeRepository: DocumentTypeRepository
+    documentTypeRepository: DocumentTypeRepository,
+    fallbackDocumentType: DocumentType? = null,
 ) {
-    requestedClaims.forEach { (requestedClaim, claim) ->
+    requestedClaims.forEach { (_, claim) ->
         // Make sure claim.attribute is set, if we know the document type
         val claim = Claim.fromDataItem(
             dataItem = claim.toDataItem(),
-            documentTypeRepository = documentTypeRepository
+            documentTypeRepository = documentTypeRepository,
+            fallbackDocumentType = fallbackDocumentType,
         )
         SegmentedItemHeadingAndText(
             heading = claim.displayName,
@@ -1151,6 +1160,7 @@ private fun EventViewerVerification(
                 is EventVerificationIso18013Proximity -> {
                     val engagementText = when (event.engagementType) {
                         EngagementType.QR_CODE -> "QR code"
+                        EngagementType.READER_QR_CODE -> "Reader QR code"
                         EngagementType.NFC_STATIC_HANDOVER -> "NFC static handover"
                         EngagementType.NFC_NEGOTIATED_HANDOVER -> "NFC negotiated handover"
                         EngagementType.NFC_CONCURRENT_CHANNEL_ENGAGEMENT -> "NFC concurrent channel engagement"

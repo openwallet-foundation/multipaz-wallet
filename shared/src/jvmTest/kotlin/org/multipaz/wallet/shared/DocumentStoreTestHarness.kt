@@ -40,6 +40,7 @@ import org.multipaz.documenttype.DocumentTypeRepository
 import org.multipaz.documenttype.knowntypes.DrivingLicense
 import org.multipaz.documenttype.knowntypes.EUPersonalID
 import org.multipaz.documenttype.knowntypes.PhotoID
+import org.multipaz.mdoc.credential.KeyBoundMdocCredential
 import org.multipaz.mdoc.credential.MdocCredential
 import org.multipaz.mdoc.issuersigned.IssuerNamespaces
 import org.multipaz.mdoc.issuersigned.buildIssuerNamespaces
@@ -140,6 +141,7 @@ class DocumentStoreTestHarness {
             preferSignatureToKeyAgreement = true,
             domainsMdocSignature = listOf("mdoc"),
             domainsMdocKeyAgreement = listOf("mdoc_key_agreement"),
+            domainsKeylessMdoc = listOf("mdoc_keyless"),
             domainsKeylessSdJwt = listOf("sdjwt_keyless"),
             domainsKeyBoundSdJwt = listOf("sdjwt")
         )
@@ -416,7 +418,7 @@ class DocumentStoreTestHarness {
         domain: String
     ) {
         // Create authentication keys...
-        val mdocCredential = MdocCredential.create(
+        val mdocCredential = KeyBoundMdocCredential.create(
             document = document,
             asReplacementForIdentifier = null,
             domain = domain,
@@ -435,7 +437,7 @@ class DocumentStoreTestHarness {
             expectedUpdate = null,
             digestAlgorithm = Algorithm.SHA256,
             valueDigests = issuerNamespaces.getValueDigests(Algorithm.SHA256),
-            deviceKey = mdocCredential.getAttestation().ecPublicKey,
+            deviceKey = mdocCredential.getAttestation().publicKey,
         )
         val taggedEncodedMso = Cbor.encode(Tagged(
             Tagged.ENCODED_CBOR,
