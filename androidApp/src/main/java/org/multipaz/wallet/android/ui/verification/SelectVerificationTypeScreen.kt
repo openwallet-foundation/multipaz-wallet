@@ -13,8 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -26,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,7 +47,6 @@ import org.multipaz.wallet.android.ui.Note
 import org.multipaz.wallet.client.verification.AgeOverQuery
 import org.multipaz.wallet.client.verification.DrivingPrivilegesQuery
 import org.multipaz.wallet.client.verification.IdentificationQuery
-import org.multipaz.wallet.client.verification.UserDefinedQuery
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +54,8 @@ import org.multipaz.wallet.client.verification.UserDefinedQuery
 fun SelectVerificationTypeScreen(
     settingsModel: SettingsModel,
     onCustomAgeClicked: () -> Unit,
-    onUserDefinedClicked: () -> Unit,
+    onUserDefinedClicked: (index: Int?) -> Unit,
+    onImportUserDefinedClicked: () -> Unit,
     onBackClicked: () -> Unit,
 ) {
     val hazeState = remember { HazeState() }
@@ -90,6 +94,7 @@ fun SelectVerificationTypeScreen(
             Note(stringResource(R.string.select_verification_type_note))
             val selectedQuery = settingsModel.readerQuery.collectAsState().value
             val devMode = settingsModel.devMode.collectAsState().value
+            val userDefinedQueries = settingsModel.userDefinedQueries.collectAsState().value
             SegmentedItemList {
                 val builtInAges = listOf(18, 21, 65).map { AgeOverQuery(it) }
                 RequestOption(
@@ -158,29 +163,73 @@ fun SelectVerificationTypeScreen(
                     },
                 )
                 if (devMode) {
-                    val userDefinedSelected = selectedQuery is UserDefinedQuery
-                    RequestOption(
-                        title = stringResource(R.string.reader_query_user_defined),
-                        description = if (userDefinedSelected) {
-                            selectedQuery.getDescription()
-                        } else {
-                            stringResource(R.string.reader_query_user_defined_description_default)
-                        },
-                        selected = userDefinedSelected,
-                        onClick = {
-                            onUserDefinedClicked()
-                        },
-                        extraContent = {
-                            if (userDefinedSelected) {
+                    userDefinedQueries.forEachIndexed { index, query ->
+                        RequestOption(
+                            title = query.getDisplayName(),
+                            description = query.getDescription(),
+                            selected = query == selectedQuery,
+                            onClick = {
+                                settingsModel.readerQuery.value = query
+                            },
+                            extraContent = {
                                 FilterChip(
-                                    selected = true,
-                                    onClick = { onUserDefinedClicked() },
+                                    selected = false,
+                                    onClick = { onUserDefinedClicked(index) },
                                     label = { Text(stringResource(R.string.select_verification_type_edit_user_defined)) }
                                 )
                             }
-                        }
+                        )
+                    }
+                    AddUserDefinedOption(
+                        icon = Icons.Default.Add,
+                        title = stringResource(R.string.select_verification_type_add_user_defined),
+                        description = stringResource(R.string.reader_query_user_defined_description_default),
+                        onClick = { onUserDefinedClicked(null) }
+                    )
+                    AddUserDefinedOption(
+                        icon = Icons.Default.Download,
+                        title = stringResource(R.string.select_verification_type_import_user_defined),
+                        description = stringResource(R.string.select_verification_type_import_user_defined_description),
+                        onClick = onImportUserDefinedClicked
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddUserDefinedOption(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    SegmentedItemContainer(
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 2.dp, end = 16.dp)
+            )
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

@@ -65,6 +65,7 @@ fun MdocUrlVerificationNavHost(
         secureArea = secureArea,
         documentModel = documentModel,
         settingsModel = settingsModel,
+        provisioningModel = provisioningModel,
         externalNfcReaderStore = externalNfcReaderStore,
         documentTypeRepository = documentTypeRepository,
         zkSystemRepository = zkSystemRepository,

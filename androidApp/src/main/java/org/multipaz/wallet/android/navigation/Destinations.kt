@@ -12,6 +12,7 @@ import org.multipaz.verification.PresentmentRecord
 import org.multipaz.verification.fromCbor
 import org.multipaz.verification.toCbor
 import org.multipaz.wallet.client.verification.Query
+import org.multipaz.wallet.client.verification.UserDefinedQuery
 import org.multipaz.wallet.client.verification.VerificationTelemetry
 import org.multipaz.wallet.client.verification.fromCbor
 import org.multipaz.wallet.client.verification.toCbor
@@ -400,8 +401,42 @@ data object SelectExternalNfcReaderDestination: Destination()
 @Serializable
 data object SelectCustomAgeDestination: Destination()
 
+/**
+ * Adds or edits a user defined query.
+ *
+ * @property index the index of the saved query to edit, or `null` to add a new one.
+ * @property importedQueryEncoded a query to start a new one from, as encoded by [UserDefinedQuery.toCbor].
+ */
 @Serializable
-data object SelectUserDefinedQueryDestination: Destination()
+data class SelectUserDefinedQueryDestination(
+    val index: Int? = null,
+    val importedQueryEncoded: String? = null
+): Destination() {
+    constructor(importedQuery: UserDefinedQuery): this(
+        index = null,
+        importedQueryEncoded = importedQuery.toCbor().toBase64Url()
+    )
+
+    val importedQuery: UserDefinedQuery?
+        get() = importedQueryEncoded?.fromBase64Url()?.let { Query.fromCbor(it) as? UserDefinedQuery }
+}
+
+/** Enters the URL of an issuer to import a user defined query from its metadata. */
+@Serializable
+data object ImportUserDefinedQueryUrlDestination: Destination()
+
+/** Picks a credential configuration of the issuer at [issuerUrl] to import a user defined query from. */
+@Serializable
+data class ImportUserDefinedQueryCredentialDestination(
+    val issuerUrl: String
+): Destination()
+
+/** Picks the data elements of credential configuration [credentialId] of the issuer at [issuerUrl]. */
+@Serializable
+data class ImportUserDefinedQueryDataElementsDestination(
+    val issuerUrl: String,
+    val credentialId: String
+): Destination()
 
 
 @Serializable
