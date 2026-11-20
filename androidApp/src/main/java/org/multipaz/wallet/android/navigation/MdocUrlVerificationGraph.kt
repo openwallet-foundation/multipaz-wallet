@@ -110,8 +110,8 @@ fun mdocUrlVerificationGraph(
                     onCustomAgeClicked = {
                         backStack.add(SelectCustomAgeDestination)
                     },
-                    onUserDefinedClicked = {
-                        backStack.add(SelectUserDefinedQueryDestination)
+                    onUserDefinedClicked = { index ->
+                        backStack.add(SelectUserDefinedQueryDestination(index))
                     },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) }
                 )
@@ -129,12 +129,19 @@ fun mdocUrlVerificationGraph(
                 )
             }
             is SelectUserDefinedQueryDestination -> NavEntry(key) {
-                val readerQuery by settingsModel.readerQuery.collectAsState()
+                val userDefinedQueries by settingsModel.userDefinedQueries.collectAsState()
                 org.multipaz.wallet.android.ui.verification.SelectUserDefinedQueryScreen(
-                    initialQuery = readerQuery as? org.multipaz.wallet.client.verification.UserDefinedQuery,
+                    initialQuery = key.index?.let { userDefinedQueries.getOrNull(it) },
                     onBackClicked = { backStack.removeAt(backStack.size - 1) },
-                    onConfirmed = { userDefinedQuery ->
-                        settingsModel.readerQuery.value = userDefinedQuery
+                    onSaved = { userDefinedQuery ->
+                        settingsModel.saveUserDefinedQuery(key.index, userDefinedQuery)
+                        backStack.removeAt(backStack.size - 1)
+                    },
+                    onDeleted = key.index?.let { index ->
+                        {
+                            settingsModel.deleteUserDefinedQuery(index)
+                            backStack.removeAt(backStack.size - 1)
+                        }
                     }
                 )
             }
