@@ -24,6 +24,8 @@ import io.ktor.client.engine.android.Android
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -960,14 +962,20 @@ class App private constructor() {
         }
 
         suspend fun getInstance(): App {
-            lock.withLock {
-                if (app != null) {
-                    return app!!
+            // Initialization must not be cancelled half-way (a caller, for example the presentment
+            // activity, may be cancelled while it runs): storage would keep the tables it already
+            // created on disk while forgetting them in memory, and the next attempt then fails
+            // with KeyExistsStorageException. Publish only a fully initialized instance. This does
+            // not make initialize() safe to rerun after it throws.
+            return withContext(NonCancellable) {
+                lock.withLock {
+                    app?.let { return@withLock it }
+                    cryptoInit()
+                    val candidate = App()
+                    candidate.initialize()
+                    app = candidate
+                    candidate
                 }
-                cryptoInit()
-                app = App()
-                app!!.initialize()
-                return app!!
             }
         }
 
